@@ -411,10 +411,19 @@ Neither job fetches a font any more. The app's own faces are committed under
 `assets/fonts/`, and `screenshots_test.dart` reads them from the asset bundle,
 so a fresh clone renders the same PNGs CI does.
 
-`SUPABASE_URL` and `SUPABASE_ANON_KEY` are optional repository secrets. Unset,
+`SUPABASE_URL` and the publishable key are optional repository secrets. Unset,
 the APK still builds and runs on the in-memory repositories; sign-in, linking
 and syncing simply do not reach a server. The run summary says which of the two
-you got.
+you got, and so does the log, as a `WIRED-TO:` line.
+
+The key is accepted as **either** `SUPABASE_PUBLISHABLE_KEY` or
+`SUPABASE_ANON_KEY`. Both names exist because Supabase renamed the thing: the
+repository had it stored as the former while this workflow asked for the
+latter, so the secret was present and every APK was still built without a key —
+a mismatch that fails silently, since a keyless build is a supported
+configuration rather than an error. The `--dart-define` is unrelated to either
+name; it is what `SupabaseConfig.fromEnvironment` reads and it stays
+`SUPABASE_ANON_KEY`.
 
 ## Conventions
 
