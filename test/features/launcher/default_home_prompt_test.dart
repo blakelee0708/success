@@ -81,6 +81,34 @@ void main() {
     expect(find.byKey(DefaultHomePrompt.promptKey), findsNothing);
   });
 
+  testWidgets('says what to do when the phone will not open the chooser', (
+    tester,
+  ) async {
+    // Reported from a real phone: the button did nothing at all. The role
+    // dialog can decline to appear and some phones have no home-app settings
+    // screen to fall back to, and a button that silently does nothing is the
+    // worst possible answer for the person this app is for — they cannot tell
+    // it apart from a broken phone.
+    final launcher = FakeAppLauncher(defaultHome: false)
+      ..homeSettingsOpens = false;
+    await _pumpHome(tester, launcher);
+
+    await tester.tap(find.byKey(DefaultHomePrompt.buttonKey));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(DefaultHomePrompt.manualKey), findsOneWidget);
+  });
+
+  testWidgets('says nothing extra when the chooser did open', (tester) async {
+    final launcher = FakeAppLauncher(defaultHome: false);
+    await _pumpHome(tester, launcher);
+
+    await tester.tap(find.byKey(DefaultHomePrompt.buttonKey));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(DefaultHomePrompt.manualKey), findsNothing);
+  });
+
   testWidgets('the detailed home asks as well', (tester) async {
     await _pumpHome(
       tester,

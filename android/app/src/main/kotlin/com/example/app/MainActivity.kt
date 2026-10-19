@@ -36,10 +36,7 @@ class MainActivity : FlutterActivity() {
                         )
                     )
                     "isDefaultHome" -> result.success(isDefaultHome())
-                    "openHomeSettings" -> {
-                        openHomeSettings()
-                        result.success(null)
-                    }
+                    "openHomeSettings" -> result.success(openHomeSettings())
                     else -> result.notImplemented()
                 }
             }
@@ -67,7 +64,7 @@ class MainActivity : FlutterActivity() {
         if (packageName != null) {
             packageManager.getLaunchIntentForPackage(packageName)?.let { if (start(it)) return true }
         }
-        intentFor(intent)?.let { if (start(it)) return true }
+        for (candidate in intentsFor(intent)) if (start(candidate)) return true
         if (fallbackUrl != null) {
             return start(Intent(Intent.ACTION_VIEW, Uri.parse(fallbackUrl)))
         }
@@ -82,13 +79,32 @@ class MainActivity : FlutterActivity() {
      * requires that the user press call themselves, and that holds for the 전화
      * button exactly as it does for SOS.
      */
-    private fun intentFor(name: String?): Intent? = when (name) {
-        "dial" -> Intent(Intent.ACTION_DIAL)
-        "messaging" -> appIntent(Intent.CATEGORY_APP_MESSAGING)
-        "gallery" -> appIntent(Intent.CATEGORY_APP_GALLERY)
-        "browser" -> appIntent(Intent.CATEGORY_APP_BROWSER)
-        "camera" -> Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
-        else -> null
+    private fun intentsFor(name: String?): List<Intent> = when (name) {
+        "dial" -> listOf(Intent(Intent.ACTION_DIAL))
+        "messaging" -> listOf(
+            appIntent(Intent.CATEGORY_APP_MESSAGING),
+            Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")),
+        )
+        // CATEGORY_APP_GALLERY is the documented way and it is also the one
+        // most Korean phones do not answer: neither Samsung Gallery nor Google
+        // Photos declares it, so on the phone this was tested on the 앨범 tile
+        // did nothing at all. Viewing the image collection is what a gallery
+        // app actually registers for, so that is the fallback.
+        "gallery" -> listOf(
+            appIntent(Intent.CATEGORY_APP_GALLERY),
+            Intent(Intent.ACTION_VIEW)
+                .setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*"),
+            Intent(Intent.ACTION_VIEW).setType("image/*"),
+        )
+        "browser" -> listOf(
+            appIntent(Intent.CATEGORY_APP_BROWSER),
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com")),
+        )
+        "camera" -> listOf(
+            Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA),
+            Intent(MediaStore.ACTION_IMAGE_CAPTURE),
+        )
+        else -> emptyList()
     }
 
     private fun appIntent(category: String): Intent =
@@ -120,20 +136,40 @@ class MainActivity : FlutterActivity() {
      * one dialog rather than a trip into Settings — worth the branch, since the
      * senior is the one who has to complete it.
      */
-    private fun openHomeSettings() {
+    private fun openHomeSettings(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roles = getSystemService(RoleManager::class.java)
             if (roles != null &&
                 roles.isRoleAvailable(RoleManager.ROLE_HOME) &&
                 !roles.isRoleHeld(RoleManager.ROLE_HOME)
             ) {
-                if (start(roles.createRequestRoleIntent(RoleManager.ROLE_HOME))) return
+                // startActivityForResult, and without FLAG_ACTIVITY_NEW_TASK.
+                // The platform's role-request screen identifies the asker with
+                // getCallingPackage(), which is null for a plain startActivity
+                // — so it closes again immediately and the button looks dead.
+                // That is exactly what happened on the phone this was tested
+                // on: nothing at all.
+                try {
+                    startActivityForResult(
+                        roles.createRequestRoleIntent(RoleManager.ROLE_HOME),
+                        REQUEST_HOME_ROLE,
+                    )
+                    return true
+                } catch (e: ActivityNotFoundException) {
+                    // Fall through to the settings screens below.
+                }
             }
         }
-        start(Intent(Settings.ACTION_HOME_SETTINGS))
+        // Not every phone has every one of these. Samsung in particular may
+        // answer none of the first two, which is why the Flutter side has to
+        // be told that nothing opened rather than being left to assume.
+        return start(Intent(Settings.ACTION_HOME_SETTINGS)) ||
+            start(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)) ||
+            start(Intent(Settings.ACTION_SETTINGS))
     }
 
     private companion object {
         const val CHANNEL = "jalboine/launcher"
+        const val REQUEST_HOME_ROLE = 1001
     }
 }

@@ -92,6 +92,32 @@ jobs:
             --dart-define=SUPABASE_URL='${{ secrets.SUPABASE_URL }}' \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_KEY"
 
+      # The Kotlin and the manifest are never compiled anywhere else, so this
+      # is the only place the launcher's defining fact can be checked at all:
+      # without CATEGORY_HOME in the *merged* manifest the phone never offers
+      # the app as a home screen, and the only symptom is that nothing ever
+      # asks. Grepping the merged file catches a manifest-merger surprise that
+      # reading the source manifest would not.
+      - name: Check the APK really registers as a home app
+        run: |
+          merged="$(find android/app/build -path '*merged*' -name AndroidManifest.xml | head -1)"
+          if [ -z "$merged" ]; then
+            echo "::error::no merged manifest found — cannot verify the HOME filter"
+            exit 1
+          fi
+          echo "merged manifest: $merged"
+          for needed in \
+            android.intent.category.HOME \
+            android.intent.category.DEFAULT \
+            android.intent.category.APP_GALLERY; do
+            if grep -q "$needed" "$merged"; then
+              echo "ok: $needed"
+            else
+              echo "::error::$needed is missing from the merged manifest"
+              exit 1
+            fi
+          done
+
       # Written to the log as well as the summary. The summary is only legible
       # to someone with the run page open, and whether the APK can reach a
       # server is the first thing to check when it behaves oddly on a phone.

@@ -7,7 +7,6 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -74,6 +73,20 @@
         <intent>
             <action android:name="android.intent.action.MAIN"/>
             <category android:name="android.intent.category.APP_GALLERY"/>
+        </intent>
+        <!-- The fallbacks the gallery tile needs, because neither Samsung
+             Gallery nor Google Photos answers APP_GALLERY. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="image/*"/>
+        </intent>
+        <!-- 문자 and 사진 fallbacks, for the same reason. -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO"/>
+            <data android:scheme="smsto"/>
+        </intent>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE"/>
         </intent>
         <intent>
             <action android:name="android.intent.action.MAIN"/>

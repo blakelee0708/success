@@ -75,7 +75,12 @@ abstract interface class AppLauncher {
 
   /// Opens the system's home-app chooser. On Android 10 and up this is the
   /// in-app role dialog; older versions fall back to the settings screen.
-  Future<void> openHomeSettings();
+  ///
+  /// False when nothing opened. Phones differ about which of those screens
+  /// they have, and a senior left looking at an unchanged screen cannot tell
+  /// a refused chooser from a broken button — so the caller has to be able to
+  /// say something.
+  Future<bool> openHomeSettings();
 }
 
 class MethodChannelAppLauncher implements AppLauncher {
@@ -107,14 +112,13 @@ class MethodChannelAppLauncher implements AppLauncher {
   }
 
   @override
-  Future<void> openHomeSettings() async {
+  Future<bool> openHomeSettings() async {
     try {
-      await channel.invokeMethod<void>('openHomeSettings');
+      return await channel.invokeMethod<bool>('openHomeSettings') ?? false;
     } on PlatformException {
-      // Nothing useful to tell the senior: the chooser either appeared or the
-      // phone has no such screen, and neither is something they can fix.
+      return false;
     } on MissingPluginException {
-      // As above.
+      return false;
     }
   }
 }
@@ -131,6 +135,9 @@ class FakeAppLauncher implements AppLauncher {
   /// platform that does not implement the channel.
   bool? defaultHome;
 
+  /// Set false to behave like a phone that opens no chooser at all.
+  bool homeSettingsOpens = true;
+
   final List<LaunchRequest> opened = [];
   int homeSettingsOpened = 0;
 
@@ -144,7 +151,10 @@ class FakeAppLauncher implements AppLauncher {
   Future<bool?> isDefaultHome() async => defaultHome;
 
   @override
-  Future<void> openHomeSettings() async => homeSettingsOpened++;
+  Future<bool> openHomeSettings() async {
+    homeSettingsOpened++;
+    return homeSettingsOpens;
+  }
 }
 
 final appLauncherProvider = Provider<AppLauncher>(
