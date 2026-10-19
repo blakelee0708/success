@@ -187,6 +187,23 @@ display copied as text; that is fixed).
 Project: `jal 26.07`, ref `jnmvhdmxzonngqyicelx`, ap-southeast-1, PostgreSQL 17.
 `SUPABASE_PROJECT_REF` holds the ref.
 
+**The project pauses itself when nobody uses it.** It is on the free plan, and
+after a stretch of inactivity its status goes `INACTIVE` — the schema and the
+data survive, but every call fails until it is restored. It came back after two
+idle months this way. Restoring it needs no dashboard:
+
+```bash
+curl -X POST -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  -H 'User-Agent: curl/8.5.0' -d '{}' \
+  "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/restore"
+```
+
+It answers immediately and then takes two or three minutes, moving through
+`COMING_UP` and `RESTORING` to `ACTIVE_HEALTHY`; poll `GET /v1/projects` for the
+status rather than assuming. Give it a moment after that before trusting a
+failure: running the Phase 5 and Phase 6 scripts back to back right after a
+restore threw once and then never reproduced.
+
 ### Schema
 
 `supabase/migrations/20260729000000_phase4_core.sql` is the whole Phase 4
