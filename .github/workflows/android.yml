@@ -82,11 +82,16 @@ jobs:
             --dart-define=SUPABASE_URL='${{ secrets.SUPABASE_URL }}' \
             --dart-define=SUPABASE_ANON_KEY='${{ secrets.SUPABASE_ANON_KEY }}'
 
+      # Written to the log as well as the summary. The summary is only legible
+      # to someone with the run page open, and whether the APK can reach a
+      # server is the first thing to check when it behaves oddly on a phone.
       - name: Report what the APK is wired to
         run: |
           if [ -n '${{ secrets.SUPABASE_URL }}' ] && [ -n '${{ secrets.SUPABASE_ANON_KEY }}' ]; then
+            echo "WIRED-TO: supabase (both secrets are set)"
             echo "Supabase: configured — guardian sign-in and syncing are live." >> "$GITHUB_STEP_SUMMARY"
           else
+            echo "WIRED-TO: in-memory (SUPABASE_URL and/or SUPABASE_ANON_KEY are unset)"
             echo "Supabase: **not configured**. The app runs on its in-memory repositories:" >> "$GITHUB_STEP_SUMMARY"
             echo "sign-in, linking and syncing will not reach a server." >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
