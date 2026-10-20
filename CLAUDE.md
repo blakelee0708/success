@@ -114,8 +114,13 @@ The design carried four things the project docs rule out, and the docs won.
 Restoring any of them means changing the PRD first, not just the screen:
 
 - 약 알림 / 복약 기록 — PRD Out Of MVP.
-- 보이스피싱 의심 전화 — PRD excludes call-content analysis; the feature is
-  scoped to numbers absent from the contact list and is named for that.
+- 보이스피싱 의심 전화 — **removed outright on 2026-10-20.** The PRD already
+  excluded call-content analysis, so it had been scoped to numbers absent
+  from the contact list; that still needs `READ_CALL_LOG`, which Play grants
+  to default phone and messaging apps, and this is a launcher. Keeping it
+  meant selling a feature whose permission was unlikely to be granted. The
+  docs under `docs/claude-code/` still list it — changing them is a PRD
+  decision, not a code one.
 - 실시간 위치 추적 — `06_PERMISSION_AND_POLICY` forbids the phrasing, since how
   it is described is what the senior consents to.
 - 여러 보호자 초대 — free in the PRD, paid in the design.
@@ -681,6 +686,29 @@ their family may write to them would be unkind and is not about them anyway.
 On the senior's home, `04_SCREEN_SPEC`'s 가족 연결 또는 자녀 이름 버튼 is now
 literal: before a family is attached it connects one, and afterwards it opens
 the conversation.
+
+## The guardian's changes now actually arrive
+
+홈 화면 promises 바꾸면 부모님 폰에 반영됩니다. 부모님 폰이 꺼져 있으면 다음에
+켤 때 적용돼요. The second half of that was not implemented: `pullFromServer`
+was called **only at the moment the phone was linked**, from the pairing and
+link controllers. An arrangement the guardian made the next day never arrived
+on the parent's phone at all. `settings_sync_gaps_test.dart` is that promise,
+and it fails on the code it replaces.
+
+Two reads cover it, and both are deliberate about not blocking:
+
+- **At start-up**, `SeniorSettingsController.build` returns what is on disk
+  and *then* pulls. Awaiting the server there would open a launcher with no
+  signal on a spinner.
+- **On resume**, through `HomeKeyListener`, which already wraps the whole
+  router. A launcher is the screen a phone sits on and may go weeks without a
+  restart, so start-up alone is not enough.
+
+Both are guarded on this phone having a `SeniorLink`, and the guard sits
+**before** the sync is constructed. Without it a guardian's phone pulls a
+senior's settings on every resume — six login tests failed immediately, which
+is how the missing guard was found.
 
 ## The paid features are interfaces
 
