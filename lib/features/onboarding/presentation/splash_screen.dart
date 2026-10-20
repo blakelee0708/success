@@ -529,14 +529,18 @@ class _BottomScrim extends StatelessWidget {
 class _GuardianCard extends StatelessWidget {
   const _GuardianCard();
 
-  /// White, lettered in terracotta. A colour of its own was tried four ways
-  /// and each one pulled the eye to a control the senior is not meant to use:
-  /// this card is for the son or daughter standing next to them.
-  static const _ink = AppColors.seniorPrimary;
+  /// White, with the terracotta kept to the icon. A colour of its own was
+  /// tried four ways and each one pulled the eye to a control the senior is
+  /// not meant to use — this card is for the son or daughter standing next to
+  /// them.
+  ///
+  /// The lettering went terracotta too at first and should not have: the
+  /// small line came out at 2.4:1 against white, well under the 4.5:1 that
+  /// size of text needs. An accent belongs on a mark, not on a sentence.
+  static const _accent = AppColors.seniorPrimary;
 
   @override
   Widget build(BuildContext context) {
-    final label = _ink.withValues(alpha: 0.62);
     return Positioned(
       left: 20,
       right: 20,
@@ -546,10 +550,10 @@ class _GuardianCard extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: () => context.go(Routes.guardianStart),
         child: ClayPad(
-          light: Color(0xFFFFFFFF),
-          face: Color(0xFFFFFFFF),
-          deep: Color(0xFFF5F6F7),
-          wall: Color(0xFFDCDEE1),
+          light: AppColors.splashCardFace,
+          face: AppColors.splashCardFace,
+          deep: AppColors.splashCardDeep,
+          wall: AppColors.splashCardWall,
           radius: 22,
           wallHeight: 6,
           sheen: 0.4,
@@ -563,11 +567,15 @@ class _GuardianCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _ink.withValues(alpha: 0.35),
+                      color: _accent.withValues(alpha: 0.4),
                       width: 1.3,
                     ),
                   ),
-                  child: Icon(Icons.people_outline, size: 22, color: _ink),
+                  child: const Icon(
+                    Icons.people_outline,
+                    size: 22,
+                    color: _accent,
+                  ),
                 ),
                 const SizedBox(width: 15),
                 Expanded(
@@ -579,7 +587,7 @@ class _GuardianCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
-                          color: label,
+                          color: AppColors.splashCardLabel,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -589,13 +597,17 @@ class _GuardianCard extends StatelessWidget {
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,
-                          color: _ink,
+                          color: AppColors.splashCardTitle,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, size: 20, color: label),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: AppColors.splashCardLabel,
+                ),
               ],
             ),
           ),

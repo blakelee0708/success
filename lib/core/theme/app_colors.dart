@@ -97,10 +97,15 @@ class AppColors {
   static const splashTagline = Color(0xFF75797F);
   static const splashAccent = Color(0xFFD93516); // tap circle, wordmark dot
   static const splashPromptInk = Color(0xFF7A3D24); // 스마트폰이 쉬워져요
-  static const splashCardFill = Color(0xFFF7F7F8); // guardian card
-  static const splashCardBorder = Color(0x33363A40);
-  static const splashCardLabel = Color(0xFF7C8088);
-  static const splashCardTitle = Color(0xFF26282C);
+  // The 가족 및 보호자 card: a near-white clay pad, so its own four steps
+  // rather than the tiles'. They live here and not in the widget because the
+  // lettering has to be measured against the face it actually sits on, and a
+  // colour hidden inside a build method cannot be.
+  static const splashCardFace = Color(0xFFFFFFFF); // guardian card
+  static const splashCardDeep = Color(0xFFF5F6F7);
+  static const splashCardWall = Color(0xFFDCDEE1);
+  static const splashCardLabel = Color(0xFF6A6E74);
+  static const splashCardTitle = Color(0xFF1B1A18);
 
   // Guardian start screen — same paper, cooler ink.
   static const guardianStartBgTop = Color(0xFFFFFFFF);

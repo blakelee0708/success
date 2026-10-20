@@ -66,6 +66,29 @@ void main() {
     expect(AppTheme.guardian.colorScheme.onPrimary, Colors.white);
   });
 
+  group('the 가족 및 보호자 card is readable', () {
+    // Its lettering was terracotta once and the small line measured 2.4:1
+    // against white — well under what 12.5px needs. An accent belongs on a
+    // mark, not on a sentence, and this is the check that says so.
+    //
+    // Measured against the card's *deep* step and not against white. The pad
+    // is a gradient, so the face under a line of text is never the lightest
+    // colour in it; checking the lightest one is how a grey that misses by a
+    // tenth comes out looking like it passed.
+    double onCard(Color ink) {
+      final face = AppColors.splashCardDeep.computeLuminance();
+      return (face + 0.05) / (ink.computeLuminance() + 0.05);
+    }
+
+    test('the title clears 4.5:1', () {
+      expect(onCard(AppColors.splashCardTitle), greaterThanOrEqualTo(4.5));
+    });
+
+    test('the small line clears 4.5:1 too, being small', () {
+      expect(onCard(AppColors.splashCardLabel), greaterThanOrEqualTo(4.5));
+    });
+  });
+
   test('가족 is lettered in ink, because its face is a light amber', () {
     // Short-wavelength colours go first as eyes age, so the two home buttons
     // are amber and brown rather than the blue and teal they were. Amber is
