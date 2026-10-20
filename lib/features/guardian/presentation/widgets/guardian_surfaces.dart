@@ -210,3 +210,125 @@ class GuardianFact extends StatelessWidget {
     );
   }
 }
+
+/// The one filled button on a guardian screen.
+///
+/// It wears the hero's gradient rather than a flat `guardianPrimary`. A solid
+/// slab of #0B5FD9 under a gradient card does not read as the same system —
+/// it reads as a Material default that nobody styled, which is what it was.
+class GuardianPrimaryButton extends StatelessWidget {
+  const GuardianPrimaryButton({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final corners = BorderRadius.circular(18);
+    return Semantics(
+      button: true,
+      label: label,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: corners,
+          gradient: const LinearGradient(
+            begin: Alignment(-1, -0.6),
+            end: Alignment(1, 0.6),
+            colors: [
+              AppColors.guardianHeroStart,
+              AppColors.guardianHeroMid,
+              AppColors.guardianHeroEnd,
+            ],
+            stops: [0, 0.55, 1],
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.guardianHeroShadow,
+              offset: Offset(0, 10),
+              blurRadius: 22,
+              spreadRadius: -12,
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: corners,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: corners,
+            child: SizedBox(
+              height: 54,
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 20, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A screen's headline and its one line of explanation.
+class GuardianHeading extends StatelessWidget {
+  const GuardianHeading({super.key, required this.title, this.lede});
+
+  final String title;
+  final String? lede;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 25,
+            height: 1.3,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.8,
+            color: AppColors.guardianInk,
+          ),
+        ),
+        if (lede != null) ...[
+          const SizedBox(height: 5),
+          Text(
+            lede!,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              letterSpacing: -0.2,
+              color: AppColors.guardianInkFaint,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}

@@ -295,6 +295,16 @@ Two things the home tab will not do:
   `마지막 대화 4일 전` from the real conversation. A card that says the same
   thing every day is furniture.
 
+The parts are shared, in `presentation/widgets/guardian_surfaces.dart`:
+`GuardianGround`, `GuardianCard`, `GuardianActionCard`, `GuardianFact`,
+`GuardianPrimaryButton` and `GuardianHeading`. 홈 and 홈 화면 are both built
+from them. The one filled button on the half wears the **hero's gradient**
+rather than a flat `guardianPrimary` — a solid slab of `#0B5FD9` under a
+gradient card reads as a Material default nobody styled, which is what it
+was. The launcher rows' drag handle was `#9C8770`, the muted clay that came
+out of the senior palette with the rest of the beige and had no business on
+this half either.
+
 The Material `NavigationBar` is gone the same way it went from 자세한 화면, and
 for one of the same reasons: it brings its own height, its own pill indicator
 and its own type scale, none of which match this one. `GuardianNavBar` draws

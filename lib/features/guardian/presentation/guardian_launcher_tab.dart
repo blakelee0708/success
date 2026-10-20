@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/guardian_home_apps_controller.dart';
+import 'widgets/guardian_surfaces.dart';
 
 /// Widget keys the tests drive.
 class GuardianLauncherKeys {
@@ -37,7 +38,8 @@ class GuardianLauncherTab extends ConsumerWidget {
       return const _Message(
         key: GuardianLauncherKeys.empty,
         title: '아직 연결된 부모님이 없어요',
-        detail: '가족 탭에서 부모님을 추가하고 연결 번호를 알려 드리면,\n'
+        detail:
+            '가족 탭에서 부모님을 추가하고 연결 번호를 알려 드리면,\n'
             '여기에서 홈 화면을 정리해 드릴 수 있어요.',
       );
     }
@@ -48,7 +50,10 @@ class GuardianLauncherTab extends ConsumerWidget {
         detail: '$error',
         onRetry: () => ref.invalidate(guardianHomeAppsProvider),
       ),
-      AsyncData(:final value) => _Editor(profile: profile.displayName, apps: value),
+      AsyncData(:final value) => _Editor(
+        profile: profile.displayName,
+        apps: value,
+      ),
       _ => const Center(child: CircularProgressIndicator()),
     };
   }
@@ -66,17 +71,12 @@ class _Editor extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-          child: Text(
-            '$profile 홈 화면',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: Text(
-            '바꾸면 부모님 폰에 반영됩니다. 부모님 폰이 꺼져 있으면 다음에 켤 때 적용돼요.',
-            style: TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF6B6459)),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+          child: GuardianHeading(
+            title: '$profile 홈 화면',
+            lede:
+                '바꾸면 부모님 폰에 반영됩니다. '
+                '부모님 폰이 꺼져 있으면 다음에 켤 때 적용돼요.',
           ),
         ),
         if (apps.isEmpty)
@@ -105,19 +105,13 @@ class _Editor extends ConsumerWidget {
               ],
             ),
           ),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: FilledButton.icon(
-              key: GuardianLauncherKeys.add,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.guardianPrimary,
-                minimumSize: const Size.fromHeight(52),
-              ),
-              onPressed: () => _add(context, ref),
-              icon: const Icon(Icons.add),
-              label: const Text('버튼 추가하기'),
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: GuardianPrimaryButton(
+            key: GuardianLauncherKeys.add,
+            label: '버튼 추가하기',
+            icon: Icons.add_rounded,
+            onPressed: () => _add(context, ref),
           ),
         ),
       ],
@@ -145,7 +139,11 @@ class _Editor extends ConsumerWidget {
     WidgetRef ref,
     LauncherApp app,
   ) async {
-    final name = await _askForName(context, title: '이름 바꾸기', initial: app.label);
+    final name = await _askForName(
+      context,
+      title: '이름 바꾸기',
+      initial: app.label,
+    );
     if (name == null || !context.mounted) return;
     await _run(context, ref, (c) => c.rename(app.id, name));
   }
@@ -316,58 +314,61 @@ class _AppRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.guardianSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.guardianBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: app.baseColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(app.category.icon, color: Colors.white, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextButton(
-              key: GuardianLauncherKeys.rename(app.id),
-              onPressed: onRename,
-              style: TextButton.styleFrom(
-                alignment: Alignment.centerLeft,
-                padding: EdgeInsets.zero,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GuardianCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: app.baseColor,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                app.label,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.guardianOnSurface,
+              child: Icon(app.category.icon, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextButton(
+                key: GuardianLauncherKeys.rename(app.id),
+                onPressed: onRename,
+                style: TextButton.styleFrom(
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.zero,
+                ),
+                child: Text(
+                  app.label,
+                  style: const TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    color: AppColors.guardianInk,
+                  ),
                 ),
               ),
             ),
-          ),
-          IconButton(
-            key: GuardianLauncherKeys.colour(app.id),
-            onPressed: onRecolour,
-            icon: const Icon(Icons.palette_outlined),
-            tooltip: '색 바꾸기',
-          ),
-          IconButton(
-            key: GuardianLauncherKeys.delete(app.id),
-            onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline),
-            tooltip: '지우기',
-          ),
-          const Icon(Icons.drag_handle, color: Color(0xFF9C8770)),
-        ],
+            IconButton(
+              key: GuardianLauncherKeys.colour(app.id),
+              onPressed: onRecolour,
+              icon: const Icon(Icons.palette_outlined),
+              color: AppColors.guardianInkSoft,
+              tooltip: '색 바꾸기',
+            ),
+            IconButton(
+              key: GuardianLauncherKeys.delete(app.id),
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline),
+              color: AppColors.guardianInkSoft,
+              tooltip: '지우기',
+            ),
+            // Was #9C8770 — the muted clay that came out of the senior palette
+            // with the rest of the beige, and had no business on this half
+            // either.
+            const Icon(Icons.drag_handle, color: AppColors.guardianInkDisabled),
+          ],
+        ),
       ),
     );
   }
@@ -396,7 +397,12 @@ class _Message extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+                color: AppColors.guardianInk,
+              ),
             ),
             const SizedBox(height: 10),
             Text(
@@ -405,7 +411,7 @@ class _Message extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 height: 1.6,
-                color: Color(0xFF6B6459),
+                color: AppColors.guardianInkFaint,
               ),
             ),
             if (onRetry != null) ...[

@@ -9,6 +9,7 @@ import 'package:app/domain/app_category.dart';
 import 'package:app/domain/guardian_account.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/features/guardian/presentation/guardian_launcher_tab.dart';
+import 'package:app/features/guardian/presentation/widgets/guardian_surfaces.dart';
 
 import '../../support/pump_app.dart';
 
@@ -52,6 +53,18 @@ Future<({InMemoryHomeAppsRepository homeApps, String profileId})> _pumpTab(
 }
 
 void main() {
+  testWidgets('the rows are the shared card, not bordered boxes of its own', (
+    tester,
+  ) async {
+    // This tab is where the rebuilt home leads, so it has to be made of the
+    // same parts. Its rows were flat #F7F7F8 boxes with a 1px border and a
+    // tan drag handle — the handle in particular was #9C8770, the muted clay
+    // that came out of the senior palette and had no business here either.
+    await _pumpTab(tester);
+
+    expect(find.byType(GuardianCard), findsNWidgets(_apps.length));
+  });
+
   testWidgets('the tab shows the parent\'s buttons, not the guardian\'s', (
     tester,
   ) async {
