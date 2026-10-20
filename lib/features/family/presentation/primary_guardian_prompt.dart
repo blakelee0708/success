@@ -81,23 +81,35 @@ class _PrimaryGuardianPromptState extends ConsumerState<PrimaryGuardianPrompt> {
               const Text(
                 '가족 한 분이 대표 보호자를\n맡겠다고 하십니다',
                 style: TextStyle(
-                  fontSize: 20,
-                  height: 1.4,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.seniorOnSurface,
+                  fontSize: 27,
+                  height: 1.35,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.6,
+                  color: AppColors.seniorInk,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 16),
+              // Short enough to be whole lines. Written long and left to
+              // wrap, this is where a senior is agreeing to something.
               const Text(
-                '허락하시면 그분이 이 폰을 대신 정리해 드립니다.\n'
-                '잘 모르시겠으면 자녀분께 먼저 여쭤보세요.',
+                '허락하시면 그분이\n'
+                '이 폰을 대신 정리해 드립니다.',
                 style: TextStyle(
-                  fontSize: 16,
-                  height: 1.5,
-                  color: AppColors.seniorOnSurface,
+                  fontSize: 20,
+                  height: 1.55,
+                  color: AppColors.seniorInk,
                 ),
               ),
               const SizedBox(height: 14),
+              const Text(
+                '잘 모르시겠으면\n자녀분께 먼저 여쭤보세요.',
+                style: TextStyle(
+                  fontSize: 19,
+                  height: 1.6,
+                  color: AppColors.seniorInkMuted,
+                ),
+              ),
+              const SizedBox(height: 22),
               Row(
                 children: [
                   Expanded(
@@ -107,11 +119,20 @@ class _PrimaryGuardianPromptState extends ConsumerState<PrimaryGuardianPrompt> {
                           ? null
                           : () => _answer(profile.id, false),
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(56),
+                        minimumSize: const Size.fromHeight(72),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
                       ),
-                      child: const Text(
-                        '아니요',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '아니요',
+                          style: TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -121,11 +142,20 @@ class _PrimaryGuardianPromptState extends ConsumerState<PrimaryGuardianPrompt> {
                       key: PrimaryGuardianPrompt.approveKey,
                       onPressed: _busy ? null : () => _answer(profile.id, true),
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(56),
+                        minimumSize: const Size.fromHeight(72),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
                       ),
-                      child: const Text(
-                        '허락합니다',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '허락합니다',
+                          style: TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
                   ),

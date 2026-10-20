@@ -337,6 +337,16 @@ That costs a senior their tiles until they answer, and both are answered by
 pressing one of two buttons; a grid they cannot read costs them the tiles
 anyway.
 
+**Every line on both cards is short enough to be a whole line.** Written long
+and left to wrap, `지금 쓰시는 기능은` broke after 기능 and left 은 alone on a
+line of its own — on the one screen in the app where a senior is being asked
+to agree to something. Korean glyphs are about as wide as the type size, so
+a line has to be counted rather than eyeballed: at 20px in a 318px card that
+is sixteen glyphs. The copy is cut to fit that, not wrapped to it.
+
+Now that they have the screen, they use it: headline 27px, the three things
+being consented to at 20px bold, the two buttons 72px tall.
+
 `home_fits_test.dart` now covers these two as well. It only ever covered the
 첫 화면 card, which is why they kept the fault after that one was fixed — the
 check was written around the card that happened to be in front of me.

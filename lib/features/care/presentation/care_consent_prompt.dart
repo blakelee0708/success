@@ -82,41 +82,77 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
               const Text(
                 '자녀분이 안심 케어를\n신청하셨어요',
                 style: TextStyle(
-                  fontSize: 20,
-                  height: 1.4,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.seniorOnSurface,
+                  fontSize: 27,
+                  height: 1.35,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.6,
+                  color: AppColors.seniorInk,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               // Each line is a thing that will actually happen. 위치 확인 is
               // 5분 주기 — never described as tracking.
+              //
+              // Every line is short enough to be the whole line. Written long
+              // and left to wrap, 지금 쓰시는 기능은 broke after 기능 and left
+              // 은 alone on a line of its own — on the one screen in the app
+              // where a senior is being asked to agree to something.
               const Text(
-                '허락하시면 이런 것을 자녀분이 볼 수 있어요.\n'
-                '· 5분마다 어디 계신지\n'
-                '· 연락처에 없는 번호와 통화하셨는지\n'
-                '· 배터리와 소리, 인터넷 상태\n\n'
-                '싫으시면 아니요를 누르세요. 지금 쓰시는 기능은\n'
-                '그대로 쓸 수 있고, 자녀분 결제는 취소됩니다.',
+                '허락하시면 이런 것을\n'
+                '자녀분이 볼 수 있어요.',
                 style: TextStyle(
-                  fontSize: 16,
-                  height: 1.6,
-                  color: AppColors.seniorOnSurface,
+                  fontSize: 20,
+                  height: 1.55,
+                  color: AppColors.seniorInk,
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
+              const Text(
+                '· 5분마다 어디 계신지\n'
+                '· 연락처에 없는 번호와 통화\n'
+                '· 배터리와 소리, 인터넷 상태',
+                style: TextStyle(
+                  fontSize: 20,
+                  height: 1.7,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.seniorInk,
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                '싫으시면 아니요를 누르세요.\n'
+                '지금 쓰시는 기능은 그대로 쓰시고,\n'
+                '자녀분 결제는 취소됩니다.',
+                style: TextStyle(
+                  fontSize: 19,
+                  height: 1.6,
+                  color: AppColors.seniorInkMuted,
+                ),
+              ),
+              const SizedBox(height: 22),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       key: CareConsentPrompt.declineKey,
-                      onPressed: _busy ? null : () => _answer(profile.id, false),
+                      onPressed: _busy
+                          ? null
+                          : () => _answer(profile.id, false),
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(56),
+                        minimumSize: const Size.fromHeight(72),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
                       ),
-                      child: const Text(
-                        '아니요',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '아니요',
+                          style: TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -126,11 +162,20 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
                       key: CareConsentPrompt.approveKey,
                       onPressed: _busy ? null : () => _answer(profile.id, true),
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(56),
+                        minimumSize: const Size.fromHeight(72),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
                       ),
-                      child: const Text(
-                        '허락합니다',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '허락합니다',
+                          style: TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
                   ),
