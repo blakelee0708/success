@@ -19,7 +19,7 @@ class AppColors {
   static const seniorBackground = Color(0xFFFFFFFF); // the ground is white
   static const seniorInk = Color(0xFF1B1A18); // headings, amber lettering
   static const seniorInkMuted = Color(0xFF8E8A84); // the date above the clock
-  static const seniorHairline = Color(0xFFE6E0D6); // the rule inside the card
+  static const seniorHairline = Color(0xFFE3E4E6); // the rule inside the card
 
   /// The two home buttons. Blue and teal went first — short-wavelength
   /// colours are the first an ageing eye loses, which is why 가족 is amber
@@ -37,9 +37,9 @@ class AppColors {
   /// tinted rather than pure white: on a white ground a white card has no
   /// edge, and the clock looked like it was floating outside its own box.
   static const seniorCardLight = Color(0xFFFFFFFF);
-  static const seniorCard = Color(0xFFFAF8F3);
-  static const seniorCardDeep = Color(0xFFEFEAE1);
-  static const seniorCardWall = Color(0xFFD7CFC2);
+  static const seniorCard = Color(0xFFF7F7F8);
+  static const seniorCardDeep = Color(0xFFEAEBEC);
+  static const seniorCardWall = Color(0xFFD2D4D7);
 
   static const seniorCreamLegacy = Color(0xFFFDF7EE); // splash only
   static const seniorBackgroundEnd = Color(
@@ -90,42 +90,40 @@ class AppColors {
 
   // ── Splash / guardian entry (2026-07-29 design) ──
   // Warm paper gradient behind the hand illustration.
-  static const splashBgTop = Color(0xFFFFFDF8);
-  static const splashBgMid = Color(0xFFFDF6EA);
-  static const splashBgBottom = Color(0xFFF6E8D5);
-  static const splashInk = Color(0xFF35291F); // wordmark
-  static const splashTagline = Color(0xFF7A6450);
+  static const splashBgTop = Color(0xFFFFFFFF);
+  static const splashBgMid = Color(0xFFFFFFFF);
+  static const splashBgBottom = Color(0xFFFFFFFF);
+  static const splashInk = Color(0xFF1B1A18); // wordmark
+  static const splashTagline = Color(0xFF75797F);
   static const splashAccent = Color(0xFFD93516); // tap circle, wordmark dot
   static const splashPromptInk = Color(0xFF7A3D24); // 스마트폰이 쉬워져요
-  static const splashCardFill = Color(0xA6FFFDF8); // guardian card, 65% alpha
-  static const splashCardBorder = Color(0x3D4A382A);
-  static const splashCardLabel = Color(0xFF8A7460);
-  static const splashCardTitle = Color(0xFF3A2E24);
+  static const splashCardFill = Color(0xFFF7F7F8); // guardian card
+  static const splashCardBorder = Color(0x33363A40);
+  static const splashCardLabel = Color(0xFF7C8088);
+  static const splashCardTitle = Color(0xFF26282C);
 
   // Guardian start screen — same paper, cooler ink.
-  static const guardianStartBgTop = Color(0xFFFFFDF8);
-  static const guardianStartBgMid = Color(0xFFFBF7F0);
-  static const guardianStartBgBottom = Color(0xFFF4EDE2);
-  static const guardianStartInk = Color(0xFF211B14);
-  static const guardianStartMuted = Color(0xFF8C8578);
-  static const guardianStartSub = Color(0xFF7C7568);
-  static const guardianStartFaint = Color(0xFFA79F92);
+  static const guardianStartBgTop = Color(0xFFFFFFFF);
+  static const guardianStartBgMid = Color(0xFFFFFFFF);
+  static const guardianStartBgBottom = Color(0xFFF7F7F8);
+  static const guardianStartInk = Color(0xFF1B1A18);
+  static const guardianStartMuted = Color(0xFF85898F);
+  static const guardianStartSub = Color(0xFF75797F);
+  static const guardianStartFaint = Color(0xFFA2A6AC);
   static const guardianStartAccent = Color(0xFFC4451F);
-  static const guardianStartLine = Color(0xFFE3DCCE);
-  static const guardianStartCardBorder = Color(0xFFEDE7DC);
-  static const guardianStartBadgeFill = Color(0xFFFBF0E9);
-  static const guardianStartBadgeBorder = Color(0xFFF0DACC);
+  static const guardianStartLine = Color(0xFFE3E4E6);
+  static const guardianStartCardBorder = Color(0xFFE8E9EB);
+  static const guardianStartBadgeFill = Color(0xFFF2F3F4);
+  static const guardianStartBadgeBorder = Color(0xFFE0E2E5);
   static const kakaoYellow = Color(0xFFFEE500);
   static const kakaoInk = Color(0xFF191600);
 
   // ── Guardian — high-contrast white / blue (styles.css :root) ──
   static const guardianPrimary = Color(0xFF0B5FD9); // --c-primary (deep blue)
   static const guardianBackground = Color(0xFFFFFFFF); // --c-bg
-  static const guardianSurface = Color(
-    0xFFF5F2EA,
-  ); // --c-bg-soft (warm off-white)
+  static const guardianSurface = Color(0xFFF7F7F8); // neutral off-white
   static const guardianOnSurface = Color(0xFF1A1A1A); // --c-ink
-  static const guardianBorder = Color(0xFFE0DDD3); // --c-line
+  static const guardianBorder = Color(0xFFE3E4E6); // --c-line
   static const guardianAccent = Color(0xFFE8B500); // --c-accent (golden)
   static const guardianDanger = Color(0xFFC8102E); // --c-danger
 }

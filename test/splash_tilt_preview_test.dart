@@ -36,47 +36,43 @@ void main() {
     }
   });
 
-  testWidgets('the hand swings up', (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
+  for (final tone in GuardianCardTone.values) {
+    testWidgets('guardian card: ${tone.name}', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      const RepaintBoundary(
-        key: Key('root'),
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          home: ColoredBox(
-            color: AppColors.seniorBackground,
-            child: SplashScreen(),
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: const Key('root'),
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: ColoredBox(
+              color: AppColors.seniorBackground,
+              child: SplashScreen(cardTone: tone),
+            ),
           ),
         ),
-      ),
-    );
-    // Asset images decode asynchronously; without this the first frames
-    // render with no illustration at all.
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage('assets/images/hand_phone.png'),
-        tester.element(find.byType(MaterialApp)),
-      ),
-    );
+      );
+      await tester.runAsync(
+        () => precacheImage(
+          const AssetImage('assets/images/hand_phone.png'),
+          tester.element(find.byType(MaterialApp)),
+        ),
+      );
+      await tester.pump(SplashScreen.entrance + const Duration(seconds: 1));
 
-    final dir = Directory('build/motion')..createSync(recursive: true);
-    var elapsed = 0;
-    for (final step in const [0, 110, 130, 150, 180, 280]) {
-      if (step > 0) await tester.pump(Duration(milliseconds: step));
-      elapsed += step;
       final boundary = tester.renderObject<RenderRepaintBoundary>(
         find.byKey(const Key('root')),
       );
       await tester.runAsync(() async {
-        final image = await boundary.toImage(pixelRatio: 1.6);
+        final image = await boundary.toImage(pixelRatio: 2);
         final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-        File('${dir.path}/${elapsed.toString().padLeft(3, '0')}ms.png')
+        final dir = Directory('build/card')..createSync(recursive: true);
+        File('${dir.path}/${tone.name}.png')
             .writeAsBytesSync(bytes!.buffer.asUint8List());
         image.dispose();
       });
-    }
-  });
+    });
+  }
 }

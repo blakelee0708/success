@@ -5,13 +5,24 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/clay_pad.dart';
 
 /// First screen. A hand holds a phone; the phone's screen is the start button.
 ///
 /// There is no separate 시작하기 CTA — see
 /// `docs/superpowers/specs/2026-07-29-splash-and-guardian-entry-design.md`.
+/// Candidate looks for the 가족 및 보호자 card, while one is being chosen.
+enum GuardianCardTone { neutral, terracotta, charcoal }
+
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key, this.entranceTilt = -42});
+  const SplashScreen({
+    super.key,
+    this.entranceTilt = -42,
+    this.cardTone = GuardianCardTone.neutral,
+  });
+
+  /// Throwaway: which of the candidate looks the bottom card wears.
+  final GuardianCardTone cardTone;
 
   /// The angle the hand swings up from, in degrees, negative to the left.
   ///
@@ -107,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
             const _BottomScrim(),
             const _Wordmark(),
-            const _GuardianCard(),
+            _GuardianCard(tone: widget.cardTone),
           ],
         ),
       ),
@@ -131,12 +142,12 @@ class _AmbientWashes extends StatelessWidget {
           Positioned(
             top: -170,
             left: -110,
-            child: _wash(420, const Color(0xFFE06D42), 0.05),
+            child: _wash(420, const Color(0xFF9AA0A8), 0.05),
           ),
           Positioned(
             top: 300,
             right: -160,
-            child: _wash(340, const Color(0xFFCB9449), 0.04),
+            child: _wash(340, const Color(0xFF9AA0A8), 0.035),
           ),
         ],
       ),
@@ -526,10 +537,35 @@ class _BottomScrim extends StatelessWidget {
 }
 
 class _GuardianCard extends StatelessWidget {
-  const _GuardianCard();
+  const _GuardianCard({required this.tone});
+
+  final GuardianCardTone tone;
 
   @override
   Widget build(BuildContext context) {
+    final onDark = tone != GuardianCardTone.neutral;
+    final ink = onDark ? Colors.white : AppColors.splashCardTitle;
+    final label = onDark ? Colors.white70 : AppColors.splashCardLabel;
+    final (light, face, deep, wall) = switch (tone) {
+      GuardianCardTone.neutral => (
+        const Color(0xFFFFFFFF),
+        AppColors.seniorCard,
+        AppColors.seniorCardDeep,
+        AppColors.seniorCardWall,
+      ),
+      GuardianCardTone.terracotta => (
+        const Color(0xFFF08A66),
+        const Color(0xFFD9542B),
+        const Color(0xFFB03D18),
+        const Color(0xFF8E2F10),
+      ),
+      GuardianCardTone.charcoal => (
+        const Color(0xFF5C636C),
+        const Color(0xFF363C44),
+        const Color(0xFF262B31),
+        const Color(0xFF1A1E23),
+      ),
+    };
     return Positioned(
       left: 20,
       right: 20,
@@ -538,63 +574,61 @@ class _GuardianCard extends StatelessWidget {
         key: SplashScreen.guardianCardKey,
         behavior: HitTestBehavior.opaque,
         onTap: () => context.go(Routes.guardianStart),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          decoration: BoxDecoration(
-            color: AppColors.splashCardFill,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.splashCardBorder, width: 1.4),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.splashCardBorder,
-                    width: 1.3,
+        child: ClayPad(
+          light: light,
+          face: face,
+          deep: deep,
+          wall: wall,
+          radius: 22,
+          wallHeight: 6,
+          sheen: onDark ? 0.8 : 0.3,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: onDark
+                          ? Colors.white38
+                          : AppColors.splashCardBorder,
+                      width: 1.3,
+                    ),
+                  ),
+                  child: Icon(Icons.people_outline, size: 22, color: ink),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '가족 및 보호자분들은',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: label,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '여기를 눌러주세요',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                          color: ink,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: const Icon(
-                  Icons.people_outline,
-                  size: 22,
-                  color: Color(0xFF4A3A2C),
-                ),
-              ),
-              const SizedBox(width: 15),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '가족 및 보호자분들은',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.splashCardLabel,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      '여기를 눌러주세요',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                        color: AppColors.splashCardTitle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: Color(0xFF9C8770),
-              ),
-            ],
+                Icon(Icons.chevron_right, size: 20, color: label),
+              ],
+            ),
           ),
         ),
       ),
