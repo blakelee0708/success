@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/core/supabase/supabase_config.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
@@ -66,11 +67,14 @@ Future<void> _submit(
   }
 }
 
-String _messageText(WidgetTester tester) =>
-    tester.widget<Text>(find.descendant(
-      of: find.byKey(GuardianLoginKeys.message),
-      matching: find.byType(Text),
-    )).data!;
+String _messageText(WidgetTester tester) => tester
+    .widget<Text>(
+      find.descendant(
+        of: find.byKey(GuardianLoginKeys.message),
+        matching: find.byType(Text),
+      ),
+    )
+    .data!;
 
 void main() {
   testWidgets('a social button explains itself rather than failing on tap', (
@@ -138,27 +142,27 @@ void main() {
     expect(find.text('보호자 로그인'), findsOneWidget);
   });
 
-  testWidgets('signing up says to check the mail rather than reporting failure', (
+  testWidgets(
+    'signing up says to check the mail rather than reporting failure',
+    (tester) async {
+      // The project requires email confirmation, so sign-up yields no session.
+      // That is a state to explain, not an error to show.
+      await _gotoLogin(tester, InMemoryGuardianAuthRepository());
+
+      await _submit(
+        tester,
+        email: 'new@example.com',
+        password: 'hunter2',
+        createAccount: true,
+      );
+
+      expect(_messageText(tester), contains('new@example.com 으로 인증 메일을 보냈어요'));
+    },
+  );
+
+  testWidgets('signing up twice on the same address is refused', (
     tester,
   ) async {
-    // The project requires email confirmation, so sign-up yields no session.
-    // That is a state to explain, not an error to show.
-    await _gotoLogin(tester, InMemoryGuardianAuthRepository());
-
-    await _submit(
-      tester,
-      email: 'new@example.com',
-      password: 'hunter2',
-      createAccount: true,
-    );
-
-    expect(
-      _messageText(tester),
-      contains('new@example.com 으로 인증 메일을 보냈어요'),
-    );
-  });
-
-  testWidgets('signing up twice on the same address is refused', (tester) async {
     final auth = InMemoryGuardianAuthRepository();
     await _gotoLogin(tester, auth);
     await auth.signUp(email: 'taken@example.com', password: 'hunter2');
@@ -194,7 +198,7 @@ void main() {
     await _submit(tester, email: 'guardian@example.com', password: 'hunter2');
 
     expect(auth.currentSession, isNotNull);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(GuardianNavKeys.bar), findsOneWidget);
   });
 
   testWidgets('the email is trimmed and case-folded before it is used', (
@@ -205,7 +209,11 @@ void main() {
     await auth.signUp(email: 'guardian@example.com', password: 'hunter2');
     auth.confirm('guardian@example.com');
 
-    await _submit(tester, email: '  Guardian@Example.com ', password: 'hunter2');
+    await _submit(
+      tester,
+      email: '  Guardian@Example.com ',
+      password: 'hunter2',
+    );
 
     expect(auth.currentSession?.email, 'guardian@example.com');
   });

@@ -132,6 +132,60 @@ class AppColors {
   static const kakaoInk = Color(0xFF191600);
 
   // ── Guardian — high-contrast white / blue (styles.css :root) ──
+  // ── Guardian — blue gradients, settled 2026-10-20 ──
+  //
+  // `04_SCREEN_SPEC` gives this persona 파란 포인트, so none of the senior
+  // rules reach here: no clay, no 26px lettering, and blue is the point
+  // rather than the thing to avoid. The son or daughter reading this is not
+  // the one with the ageing eyes.
+  //
+  // The hero is a saturated blue rather than the pastel it was drawn from.
+  // Same hue; the pastel's white content is what put its own lettering at
+  // 1.64:1. `guardian_palette_test.dart` measures all three stops.
+  static const guardianHeroStart = Color(0xFF0B4FC4);
+  static const guardianHeroMid = Color(0xFF1B5CD8);
+  static const guardianHeroEnd = Color(0xFF2E6FE8);
+
+  /// Cast under the hero. Blue rather than grey: a grey shadow on a tinted
+  /// ground reads as dirt.
+  static const guardianHeroShadow = Color(0xD90B4FC4);
+
+  /// Still connected. A dot, never lettering — it is not legible at this size
+  /// and does not need to be.
+  static const guardianOnline = Color(0xFF7BF0A4);
+
+  /// The ground: tinted at the crown, plain white by the foot, so the cards
+  /// nearest the bottom still have something to sit against.
+  static const guardianGroundTop = Color(0xFFEEF2FF);
+  static const guardianGroundMid = Color(0xFFF7F9FF);
+  static const guardianGroundEnd = Color(0xFFFFFFFF);
+
+  /// A card is a gradient rather than a bordered box. Six bordered boxes in a
+  /// column read as a grid and give nothing any precedence.
+  static const guardianCardTop = Color(0xFFFFFFFF);
+  static const guardianCardEnd = Color(0xFFF4F7FE);
+  static const guardianCardShadow = Color(0x4D10245E);
+
+  static const guardianInk = Color(0xFF191F28);
+  static const guardianInkSoft = Color(0xFF4E5968);
+
+  /// Captions. Deliberately darker than the #8B95A1 this family of palettes
+  /// usually puts here: that measures 3.04 against white, under the bar for
+  /// 12.5px before the card's own gradient is counted.
+  static const guardianInkFaint = Color(0xFF5F6B7A);
+  static const guardianInkDisabled = Color(0xFFAEB6C2);
+  static const guardianRule = Color(0xFFEEF1F7);
+
+  /// The four blobs behind the action icons.
+  static const guardianTintBlue = Color(0xFFE8F0FE);
+  static const guardianTintBlueInk = Color(0xFF1A5FD0);
+  static const guardianTintViolet = Color(0xFFEDEBFE);
+  static const guardianTintVioletInk = Color(0xFF5A46D6);
+  static const guardianTintGreen = Color(0xFFE6F6EC);
+  static const guardianTintGreenInk = Color(0xFF1F7A3D);
+  static const guardianTintAmber = Color(0xFFFFF2E0);
+  static const guardianTintAmberInk = Color(0xFF9A6209);
+
   static const guardianPrimary = Color(0xFF0B5FD9); // --c-primary (deep blue)
   static const guardianBackground = Color(0xFFFFFFFF); // --c-bg
   static const guardianSurface = Color(0xFFF7F7F8); // neutral off-white

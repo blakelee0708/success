@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/features/guardian/presentation/guardian_start_screen.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
 
@@ -43,10 +43,7 @@ void main() {
     expect(google, findsOneWidget);
 
     // Kakao sits above Google: nearly every guardian in this age range has one.
-    expect(
-      tester.getTopLeft(kakao).dy,
-      lessThan(tester.getTopLeft(google).dy),
-    );
+    expect(tester.getTopLeft(kakao).dy, lessThan(tester.getTopLeft(google).dy));
   });
 
   testWidgets('guardian start does not split sign-up from sign-in', (
@@ -64,10 +61,7 @@ void main() {
   testWidgets('guardian start states the terms consent', (tester) async {
     await _gotoGuardianStart(tester);
 
-    expect(
-      find.text('시작하면 서비스 이용약관과\n개인정보 처리방침에 동의하게 됩니다'),
-      findsOneWidget,
-    );
+    expect(find.text('시작하면 서비스 이용약관과\n개인정보 처리방침에 동의하게 됩니다'), findsOneWidget);
   });
 
   testWidgets('both providers open the dashboard on a build with no project', (
@@ -82,7 +76,7 @@ void main() {
     // is being prepared and offer the email route. With none attached the old
     // Phase 3 behaviour stands, which is what keeps the dashboard reachable
     // without a backend.
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(GuardianNavKeys.bar), findsOneWidget);
   });
 
   testWidgets('back returns to the splash', (tester) async {

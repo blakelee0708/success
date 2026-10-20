@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/senior_settings_repository.dart';
@@ -12,10 +12,10 @@ import '../support/pump_app.dart';
 
 /// An auth repository that starts out holding a session, the way Supabase does
 /// after restoring one from disk.
-InMemoryGuardianAuthRepository _signedIn() =>
-    InMemoryGuardianAuthRepository()..seedSignedIn(
-      const GuardianSession(userId: 'user-1', email: 'guardian@example.com'),
-    );
+InMemoryGuardianAuthRepository _signedIn() => InMemoryGuardianAuthRepository()
+  ..seedSignedIn(
+    const GuardianSession(userId: 'user-1', email: 'guardian@example.com'),
+  );
 
 /// A saved launcher, as a senior's phone would have.
 Map<String, Object> _savedEasyMode() => {
@@ -50,7 +50,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     // Signing in last week should not put them back at the front door.
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(GuardianNavKeys.bar), findsOneWidget);
     expect(find.byType(SplashScreen), findsNothing);
   });
 

@@ -248,6 +248,60 @@ It is now the band, eight cells (2x4, rows 108px), and 긴급 구조 요청 besi
 screenshots can pin it. A screenshot whose clock moves every run is a
 screenshot nobody can diff.
 
+## The guardian app is a different design, on purpose
+
+Settled 2026-10-20, from a pastel reference the owner brought. The form came
+across — a gradient ground, a hero card with translucent discs, a 2x2 grid of
+actions, big radii and soft shadows. The palette did not.
+
+`04_SCREEN_SPEC` gives this persona 파란 포인트, and `guardianPrimary` was
+already `#0B5FD9`, so **the blue is the documented design and the terracotta
+suggested here first was the deviation**. Three gradients carry it:
+
+| | |
+|---|---|
+| ground | `#EEF2FF → #F7F9FF → #FFFFFF` |
+| card | `#FFFFFF → #F4F7FE` |
+| hero | `#0B4FC4 → #1B5CD8 → #2E6FE8` |
+
+**The hero is a saturated blue, not the reference's pastel, and that is the
+whole point.** Same hue; the pastel is that hue mixed with white. Sampled out
+of the reference PNG, its light stop is `#B5CBF6` and the white label on it
+measures **1.64:1** — a third of what 12.5px needs. The chosen stops measure
+7.17 and 4.61, so small white text is allowed on the card at all.
+`guardian_palette_test.dart` measures **every stop**, because checking only
+the dark end of a gradient is exactly how that reference shipped.
+
+Captions are `#5F6B7A`, not the `#8B95A1` this family of greys usually puts
+there: that measures 3.04 against white, under the bar before the card's own
+gradient is counted.
+
+**None of the senior rules reach this half.** No clay, no 26px lettering, no
+ban on blue, and scrolling is right rather than forbidden — all of those
+follow from an ageing eye, and the son or daughter reading this screen does
+not have one. What ties the two halves together is the typeface and nothing
+else.
+
+Two things the home tab will not do:
+
+- **The hero never reassures on no evidence.** It shows the time the parent's
+  phone last checked in, or it says there is none — `아직 / 연결되기 전이에요`.
+  The server knows a phone connected; it does not know the parent is well.
+  This is the most comforting-looking object on the screen, which is why it is
+  the one that must not round a missing check-in up. Same rule that took the
+  mocked `배터리 72%` off this tab. There is a test for the empty case.
+- **Every number on it is read, not written.** The buttons on the action card
+  come from the parent's real `home_apps`, the allowance from the real quota,
+  `마지막 대화 4일 전` from the real conversation. A card that says the same
+  thing every day is furniture.
+
+The Material `NavigationBar` is gone the same way it went from 자세한 화면, and
+for one of the same reasons: it brings its own height, its own pill indicator
+and its own type scale, none of which match this one. `GuardianNavBar` draws
+five destinations and nothing else. Several tests used `find.byType(
+NavigationBar)` as shorthand for "we landed on the dashboard" and now look for
+`GuardianNavKeys.bar`.
+
 ## The font is bundled
 
 `assets/fonts/NotoSansKR-{Regular,Bold}.ttf`, declared in `pubspec.yaml` and

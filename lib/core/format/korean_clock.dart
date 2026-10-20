@@ -17,3 +17,20 @@ String koreanTime(DateTime at) {
 /// `10월 20일 화요일`. No zero padding — nobody says "영시월".
 String koreanDate(DateTime at) =>
     '${at.month}월 ${at.day}일 ${_weekdays[at.weekday - 1]}요일';
+
+/// How long ago, in days, said the way a person would: `오늘`, `어제`,
+/// `3일 전`.
+///
+/// Days rather than hours because the guardian's screen uses this for "how
+/// long has the conversation been quiet", and nobody counts that in hours.
+/// Compares calendar days, so 11pm last night is 어제 and not 1일 전.
+String koreanDaysAgo(DateTime at, DateTime now) {
+  final days = DateTime(now.year, now.month, now.day)
+      .difference(DateTime(at.year, at.month, at.day))
+      .inDays;
+  return switch (days) {
+    <= 0 => '오늘',
+    1 => '어제',
+    _ => '$days일 전',
+  };
+}

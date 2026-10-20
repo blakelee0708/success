@@ -8,12 +8,15 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/core/clock.dart';
 import 'package:app/core/supabase/supabase_config.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
+import 'package:app/data/remote/home_apps_repository.dart';
 import 'package:app/data/remote/senior_link_repository.dart';
+import 'package:app/domain/senior_device.dart';
 import 'package:app/data/senior_link_store.dart';
 import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/launcher_app.dart';
@@ -28,6 +31,7 @@ import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/launcher/presentation/widgets/default_home_prompt.dart';
 import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
 import 'package:app/features/guardian/presentation/guardian_login_screen.dart';
+import 'package:app/features/guardian/presentation/guardian_dashboard_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_start_screen.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
 
@@ -78,12 +82,15 @@ Future<void> _loadImages(WidgetTester tester) async {
 /// `FLUTTER_ROOT` is set when the tests are run by the `flutter` tool; the
 /// walk up from the running executable covers being run some other way.
 File? _materialIcons() {
-  const relative = 'bin/cache/artifacts/material_fonts/'
+  const relative =
+      'bin/cache/artifacts/material_fonts/'
       'MaterialIcons-Regular.otf';
   final roots = <String>[?Platform.environment['FLUTTER_ROOT']];
-  for (var dir = File(Platform.resolvedExecutable).parent;
-      dir.path != dir.parent.path;
-      dir = dir.parent) {
+  for (
+    var dir = File(Platform.resolvedExecutable).parent;
+    dir.path != dir.parent.path;
+    dir = dir.parent
+  ) {
     roots.add(dir.path);
   }
   for (final root in roots) {
@@ -164,6 +171,53 @@ void main() {
     await _capture(tester, '04-screen-mode-choice');
   });
 
+  testWidgets('the guardian home with a parent actually linked', (
+    tester,
+  ) async {
+    // The tab above it is the empty state: no project, so no parent. The
+    // screen a guardian sees every day — the hero, the four actions — had no
+    // picture at all until this.
+    final auth = InMemoryGuardianAuthRepository()
+      ..seedSignedIn(
+        const GuardianSession(userId: 'u1', email: 'g@example.com'),
+      );
+    addTearDown(auth.dispose);
+
+    final links = InMemorySeniorLinkRepository();
+    await links.ensureGuardianAccount(displayName: '영희');
+    final profile = await links.createSeniorProfile(displayName: '어머니');
+    await links.updateProfileSettings(
+      profile.id,
+      screenMode: ScreenMode.easy,
+      fontSize: FontSize.extraLarge,
+    );
+    links.activeDeviceByProfile[profile.id] = SeniorDevice(
+      id: 'device-1',
+      installId: 'install-1',
+      isActive: true,
+      deviceLabel: '갤럭시 A54',
+      lastSeenAt: DateTime(2026, 10, 20, 14, 30),
+    );
+
+    final homeApps = InMemoryHomeAppsRepository();
+    await homeApps.replace(profile.id, defaultDetailedApps);
+
+    await pumpApp(
+      tester,
+      overrides: [
+        nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 15, 10)),
+        guardianAuthRepositoryProvider.overrideWithValue(auth),
+        seniorLinkRepositoryProvider.overrideWithValue(links),
+        homeAppsRepositoryProvider.overrideWithValue(homeApps),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(GuardianHomeKeys.hero), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _capture(tester, '18-dashboard-home-linked');
+  });
+
   testWidgets('the guardian dashboard renders every tab', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.byKey(SplashScreen.guardianCardKey));
@@ -171,7 +225,7 @@ void main() {
     await tester.tap(find.text('카카오로 시작하기'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(GuardianNavKeys.bar), findsOneWidget);
     await _capture(tester, '05-dashboard-home');
 
     for (final (tab, name) in [
@@ -190,7 +244,10 @@ void main() {
       tester,
       overrides: [
         supabaseConfigProvider.overrideWithValue(
-          const SupabaseConfig(url: 'https://example.supabase.co', anonKey: 'k'),
+          const SupabaseConfig(
+            url: 'https://example.supabase.co',
+            anonKey: 'k',
+          ),
         ),
         // Both repositories too: with the config claiming a project exists,
         // the real providers would reach for a Supabase singleton that was
