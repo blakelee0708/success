@@ -7,7 +7,10 @@ import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
+import 'package:app/core/clock.dart';
 import 'package:app/features/launcher/presentation/widgets/app_tile.dart';
+import 'package:app/features/launcher/presentation/widgets/home_body.dart';
+import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
 
 import '../../support/pump_app.dart';
 
@@ -47,6 +50,8 @@ Future<void> _pumpHome(
 }
 
 void main() {
+  _bandHeightTests();
+
   for (final mode in ScreenMode.values) {
     for (final size in FontSize.values) {
       testWidgets('${mode.name}: every tile is fully visible at ${size.name}', (
@@ -83,6 +88,49 @@ void main() {
         expect(find.text(label), findsOneWidget);
         expect(tester.getSize(find.text(label)).height, greaterThan(0));
       }
+    });
+  }
+}
+
+/// What the band actually gets, which is not what it was designed for.
+///
+/// It is drawn at 192px — date, clock, rule and the family line — and wrapped
+/// in a `FittedBox`, so handing it less does not overflow or throw: it quietly
+/// scales the whole thing down. At 110px the clock comes out at 29px instead
+/// of 50, and nothing anywhere says so.
+void _bandHeightTests() {
+  for (final mode in ScreenMode.values) {
+    testWidgets('${mode.name}: the band is drawn at its full height', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        overrides: [
+          nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
+          appLauncherProvider.overrideWithValue(
+            FakeAppLauncher(defaultHome: true),
+          ),
+        ],
+        prefs: {
+          SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+            SeniorSettings(
+              screenMode: mode,
+              apps: mode == ScreenMode.easy
+                  ? defaultEasyApps
+                  : defaultDetailedApps,
+            ).toJson(),
+          ),
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSize(find.byType(HomeStrip)).height,
+        greaterThanOrEqualTo(HomeBody.preferredStrip),
+        reason: 'the band is being scaled down instead of laid out',
+      );
+      // And the clock is the size the design draws it, not a fraction of it.
+      expect(tester.getSize(find.text('오후 2:30')).height, greaterThan(45));
     });
   }
 }

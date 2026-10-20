@@ -33,8 +33,18 @@ class HomeBody extends StatelessWidget {
   /// Between the band, the grid and the buttons.
   static const sectionGap = 24.0;
 
-  /// The band gives up its height before the tiles do, but never all of it.
+  /// What the band is actually drawn at — date, clock, rule, family line. It
+  /// is wrapped in a `FittedBox`, so giving it less than this does not
+  /// overflow or throw: it scales the whole band down, clock and all. At the
+  /// 110px floor below, the clock comes out at 29px instead of 50.
+  static const preferredStrip = 192.0;
+
+  /// The band yields down to this, but only when the rows could not otherwise
+  /// hold an icon and a label.
   static const minStrip = 110.0;
+
+  /// The shortest a row can be and still draw a 44px icon over a label.
+  static const _minRow = 92.0;
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +57,21 @@ class HomeBody extends StatelessWidget {
         // band was invented to fix.
         final tile = (constraints.maxWidth - gutter) / 2;
         final square = rows * tile + (rows - 1) * rowGap;
-        final room = constraints.maxHeight - sectionGap - minStrip;
-        final grid = math.max(0.0, math.min(square, room));
-        final rowHeight = rows > 0 ? (grid - (rows - 1) * rowGap) / rows : 0.0;
+        final available = constraints.maxHeight - sectionGap;
+
+        // The band is laid out at its drawn height and the grid takes what is
+        // left. The other way round — which is what this did at first — let
+        // 자세한 화면's eight rows push the band to its 110px floor, and the
+        // clock was silently scaled to 29px while the easy screen's stayed 50.
+        //
+        // Only when the rows could not hold an icon and a label on what that
+        // leaves does the band start giving height back.
+        final gaps = (rows - 1) * rowGap;
+        final cap = available - preferredStrip >= rows * _minRow + gaps
+            ? available - preferredStrip
+            : available - minStrip;
+        final grid = math.max(0.0, math.min(square, cap));
+        final rowHeight = rows > 0 ? (grid - gaps) / rows : 0.0;
 
         return Column(
           children: [

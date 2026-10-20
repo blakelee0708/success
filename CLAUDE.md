@@ -191,11 +191,18 @@ to fit they became 169x250 rectangles, and left square they left 211px of
 nothing at the bottom. The slack became one wide thing worth looking at — the
 clock, and underneath it whoever is looking after this phone.
 
-It is on 자세한 화면 too since the 2026-10-20 review, at the same 192px, and
-that height is not negotiable: the band gives up nothing and the tile rows
-shrink to 108px instead. Taking it out of the band would drop the clock from
-50px to 35px, and a different-sized clock is what made the two screens read as
-two apps in the first place.
+It is on 자세한 화면 too since the 2026-10-20 review, at the same 192px.
+`HomeBody.preferredStrip` is that height, and it is laid out **first**: the
+grid takes what is left, not the other way round. Reversed — which is how it
+shipped for one commit — 자세한 화면's eight rows pushed the band to its 110px
+floor, and because the band is wrapped in a `FittedBox` nothing overflowed and
+nothing threw: it just scaled the whole band to 0.58 and drew the clock at
+29px while the easy screen's stayed 50. The band only starts giving height
+back when the rows could not otherwise hold a 44px icon over a label.
+
+`home_fits_test.dart` measures the laid-out band and the rendered clock on both
+screens for exactly that reason. It is the one check a `FittedBox` cannot make
+for you.
 
 The date sits *above* the clock. Side by side they ran to 328px inside a 310px
 card and the date was pushed out of its own box; Korean glyphs are about as
