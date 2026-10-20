@@ -295,6 +295,16 @@ Two things the home tab will not do:
   `마지막 대화 4일 전` from the real conversation. A card that says the same
   thing every day is furniture.
 
+**Every tab starts at the same height**: a 26px crown, the heading, a 22px
+gap. 홈 draws it through `_TabScaffold`; 홈 화면 cannot, because its list is a
+`ReorderableListView`, so it passes the same heading as that list's `header`.
+`버튼 추가하기` is the list's `footer` rather than a bar pinned to the bottom of
+the screen — pinned, it left a field of nothing between the last row and the
+button and said nothing about where a new button would land. In the list it is
+simply the next thing after the last button, and adding one pushes it down.
+Both are tested: the button has to sit below the last row and move when a row
+is added, and the heading has to scroll out of view.
+
 The parts are shared, in `presentation/widgets/guardian_surfaces.dart`:
 `GuardianGround`, `GuardianCard`, `GuardianActionCard`, `GuardianFact`,
 `GuardianPrimaryButton` and `GuardianHeading`. 홈 and 홈 화면 are both built

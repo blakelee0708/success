@@ -67,53 +67,58 @@ class _Editor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // One scroll view holds the whole tab — heading, rows and 버튼 추가하기.
+    //
+    // The heading used to sit above the list and the button was pinned to the
+    // bottom of the screen, which put a field of nothing between the last row
+    // and the button and said nothing about where a new button would land. In
+    // the list, 버튼 추가하기 is simply the next thing after the last button,
+    // and adding one pushes it down.
+    return ReorderableListView(
+      key: GuardianLauncherKeys.list,
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+      header: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 26, 0, 22),
+        child: GuardianHeading(
+          title: '$profile 홈 화면',
+          lede:
+              '바꾸면 부모님 폰에 반영됩니다. '
+              '부모님 폰이 꺼져 있으면 다음에 켤 때 적용돼요.',
+        ),
+      ),
+      footer: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (apps.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: _Message(
+                title: '아직 버튼이 없어요',
+                detail: '아래에서 버튼을 추가하면 부모님 홈 화면에 나타납니다.',
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: GuardianPrimaryButton(
+              key: GuardianLauncherKeys.add,
+              label: '버튼 추가하기',
+              icon: Icons.add_rounded,
+              onPressed: () => _add(context, ref),
+            ),
+          ),
+        ],
+      ),
+      onReorder: (oldIndex, newIndex) =>
+          _run(context, ref, (c) => c.reorder(oldIndex, newIndex)),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-          child: GuardianHeading(
-            title: '$profile 홈 화면',
-            lede:
-                '바꾸면 부모님 폰에 반영됩니다. '
-                '부모님 폰이 꺼져 있으면 다음에 켤 때 적용돼요.',
+        for (final app in apps)
+          _AppRow(
+            key: ValueKey(app.id),
+            app: app,
+            onRename: () => _rename(context, ref, app),
+            onRecolour: () => _recolour(context, ref, app),
+            onDelete: () => _confirmDelete(context, ref, app),
           ),
-        ),
-        if (apps.isEmpty)
-          const Expanded(
-            child: _Message(
-              title: '아직 버튼이 없어요',
-              detail: '아래에서 버튼을 추가하면 부모님 홈 화면에 나타납니다.',
-            ),
-          )
-        else
-          Expanded(
-            child: ReorderableListView(
-              key: GuardianLauncherKeys.list,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              onReorder: (oldIndex, newIndex) =>
-                  _run(context, ref, (c) => c.reorder(oldIndex, newIndex)),
-              children: [
-                for (final app in apps)
-                  _AppRow(
-                    key: ValueKey(app.id),
-                    app: app,
-                    onRename: () => _rename(context, ref, app),
-                    onRecolour: () => _recolour(context, ref, app),
-                    onDelete: () => _confirmDelete(context, ref, app),
-                  ),
-              ],
-            ),
-          ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: GuardianPrimaryButton(
-            key: GuardianLauncherKeys.add,
-            label: '버튼 추가하기',
-            icon: Icons.add_rounded,
-            onPressed: () => _add(context, ref),
-          ),
-        ),
       ],
     );
   }
@@ -390,7 +395,7 @@ class _Message extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

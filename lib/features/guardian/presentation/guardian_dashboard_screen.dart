@@ -111,30 +111,12 @@ class _TabScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Same 26px crown and same 22px gap as 홈 화면, which draws its heading
+    // inside its own list. Every tab of this half starts at the same height.
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 26, 20, 28),
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 25,
-            height: 1.3,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.8,
-            color: AppColors.guardianInk,
-          ),
-        ),
-        if (lede != null) ...[
-          const SizedBox(height: 5),
-          Text(
-            lede!,
-            style: const TextStyle(
-              fontSize: 14,
-              letterSpacing: -0.2,
-              color: AppColors.guardianInkFaint,
-            ),
-          ),
-        ],
+        GuardianHeading(title: title, lede: lede),
         const SizedBox(height: 22),
         ...children,
       ],
@@ -223,9 +205,7 @@ class _HomeTab extends ConsumerWidget {
 
     return _TabScaffold(
       title: profile.displayName,
-      lede: lastSeen == null
-          ? '폰이 아직 연결되기 전이에요'
-          : '폰은 잘 켜져 있어요',
+      lede: lastSeen == null ? '폰이 아직 연결되기 전이에요' : '폰은 잘 켜져 있어요',
       children: [
         if ((profiles.value?.length ?? 0) > 1)
           _Card(child: _ParentSwitcher(profiles: profiles.value!)),
@@ -366,7 +346,10 @@ class _ParentSwitcher extends ConsumerWidget {
           underline: const SizedBox.shrink(),
           items: [
             for (final profile in profiles)
-              DropdownMenuItem(value: profile.id, child: Text(profile.displayName)),
+              DropdownMenuItem(
+                value: profile.id,
+                child: Text(profile.displayName),
+              ),
           ],
           onChanged: (id) {
             if (id != null) {

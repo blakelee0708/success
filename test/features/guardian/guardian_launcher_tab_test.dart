@@ -19,6 +19,12 @@ const _apps = [
   LauncherApp(id: 'kakao', label: '카카오톡', category: AppCategory.kakao),
 ];
 
+/// Enough buttons that the tab has something to scroll.
+final _manyApps = [
+  for (var i = 0; i < 16; i++)
+    LauncherApp(id: 'app$i', label: '버튼 $i', category: AppCategory.message),
+];
+
 /// A guardian already signed in, with one parent linked and that parent's home
 /// screen already on the server.
 Future<({InMemoryHomeAppsRepository homeApps, String profileId})> _pumpTab(
@@ -170,6 +176,58 @@ void main() {
       find.text('바꾸지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('버튼 추가하기 sits under the last row and moves down with it', (
+    tester,
+  ) async {
+    // It was pinned to the bottom of the screen, which left a field of
+    // nothing between it and the last row and said nothing about where a new
+    // button would land. In the list it is the next thing after the last
+    // button, and adding one pushes it further down — which is the answer to
+    // "where does it go".
+    final h = await _pumpTab(tester);
+
+    double addTop() => tester.getRect(
+      find.byKey(GuardianLauncherKeys.add),
+    ).top;
+    final lastRow = tester.getRect(find.text(_apps.last.label));
+    final before = addTop();
+
+    expect(before, greaterThan(lastRow.bottom));
+
+    await tester.tap(find.byKey(GuardianLauncherKeys.add));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '딸');
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(h.homeApps.byProfile[h.profileId]!.last.label, '딸');
+    expect(
+      addTop(),
+      greaterThan(before),
+      reason: 'the new row did not push 버튼 추가하기 down',
+    );
+  });
+
+  testWidgets('the heading scrolls with the list rather than sitting above it', (
+    tester,
+  ) async {
+    // One scroll view holds the whole tab, so the heading is part of what
+    // moves. Pinned above a separate list, it stays clamped to the very top
+    // of the phone however far down the list you are.
+    await _pumpTab(tester, apps: _manyApps);
+
+    expect(find.text('어머니 홈 화면'), findsOneWidget);
+    await tester.drag(
+      find.byKey(GuardianLauncherKeys.list),
+      const Offset(0, -400),
+    );
+    await tester.pumpAndSettle();
+
+    // Scrolled off, because it is in the list. A header pinned above one
+    // would still be sitting there at the top of the phone.
+    expect(find.text('어머니 홈 화면'), findsNothing);
   });
 
   testWidgets('a parent with no buttons yet is offered a first one', (
