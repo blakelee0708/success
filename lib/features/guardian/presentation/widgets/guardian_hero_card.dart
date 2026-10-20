@@ -100,23 +100,34 @@ class GuardianHeroCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  // Scales down rather than wrapping: the two columns are
-                  // sized by their content, and 아주 크게 is a setting on this
-                  // phone too.
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        _Figure(value: headline, caption: caption),
-                        const SizedBox(width: 26),
-                        _Figure(
-                          value: metric,
-                          caption: metricCaption,
-                          alignment: CrossAxisAlignment.end,
+                  // One figure at each end of the card, and each scales down
+                  // on its own. Wrapping the whole row in a single FittedBox
+                  // instead collapses it to its content width and leaves both
+                  // figures huddled on the left — which is what shipped the
+                  // first time, and is not the card that was approved.
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: _Figure(value: headline, caption: caption),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: _Figure(
+                            value: metric,
+                            caption: metricCaption,
+                            alignment: CrossAxisAlignment.end,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

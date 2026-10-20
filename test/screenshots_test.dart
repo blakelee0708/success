@@ -216,6 +216,14 @@ void main() {
     expect(find.byKey(GuardianHomeKeys.hero), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _capture(tester, '18-dashboard-home-linked');
+
+    // The tab the 홈 버튼 정리하기 card opens, under the same conditions. Only
+    // the home tab was rebuilt, so this is where the new ground and the old
+    // contents meet, and it is the kind of seam only a render shows.
+    await tester.tap(find.byKey(GuardianNavKeys.destination('홈 화면')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await _capture(tester, '19-dashboard-launcher-linked');
   });
 
   testWidgets('the guardian dashboard renders every tab', (tester) async {

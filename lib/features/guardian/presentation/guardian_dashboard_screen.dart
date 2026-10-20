@@ -259,7 +259,10 @@ class _HomeTab extends ConsumerWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.98,
+          // Sized to the content rather than to a square-ish guess. At 0.98
+          // every card carried about 40px of nothing under its caption, and
+          // the 설정 card below the grid was pushed off the fold by it.
+          childAspectRatio: 1.08,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
@@ -280,7 +283,7 @@ class _HomeTab extends ConsumerWidget {
               onTap: () => onOpenTab(2),
             ),
             GuardianActionCard(
-              label: '안심 케어',
+              label: '안심 케어\n알아보기',
               detail: '준비 중',
               icon: Icons.favorite_rounded,
               tint: AppColors.guardianTintGreen,
@@ -288,7 +291,7 @@ class _HomeTab extends ConsumerWidget {
               onTap: () => onOpenTab(3),
             ),
             GuardianActionCard(
-              label: '가족 초대하기',
+              label: '가족\n초대하기',
               detail: '형제도 무료',
               icon: Icons.people_rounded,
               tint: AppColors.guardianTintAmber,

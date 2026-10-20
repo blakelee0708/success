@@ -100,8 +100,8 @@ void main() {
     expect(find.byType(GuardianActionCard), findsNWidgets(4));
     expect(find.textContaining('홈 버튼'), findsOneWidget);
     expect(find.textContaining('메시지'), findsWidgets);
-    expect(find.text('안심 케어'), findsOneWidget);
-    expect(find.textContaining('가족 초대'), findsOneWidget);
+    expect(find.textContaining('안심 케어'), findsOneWidget);
+    expect(find.textContaining('초대하기'), findsOneWidget);
     // Read off the parent's real home screen, not a guess.
     expect(find.text('버튼 3개'), findsOneWidget);
   });
