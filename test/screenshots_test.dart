@@ -437,6 +437,56 @@ void main() {
     await _capture(tester, '17-detailed-home');
   });
 
+  testWidgets('the senior screens that are still on the old design', (
+    tester,
+  ) async {
+    // SOS, 설정 and the two screens under it. None of them had a picture, and
+    // they are what is left of the pre-2026-10-20 look on the senior's half.
+    Future<void> openDetailedHome() async {
+      await pumpApp(
+        tester,
+        overrides: [
+          nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
+          appLauncherProvider.overrideWithValue(
+            FakeAppLauncher(defaultHome: true),
+          ),
+        ],
+        prefs: {
+          SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+            const SeniorSettings(
+              screenMode: ScreenMode.detailed,
+              apps: defaultDetailedApps,
+            ).toJson(),
+          ),
+        },
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await openDetailedHome();
+    await tester.tap(find.text('긴급 구조 요청'));
+    await tester.pumpAndSettle();
+    expect(find.text('긴급 연락'), findsOneWidget);
+    await _capture(tester, '20-sos');
+
+    await openDetailedHome();
+    await tester.tap(find.text('설정'));
+    await tester.pumpAndSettle();
+    expect(find.text('글씨 크기 조절하기'), findsOneWidget);
+    await _capture(tester, '21-senior-settings');
+
+    await tester.tap(find.text('앱 설정하기'));
+    await tester.pumpAndSettle();
+    await _capture(tester, '22-app-settings');
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('글씨 크기 조절하기'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await _capture(tester, '23-font-size');
+  });
+
   testWidgets('가족 메시지 renders for the guardian', (tester) async {
     final store = InMemorySeniorLinkRepository();
     final pairing = InMemoryPairingRepository(store);
