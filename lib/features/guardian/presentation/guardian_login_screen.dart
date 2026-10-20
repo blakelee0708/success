@@ -63,25 +63,26 @@ class _GuardianLoginScreenState extends ConsumerState<GuardianLoginScreen> {
       data: AppTheme.guardian,
       child: Scaffold(
         backgroundColor: AppColors.guardianGroundEnd,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.chevron_left),
-            color: AppColors.guardianInkSoft,
-            onPressed: () => context.go(Routes.guardianStart),
-          ),
-        ),
-        // The one guardian screen still on plain white until now, which is
-        // conspicuous when it sits between two that are not.
+        // No AppBar. A transparent one still leaves the Scaffold's own colour
+        // behind it, so the gradient ended in a hard seam under the arrow.
+        // The back control goes in the body, as it does on the start screen.
         body: GuardianGround(
           child: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(22, 8, 22, 34),
+              padding: const EdgeInsets.fromLTRB(22, 4, 22, 34),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.chevron_left),
+                      iconSize: 26,
+                      color: AppColors.guardianInkSoft,
+                      onPressed: () => context.go(Routes.guardianStart),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   GuardianHeading(
                     title: _creatingAccount ? '보호자 계정 만들기' : '보호자 로그인',
                     lede: '부모님 폰을 대신 정리해 드리려면 보호자 계정이 필요해요.',
