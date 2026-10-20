@@ -7,6 +7,7 @@ import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/pair_link.dart';
 import '../application/guardian_home_apps_controller.dart';
 import '../application/guardian_pairing_controller.dart';
+import 'widgets/guardian_surfaces.dart';
 
 /// Widget keys the tests drive.
 class GuardianFamilyKeys {
@@ -36,13 +37,10 @@ class GuardianFamilyTab extends ConsumerWidget {
     final profile = ref.watch(selectedSeniorProfileProvider);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+      padding: const EdgeInsets.fromLTRB(20, GuardianHeading.crown, 20, 32),
       children: [
-        const Text(
-          '가족 관리',
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 16),
+        const GuardianHeading(title: '가족 관리'),
+        const SizedBox(height: GuardianHeading.gap),
         const _Card(child: _ConnectParent()),
         if (profile != null) ...[
           _Card(child: _Guardians(seniorProfileId: profile.id)),
@@ -62,7 +60,8 @@ class GuardianFamilyTab extends ConsumerWidget {
             child: _CodeCard(
               key: GuardianFamilyKeys.recovery,
               title: '부모님 폰 다시 연결하기',
-              detail: '폰을 바꾸셨거나 앱을 지웠다 다시 까셨을 때 쓰세요. '
+              detail:
+                  '폰을 바꾸셨거나 앱을 지웠다 다시 까셨을 때 쓰세요. '
                   '홈 화면과 설정이 그대로 돌아옵니다.',
               action: '연결 번호 만들기',
               issue: (c) => c.createRecoveryCode(profile.id),
@@ -148,7 +147,12 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
       children: [
         const Text(
           '부모님 연결하기',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: AppColors.guardianInk,
+          ),
         ),
         const SizedBox(height: 10),
         SegmentedButton<bool>(
@@ -178,7 +182,11 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
                     '번호로는 전화번호를 알 수 없어서, 이름과 번호는 여기서 받습니다.'
               : '설치 링크가 담긴 문자를 문자 앱에 채워 드립니다. '
                     '보내기는 직접 눌러 주세요.',
-          style: const TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF6B6459)),
+          style: const TextStyle(
+            fontSize: 14,
+            height: 1.5,
+            color: AppColors.guardianInkFaint,
+          ),
         ),
         const SizedBox(height: 14),
         if (_byCode) ...[
@@ -237,16 +245,13 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
           ),
         ],
         const SizedBox(height: 14),
-        FilledButton(
-          key: _byCode ? GuardianFamilyKeys.enterCode : GuardianFamilyKeys.invite,
+        GuardianPrimaryButton(
+          key: _byCode
+              ? GuardianFamilyKeys.enterCode
+              : GuardianFamilyKeys.invite,
           onPressed: _busy ? null : _submit,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.guardianPrimary,
-            minimumSize: const Size.fromHeight(48),
-          ),
-          child: Text(
-            _busy ? '준비하는 중이에요' : (_byCode ? '연결하기' : '문자 앱 열기'),
-          ),
+          icon: _byCode ? Icons.link_rounded : Icons.sms_rounded,
+          label: _busy ? '준비하는 중이에요' : (_byCode ? '연결하기' : '문자 앱 열기'),
         ),
         if (issued != null) ...[
           const SizedBox(height: 16),
@@ -259,7 +264,8 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
           const SizedBox(height: 10),
           _IssuedCode(
             code: issued.code,
-            hint: '문자가 열리지 않거나 링크로 연결이 안 되면, '
+            hint:
+                '문자가 열리지 않거나 링크로 연결이 안 되면, '
                 '부모님께 이 번호를 불러 주세요.',
           ),
         ],
@@ -321,27 +327,37 @@ class _CodeCardState extends ConsumerState<_CodeCard> {
       children: [
         Text(
           widget.title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: AppColors.guardianInk,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
           widget.detail,
-          style: const TextStyle(fontSize: 14, height: 1.5),
+          style: const TextStyle(
+            fontSize: 14,
+            height: 1.55,
+            color: AppColors.guardianInkSoft,
+          ),
         ),
         const SizedBox(height: 12),
         if (link == null)
-          FilledButton(
+          GuardianPrimaryButton(
             onPressed: _busy ? null : _issue,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.guardianPrimary,
-            ),
-            child: Text(_busy ? '만드는 중이에요' : widget.action),
+            icon: Icons.add_rounded,
+            label: _busy ? '만드는 중이에요' : widget.action,
           )
         else
           _IssuedCode(code: link.code, hint: widget.hint),
         if (_error case final message?) ...[
           const SizedBox(height: 10),
-          Text(message, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          Text(
+            message,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
         ],
       ],
     );
@@ -375,11 +391,25 @@ class _IssuedCode extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(hint, style: const TextStyle(fontSize: 13, height: 1.5)),
+        Text(
+          hint,
+          style: const TextStyle(
+            fontSize: 13,
+            height: 1.55,
+            color: AppColors.guardianInkFaint,
+          ),
+        ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: () => Clipboard.setData(ClipboardData(text: code)),
-          icon: const Icon(Icons.copy, size: 18),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.guardianPrimary,
+            side: const BorderSide(color: AppColors.guardianRule),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          icon: const Icon(Icons.copy_rounded, size: 18),
           label: const Text('번호 복사하기'),
         ),
       ],
@@ -404,7 +434,12 @@ class _Guardians extends ConsumerWidget {
       children: [
         const Text(
           '연결된 가족',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: AppColors.guardianInk,
+          ),
         ),
         const SizedBox(height: 10),
         switch (guardians) {
@@ -433,7 +468,10 @@ class _Guardians extends ConsumerWidget {
                 // establishes which one the senior wants answering for them.
                 const Text(
                   '부모님 폰에서 허락하셔야 바뀝니다.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF6B6459)),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.guardianInkFaint,
+                  ),
                 ),
               ],
             ],
@@ -456,9 +494,7 @@ class _Guardians extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('부모님 폰에 허락을 요청했어요.')),
-        );
+        ..showSnackBar(const SnackBar(content: Text('부모님 폰에 허락을 요청했어요.')));
     } on SeniorLinkException catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
@@ -475,15 +511,9 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.guardianSurface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.guardianBorder),
-      ),
-      child: child,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GuardianCard(child: child),
     );
   }
 }

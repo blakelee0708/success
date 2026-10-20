@@ -178,9 +178,7 @@ class GuardianFact extends StatelessWidget {
       decoration: first
           ? null
           : const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: AppColors.guardianRule),
-              ),
+              border: Border(top: BorderSide(color: AppColors.guardianRule)),
             ),
       child: Row(
         children: [
@@ -226,62 +224,72 @@ class GuardianPrimaryButton extends StatelessWidget {
 
   final String label;
   final IconData icon;
-  final VoidCallback onPressed;
+
+  /// Null disables it, and it looks disabled — a gradient button that still
+  /// looks pressable while it does nothing is worse than a grey one.
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final corners = BorderRadius.circular(18);
+    final enabled = onPressed != null;
     return Semantics(
       button: true,
+      enabled: enabled,
       label: label,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: corners,
-          gradient: const LinearGradient(
-            begin: Alignment(-1, -0.6),
-            end: Alignment(1, 0.6),
-            colors: [
-              AppColors.guardianHeroStart,
-              AppColors.guardianHeroMid,
-              AppColors.guardianHeroEnd,
-            ],
-            stops: [0, 0.55, 1],
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.guardianHeroShadow,
-              offset: Offset(0, 10),
-              blurRadius: 22,
-              spreadRadius: -12,
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: corners,
-          child: InkWell(
-            onTap: onPressed,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.45,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
             borderRadius: corners,
-            child: SizedBox(
-              height: 54,
-              child: Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, size: 20, color: Colors.white),
-                      const SizedBox(width: 8),
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                          color: Colors.white,
+            gradient: const LinearGradient(
+              begin: Alignment(-1, -0.6),
+              end: Alignment(1, 0.6),
+              colors: [
+                AppColors.guardianHeroStart,
+                AppColors.guardianHeroMid,
+                AppColors.guardianHeroEnd,
+              ],
+              stops: [0, 0.55, 1],
+            ),
+            boxShadow: enabled
+                ? const [
+                    BoxShadow(
+                      color: AppColors.guardianHeroShadow,
+                      offset: Offset(0, 10),
+                      blurRadius: 22,
+                      spreadRadius: -12,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: corners,
+            child: InkWell(
+              onTap: onPressed,
+              borderRadius: corners,
+              child: SizedBox(
+                height: 54,
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: 20, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Text(
+                          label,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

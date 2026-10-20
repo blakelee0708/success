@@ -309,10 +309,21 @@ simply the next thing after the last button, and adding one pushes it down.
 Both are tested: the button has to sit below the last row and move when a row
 is added, and the heading has to scroll out of view.
 
+**The sign-in screen may not promise what the app cannot do.** It is the
+first screen a guardian reads and the only one that makes promises, so it is
+the worst place to make one that is not kept. It offered 배터리 · 소리 ·
+인터넷 "한눈에" while the dashboard says 준비 중 for all three, and 사진,
+which the message tab cannot send — the readings arrive with the Phase 6
+background sync, which is an interface with no implementation, and an image
+needs a picker and file storage that do not exist. Both are gone, and
+`guardian_start_test.dart` asserts 배터리, 인터넷 and 사진 appear nowhere on
+it. Same rule that took the mocked `배터리 72%` off the dashboard, one screen
+earlier.
+
 The parts are shared, in `presentation/widgets/guardian_surfaces.dart`:
 `GuardianGround`, `GuardianCard`, `GuardianActionCard`, `GuardianFact`,
-`GuardianPrimaryButton` and `GuardianHeading`. 홈 and 홈 화면 are both built
-from them. The one filled button on the half wears the **hero's gradient**
+`GuardianPrimaryButton` and `GuardianHeading`. 홈, 홈 화면 and 가족 are all
+built from them. The one filled button on the half wears the **hero's gradient**
 rather than a flat `guardianPrimary` — a solid slab of `#0B5FD9` under a
 gradient card reads as a Material default nobody styled, which is what it
 was. The launcher rows' drag handle was `#9C8770`, the muted clay that came

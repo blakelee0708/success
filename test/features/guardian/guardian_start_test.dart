@@ -27,11 +27,11 @@ void main() {
     await _gotoGuardianStart(tester);
 
     expect(find.text('부모님을 대신해 필요한 앱을 관리해 드릴 수 있어요'), findsOneWidget);
-    expect(find.text('홈 화면 앱과 버튼 색을 원격으로 정리합니다'), findsOneWidget);
-    expect(find.text('부모님과 쉽게 메시지와 사진을 주고받을 수 있어요'), findsOneWidget);
-    expect(find.text('큰 글씨로 바로 보이는 가족 메시지'), findsOneWidget);
-    expect(find.text('부모님의 폰 상태를 확인할 수 있어요'), findsOneWidget);
-    expect(find.text('배터리 · 소리 · 인터넷 연결을 한눈에'), findsOneWidget);
+    expect(find.text('홈 화면 버튼의 이름과 색을 멀리서 정리합니다'), findsOneWidget);
+    expect(find.text('부모님과 큰 글씨로 메시지를 주고받을 수 있어요'), findsOneWidget);
+    expect(find.text('보내면 부모님 첫 화면에 바로 뜹니다'), findsOneWidget);
+    expect(find.text('부모님 폰을 언제 쓰셨는지 알 수 있어요'), findsOneWidget);
+    expect(find.text('마지막으로 쓰신 시각이 보입니다'), findsOneWidget);
   });
 
   testWidgets('guardian start offers Kakao first, then Google', (tester) async {
@@ -87,5 +87,29 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('눌러보세요'), findsOneWidget);
+  });
+
+  testWidgets('the sign-in screen promises nothing the app cannot do yet', (
+    tester,
+  ) async {
+    // This is the first screen a guardian reads and the only one that makes
+    // promises. It was offering 배터리 · 소리 · 인터넷 "한눈에" while the
+    // dashboard says 준비 중 for all three — they arrive with the Phase 6
+    // background sync, which is an interface with no implementation — and
+    // 사진, which the message tab cannot send: an image needs a picker and
+    // file storage, neither of which exists.
+    //
+    // Same rule that took the mocked 배터리 72% off the dashboard, applied one
+    // screen earlier. A promise made before sign-up is worse than a hopeful
+    // number after it.
+    await _gotoGuardianStart(tester);
+
+    for (final claim in ['배터리', '인터넷', '사진']) {
+      expect(
+        find.textContaining(claim),
+        findsNothing,
+        reason: '$claim is not something this app does yet',
+      );
+    }
   });
 }

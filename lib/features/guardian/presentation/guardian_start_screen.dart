@@ -24,18 +24,33 @@ class GuardianStartKeys {
 class GuardianStartScreen extends StatelessWidget {
   const GuardianStartScreen({super.key});
 
+  /// Three things this screen may say, and the test beside it is what keeps
+  /// the list to three.
+  ///
+  /// It promised 배터리 · 소리 · 인터넷 "한눈에" and 사진 for months, and the
+  /// app does neither: the phone readings arrive with the Phase 6 background
+  /// sync, which is an interface with no implementation, and sending a
+  /// picture needs an image picker and file storage that do not exist. This
+  /// is the first screen a guardian reads and the only one that makes
+  /// promises, so it is the worst place in the app to make one that is not
+  /// kept — the same reasoning that took the mocked 배터리 72% off the
+  /// dashboard, one screen earlier.
   static const _benefits = <(String, String, String)>[
     (
       '1',
       '부모님을 대신해 필요한 앱을 관리해 드릴 수 있어요',
-      '홈 화면 앱과 버튼 색을 원격으로 정리합니다',
+      '홈 화면 버튼의 이름과 색을 멀리서 정리합니다',
     ),
     (
       '2',
-      '부모님과 쉽게 메시지와 사진을 주고받을 수 있어요',
-      '큰 글씨로 바로 보이는 가족 메시지',
+      '부모님과 큰 글씨로 메시지를 주고받을 수 있어요',
+      '보내면 부모님 첫 화면에 바로 뜹니다',
     ),
-    ('3', '부모님의 폰 상태를 확인할 수 있어요', '배터리 · 소리 · 인터넷 연결을 한눈에'),
+    (
+      '3',
+      '부모님 폰을 언제 쓰셨는지 알 수 있어요',
+      '마지막으로 쓰신 시각이 보입니다',
+    ),
   ];
 
   @override
