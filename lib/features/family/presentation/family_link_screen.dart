@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/clay_pad.dart';
+
 import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/pair_link.dart';
 import '../../launcher/application/senior_settings_controller.dart';
@@ -91,9 +94,13 @@ class _FamilyLinkScreenState extends ConsumerState<FamilyLinkScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const _ShowCode(),
-                      const SizedBox(height: 36),
-                      const Divider(height: 1),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 34),
+                      const Divider(
+                        height: 2,
+                        thickness: 2,
+                        color: AppColors.seniorHairline,
+                      ),
+                      const SizedBox(height: 26),
                       _EnterCode(
                         controller: _code,
                         busy: _busy,
@@ -146,8 +153,23 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          '자녀분에게 이 번호를\n불러 주세요',
-          style: TextStyle(fontSize: 24, height: 1.5, fontWeight: FontWeight.w700),
+          '자녀분에게\n이 번호를 불러 주세요',
+          style: TextStyle(
+            fontSize: 25,
+            height: 1.4,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.6,
+            color: AppColors.seniorInk,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          '자녀분이 그 번호를 넣으면 연결됩니다.',
+          style: TextStyle(
+            fontSize: 18,
+            height: 1.5,
+            color: AppColors.seniorInkMuted,
+          ),
         ),
         const SizedBox(height: 20),
         switch (pairing) {
@@ -157,20 +179,58 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
             style: TextStyle(fontSize: 18, height: 1.5),
           ),
           AsyncLoading() => const Center(child: CircularProgressIndicator()),
-          _ => FilledButton(
+          // The one thing on this screen a senior can do on their own, so it
+          // is the one that looks like the answer. Red and white rather than
+          // the amber 가족 wears elsewhere: that amber sits at hue 36°, one
+          // degree off the 카카오톡 tile, and its 95% value is the highest in
+          // the palette — it reads as washed out beside everything else.
+          _ => SizedBox(
             key: FamilyLinkKeys.showCode,
-            onPressed: () async {
-              await ref
-                  .read(seniorPairingControllerProvider.notifier)
-                  .showCode();
-              _watchForGuardian();
-            },
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(64),
-            ),
-            child: const Text(
-              '번호 보여주기',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+            height: 140,
+            child: ClayPad(
+              light: AppColors.seniorButtonRedLight,
+              face: AppColors.seniorButtonRed,
+              deep: AppColors.seniorButtonRedDeep,
+              wall: AppColors.seniorButtonRedWall,
+              radius: 30,
+              onTap: () async {
+                await ref
+                    .read(seniorPairingControllerProvider.notifier)
+                    .showCode();
+                _watchForGuardian();
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.phone_iphone, size: 40, color: Colors.white),
+                      SizedBox(height: 10),
+                      Text(
+                        '번호 보여주기',
+                        style: TextStyle(
+                          fontSize: 30,
+                          height: 1.1,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.8,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        '여기를 누르세요',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         },
@@ -235,9 +295,17 @@ class _EnterCode extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Quieter than the half above on purpose. This one cannot be done at
+        // all without a number already in hand, so it is a question for the
+        // few it applies to rather than a second choice for everyone.
         const Text(
-          '자녀분이 번호를 알려 주셨나요?',
-          style: TextStyle(fontSize: 22, height: 1.5, fontWeight: FontWeight.w700),
+          '자녀분이 먼저 번호를 알려 주셨나요?',
+          style: TextStyle(
+            fontSize: 19,
+            height: 1.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.seniorInkMuted,
+          ),
         ),
         const SizedBox(height: 16),
         TextField(
@@ -255,7 +323,24 @@ class _EnterCode extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
           textAlign: TextAlign.center,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: AppColors.seniorSlotFill,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: const BorderSide(
+                color: AppColors.seniorSlotBorder,
+                width: 2.5,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: const BorderSide(
+                color: AppColors.seniorSlotBorder,
+                width: 2.5,
+              ),
+            ),
+          ),
         ),
         if (error case final message?) ...[
           const SizedBox(height: 16),
@@ -270,13 +355,31 @@ class _EnterCode extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 20),
-        FilledButton(
+        SizedBox(
           key: FamilyLinkKeys.submit,
-          onPressed: busy ? null : onSubmit,
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(64)),
-          child: Text(
-            busy ? '연결하는 중이에요' : '연결하기',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          height: 72,
+          child: ClayPad(
+            light: AppColors.seniorMoreLight,
+            face: AppColors.seniorMore,
+            deep: AppColors.seniorMoreDeep,
+            wall: AppColors.seniorMoreWall,
+            radius: 26,
+            onTap: busy ? null : onSubmit,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  busy ? '연결하는 중이에요' : '연결하기',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.4,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ],

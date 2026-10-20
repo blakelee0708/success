@@ -14,7 +14,7 @@ void main() {
     await _gotoEasyHome(tester);
     await tester.tap(find.text('가족 연결'));
     await tester.pumpAndSettle();
-    expect(find.text('자녀분에게 이 번호를\n불러 주세요'), findsOneWidget);
+    expect(find.text('자녀분에게\n이 번호를 불러 주세요'), findsOneWidget);
   });
 
   testWidgets('더 보기 opens the more-apps placeholder', (tester) async {

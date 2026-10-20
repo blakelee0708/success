@@ -50,6 +50,26 @@ Future<void> _enterCode(WidgetTester tester, String code) async {
 }
 
 void main() {
+  testWidgets('번호 보여주기 dominates the screen, and says what to do', (
+    tester,
+  ) async {
+    // The two halves were the same size, so the senior had to work out which
+    // one applied to them — and the one that does not apply cannot be done at
+    // all without a number already in hand. Showing a number is the path
+    // anyone can take alone, so it is the one that looks like the answer.
+    await _gotoFamilyLink(tester);
+
+    expect(find.text('여기를 누르세요'), findsOneWidget);
+
+    final show = tester.getSize(find.byKey(FamilyLinkKeys.showCode));
+    final submit = tester.getSize(find.byKey(FamilyLinkKeys.submit));
+    expect(
+      show.height,
+      greaterThan(submit.height * 1.5),
+      reason: 'the two are still the same weight',
+    );
+  });
+
   testWidgets('the screen offers both directions at once', (tester) async {
     // Which one applies is not something the senior should have to work out:
     // whether they are being connected for the first time or replacing a

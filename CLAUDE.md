@@ -248,6 +248,38 @@ It is now the band, eight cells (2x4, rows 108px), and 긴급 구조 요청 besi
 screenshots can pin it. A screenshot whose clock moves every run is a
 screenshot nobody can diff.
 
+## 가족 연결 does not ask the senior to choose
+
+The screen used to put 번호 보여주기 and 번호 입력하기 side by side at the same
+size, under a line asking which one they wanted. They are not two equal
+choices:
+
+- **번호 보여주기** is the path anyone can take alone, and it is `경로 B` —
+  the required fallback for when the Play install referrer did not survive.
+- **번호 입력하기** cannot be done at all without a number already in hand. To
+  a senior holding no number it is not an option, it is a dead end.
+
+So the first is a 140px red pad reading **번호 보여주기 / 여기를 누르세요**, and
+the second is a quieter question below a rule — `자녀분이 먼저 번호를 알려
+주셨나요?`, which only the few it applies to will answer. A test asserts the
+first is more than half again the height of the second.
+
+**It is 영상 보기's red (`#DF4F28`) with white lettering**, not the amber 가족
+wears elsewhere. Two measurements decided that: the amber sits at hue 36°,
+**one degree** off the 카카오톡 tile, and its value is 95% — the highest in the
+whole palette, which is what makes it read as washed out beside tiles sitting
+at 87–88%. White on this red measures 3.97:1, clear of the 3.0 floor for
+lettering this size.
+
+The red is 6° from the SOS pill. That is close, and the only reason it is
+acceptable is that 영상 보기 already sits in the same red on the same home
+screen as SOS — this adds no distinction the app did not already ask a senior
+to make. It is still worth keeping the shape different: SOS is a wide bar and
+this is a tall pad with an icon over two lines.
+
+The 가족 button on both home screens is **still the old amber**. Changing it is
+a separate decision and it was not made, so the two do not match yet.
+
 ## The guardian app is a different design, on purpose
 
 Settled 2026-10-20, from a pastel reference the owner brought. The form came
