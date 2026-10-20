@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import 'widgets/default_home_prompt.dart';
 
 /// 설정 — what the 자세한 화면 tab bar used to hold, now a screen of its own.
 ///
@@ -31,6 +32,10 @@ class SeniorSettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // The way back for anyone who said 나중에 when onboarding asked, and
+          // for the phones that refuse the chooser. Renders nothing once this
+          // app is the home app, which is most of the time.
+          const DefaultHomePrompt(),
           for (final (label, route) in _items)
             Card(
               color: AppColors.seniorSurface,

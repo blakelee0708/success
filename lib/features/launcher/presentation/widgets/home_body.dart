@@ -17,12 +17,7 @@ import 'home_strip.dart';
 ///
 /// Place it inside an [Expanded]: it sizes itself from the space it is given.
 class HomeBody extends StatelessWidget {
-  const HomeBody({
-    super.key,
-    required this.tiles,
-    required this.rowGap,
-    this.showStrip = true,
-  });
+  const HomeBody({super.key, required this.tiles, required this.rowGap});
 
   /// The cells of the grid, in order, two to a row.
   final List<Widget> tiles;
@@ -30,15 +25,6 @@ class HomeBody extends StatelessWidget {
   /// Vertical space between rows. 자세한 화면 runs tighter than the easy one
   /// because it has twice as many rows to fit.
   final double rowGap;
-
-  /// False while the one-time 첫 화면 card is up.
-  ///
-  /// The clock is the nicest thing on this screen and the first to go when
-  /// there is a setup card above it, because the alternative is worse: at
-  /// 제일 크게 the card, the band and four rows of tiles came to more than the
-  /// phone has, and what gave way was the tiles — 12px of them. The band
-  /// comes back the moment the card is answered.
-  final bool showStrip;
 
   /// The vertical rule between two tiles, and between the two buttons under
   /// them. They were 16 and 14 once, and the buttons visibly failed to line up.
@@ -72,9 +58,7 @@ class HomeBody extends StatelessWidget {
         // band was invented to fix.
         final tile = (constraints.maxWidth - gutter) / 2;
         final square = rows * tile + (rows - 1) * rowGap;
-        final available = showStrip
-            ? constraints.maxHeight - sectionGap
-            : constraints.maxHeight;
+        final available = constraints.maxHeight - sectionGap;
 
         // The band is laid out at its drawn height and the grid takes what is
         // left. The other way round — which is what this did at first — let
@@ -84,20 +68,16 @@ class HomeBody extends StatelessWidget {
         // Only when the rows could not hold an icon and a label on what that
         // leaves does the band start giving height back.
         final gaps = (rows - 1) * rowGap;
-        final cap = showStrip
-            ? (available - preferredStrip >= rows * minRow + gaps
-                  ? available - preferredStrip
-                  : available - minStrip)
-            : available;
+        final cap = available - preferredStrip >= rows * minRow + gaps
+            ? available - preferredStrip
+            : available - minStrip;
         final grid = math.max(0.0, math.min(square, cap));
         final rowHeight = rows > 0 ? (grid - gaps) / rows : 0.0;
 
         return Column(
           children: [
-            if (showStrip) ...[
-              const Expanded(child: HomeStrip()),
-              const SizedBox(height: sectionGap),
-            ],
+            const Expanded(child: HomeStrip()),
+            const SizedBox(height: sectionGap),
             SizedBox(
               height: grid,
               child: GridView.count(

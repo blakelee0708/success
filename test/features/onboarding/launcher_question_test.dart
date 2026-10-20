@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/features/launcher/data/app_launcher.dart';
+import 'package:app/features/launcher/presentation/more_apps_placeholder.dart';
 import 'package:app/features/launcher/presentation/widgets/default_home_prompt.dart';
 import 'package:app/features/onboarding/presentation/screen_mode_choice_screen.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
@@ -42,7 +43,7 @@ void main() {
     expect(launcher.homeSettingsOpened, 1);
   });
 
-  testWidgets('나중에 lands on the home and leaves the card there', (
+  testWidgets('나중에 lands on a clean home, and 설정 keeps the offer', (
     tester,
   ) async {
     final launcher = await _choose(tester, isDefaultHome: false);
@@ -51,8 +52,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(launcher.homeSettingsOpened, 0);
-    // The card is the fallback for exactly this: they said not now.
+    // Not on the home — that is what it was taken off for.
+    expect(find.byKey(DefaultHomePrompt.promptKey), findsNothing);
+    expect(find.text('전화'), findsOneWidget);
+
+    // But 나중에 must not be a dead end. 정말 쉬운 화면 had no route to 설정 at
+    // all until 더 보기 got one.
+    await tester.tap(find.text('더 보기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(MoreAppsPlaceholder.settingsKey));
+    await tester.pumpAndSettle();
+
     expect(find.byKey(DefaultHomePrompt.promptKey), findsOneWidget);
+    expect(find.text('글씨 크기 조절하기'), findsOneWidget);
   });
 
   testWidgets('a phone that cannot answer is not asked at all', (tester) async {

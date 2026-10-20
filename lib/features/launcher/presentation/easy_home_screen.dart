@@ -11,7 +11,6 @@ import 'widgets/app_tile.dart';
 import '../../care/presentation/care_consent_prompt.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import '../../family/presentation/primary_guardian_prompt.dart';
-import 'widgets/default_home_prompt.dart';
 import 'widgets/home_body.dart';
 import 'widgets/home_pill.dart';
 import 'widgets/sos_button.dart';
@@ -55,7 +54,6 @@ class EasyHomeScreen extends ConsumerWidget {
     // still named for the job a senior has at the time.
     final connected =
         (ref.watch(seniorGuardiansProvider).value ?? const []).isNotEmpty;
-    final setupPending = ref.watch(isDefaultHomeProvider).value == false;
 
     return Scaffold(
       body: SafeArea(
@@ -65,12 +63,9 @@ class EasyHomeScreen extends ConsumerWidget {
             children: [
               const CareConsentPrompt(),
               const PrimaryGuardianPrompt(),
-              const DefaultHomePrompt(),
               Expanded(
                 child: HomeBody(
                   rowGap: _rowGap,
-                  // The band stands down while the one-time setup card is up.
-                  showStrip: !setupPending,
                   tiles: [
                     for (final app in apps)
                       AppTile(

@@ -12,7 +12,6 @@ import 'widgets/app_tile.dart';
 import '../../care/presentation/care_consent_prompt.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import '../../family/presentation/primary_guardian_prompt.dart';
-import 'widgets/default_home_prompt.dart';
 import 'widgets/home_body.dart';
 import 'widgets/home_pill.dart';
 
@@ -67,7 +66,6 @@ class DetailedHomeScreen extends ConsumerWidget {
     final apps = (saved == null || saved.isEmpty) ? defaultDetailedApps : saved;
     final connected =
         (ref.watch(seniorGuardiansProvider).value ?? const []).isNotEmpty;
-    final setupPending = ref.watch(isDefaultHomeProvider).value == false;
 
     // One empty slot after 설정, or two where that would leave a half-finished
     // row. Padding the grid out to eight whatever the senior kept would fill
@@ -83,12 +81,9 @@ class DetailedHomeScreen extends ConsumerWidget {
             children: [
               const CareConsentPrompt(),
               const PrimaryGuardianPrompt(),
-              const DefaultHomePrompt(),
               Expanded(
                 child: HomeBody(
                   rowGap: _rowGap,
-                  // The band stands down while the one-time setup card is up.
-                  showStrip: !setupPending,
                   tiles: [
                     for (final app in apps)
                       AppTile(

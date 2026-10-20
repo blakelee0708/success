@@ -280,31 +280,31 @@ this is a tall pad with an icon over two lines.
 The 가족 button on both home screens is **still the old amber**. Changing it is
 a separate decision and it was not made, so the two do not match yet.
 
-## The home-app question moved into onboarding
+## The home-app question moved into onboarding, and off the home screen
 
-It used to live on the home screen as a card over the tiles, and at 제일 크게
-that card asked for more height than the phone had. Nothing overflowed —
-every tile is a `FittedBox` — so the tiles simply shrank, to **12px**, with
-their labels smaller than the 가족 pill underneath. That is the same silent
-failure the band had, one screen along.
+It used to live on the home screen as a card over the tiles, not dismissible,
+and at 제일 크게 it asked for more height than the phone had. Nothing
+overflowed — every tile is a `FittedBox` — so the tiles simply shrank, to
+**12px**, with their labels smaller than the 가족 pill underneath. The same
+silent failure the band had, one screen along.
 
-Three things changed, and all three are needed:
+It is asked **once, at the end of onboarding**, right after the screen is
+chosen; `06_PERMISSION_AND_POLICY` allows exactly this one request there.
+Having asked, the home screen does not ask again — the card is gone from both
+homes, and with it the 26% cap and the band-standing-down it had forced.
 
-- **The question is asked at the end of onboarding**, right after the screen
-  is chosen. `06_PERMISSION_AND_POLICY` allows exactly this one request
-  during onboarding, so that is where it belongs.
-- **The answer is read, never awaited.** `ScreenModeChoiceScreen.build`
-  watches `isDefaultHomeProvider` so the platform is asked the moment the
-  screen opens; `_choose` reads the value. Awaiting the channel there instead
-  strands the senior on the screen they just answered whenever it does not
-  reply — `flutter test` is such a platform, and so is a phone whose launcher
-  service is wedged. Seven tests caught exactly that.
-- **`DefaultHomePrompt` stays, as a fallback**, for 나중에 and for the phones
-  that refuse the chooser. It is capped at 26% of the screen and scales down
-  inside, and while it is up `HomeBody` drops the band: the clock is the
-  nicest thing on the screen and the first to go, because the alternative is
-  tiles nobody can read. `home_fits_test.dart` asserts a tile is at least
-  `HomeBody.minRow` tall with the card up, on both screens at 제일 크게.
+**The answer is read, never awaited.** `ScreenModeChoiceScreen.build` watches
+`isDefaultHomeProvider`, so the platform is asked the moment the screen opens
+and `_choose` reads the value. Awaiting the channel in the tap handler
+strands the senior on the screen they just answered whenever it does not
+reply — `flutter test` is such a platform, and so is a phone whose launcher
+service is wedged. Seven tests caught exactly that.
+
+`DefaultHomePrompt` now lives in **설정**, for the ones who said 나중에 and for
+the phones that refuse the chooser. That made a second gap visible and worth
+closing: **정말 쉬운 화면 had no route to 설정 at all**, so a senior on the easy
+screen could not change their text size either — the setting the app is sold
+on. 더 보기 is that route now, with the "곧 추가할 수 있어요" line kept under it.
 
 ## 긴급 연락 is three colours now, and the sizes go to four
 
