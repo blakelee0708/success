@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,7 +11,14 @@ import '../../../core/theme/app_colors.dart';
 /// There is no separate 시작하기 CTA — see
 /// `docs/superpowers/specs/2026-07-29-splash-and-guardian-entry-design.md`.
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.tiltDegrees = 0});
+
+  /// How far the hand is tilted, in degrees, negative to the left. Zero is
+  /// upright. It is a parameter so the review screenshots can show several
+  /// angles side by side: the phone's screen is drawn over the photo, so a
+  /// tilt turns the 눌러보세요 on it too, and how far that stays readable is
+  /// a thing to look at rather than argue about.
+  final double tiltDegrees;
 
   static const tapTargetKey = Key('splash-tap-target');
   static const guardianCardKey = Key('splash-guardian-card');
@@ -52,16 +61,10 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: DecoratedBox(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.splashBgTop,
-              AppColors.splashBgMid,
-              AppColors.splashBgBottom,
-            ],
-            stops: [0.0, 0.46, 1.0],
-          ),
+          // White, like every other senior screen since the 2026-10-20
+          // review. The illustration is a PNG with a transparent background,
+          // so the cream it used to sit on was painted here and nowhere else.
+          color: AppColors.seniorBackground,
         ),
         child: Stack(
           fit: StackFit.expand,
@@ -71,6 +74,7 @@ class _SplashScreenState extends State<SplashScreen>
               entering: _entering,
               loop: _loop,
               onTap: _onPhoneTap,
+              tiltDegrees: widget.tiltDegrees,
             ),
             const _BottomScrim(),
             const _Wordmark(),
@@ -82,7 +86,11 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-/// Two soft radial glows that keep the flat gradient from looking like paper.
+/// Two radial glows, barely there. On the cream ground they kept it from
+/// looking like paper; on white they are what stopped it being white, so they
+/// are turned down to the faintest warmth rather than removed — the
+/// illustration is a warm render and a dead-white field behind it looks cut
+/// out rather than lit.
 class _AmbientWashes extends StatelessWidget {
   const _AmbientWashes();
 
@@ -94,12 +102,12 @@ class _AmbientWashes extends StatelessWidget {
           Positioned(
             top: -170,
             left: -110,
-            child: _wash(420, const Color(0xFFE06D42), 0.16),
+            child: _wash(420, const Color(0xFFE06D42), 0.05),
           ),
           Positioned(
             top: 300,
             right: -160,
-            child: _wash(340, const Color(0xFFCB9449), 0.14),
+            child: _wash(340, const Color(0xFFCB9449), 0.04),
           ),
         ],
       ),
@@ -112,7 +120,10 @@ class _AmbientWashes extends StatelessWidget {
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       gradient: RadialGradient(
-        colors: [color.withValues(alpha: opacity), color.withValues(alpha: 0)],
+        colors: [
+          color.withValues(alpha: opacity),
+          color.withValues(alpha: 0),
+        ],
         stops: const [0.0, 0.7],
       ),
     ),
@@ -193,11 +204,16 @@ class _Illustration extends StatelessWidget {
     required this.entering,
     required this.loop,
     required this.onTap,
+    this.tiltDegrees = 0,
   });
 
   final bool entering;
   final Animation<double> loop;
   final VoidCallback onTap;
+
+  /// Negative tilts the phone to the left, as a raised hand would. Zero is
+  /// upright, which is how the illustration was rendered and lit.
+  final double tiltDegrees;
 
   // The design draws the illustration in a 390x801 box sitting 76px above the
   // bottom edge; the tap target is a fraction of that box.
@@ -230,35 +246,43 @@ class _Illustration extends StatelessWidget {
               bottom: _bottomGap,
               width: boxWidth,
               height: boxHeight,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Image.asset(
-                      'assets/images/hand_phone.png',
-                      fit: BoxFit.contain,
-                      alignment: Alignment.bottomCenter,
+              // The phone's screen is drawn by Flutter on top of the photo,
+              // so a tilt has to turn both together or the two come apart.
+              // Which is also the catch: past about 15° the 눌러보세요 on that
+              // screen is lying on its side.
+              child: Transform.rotate(
+                angle: tiltDegrees * math.pi / 180,
+                alignment: Alignment.bottomCenter,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Image.asset(
+                        'assets/images/hand_phone.png',
+                        fit: BoxFit.contain,
+                        alignment: Alignment.bottomCenter,
+                      ),
                     ),
-                  ),
-                  Positioned(
-                    left: boxWidth * _tapLeft,
-                    top: boxHeight * _tapTop,
-                    width: boxWidth * _tapWidth,
-                    height: boxHeight * _tapHeight,
-                    child: GestureDetector(
-                      key: SplashScreen.tapTargetKey,
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onTap,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        child: Center(
-                          child: entering
-                              ? _EnteringState(loop: loop)
-                              : _IdleState(loop: loop),
+                    Positioned(
+                      left: boxWidth * _tapLeft,
+                      top: boxHeight * _tapTop,
+                      width: boxWidth * _tapWidth,
+                      height: boxHeight * _tapHeight,
+                      child: GestureDetector(
+                        key: SplashScreen.tapTargetKey,
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onTap,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          child: Center(
+                            child: entering
+                                ? _EnteringState(loop: loop)
+                                : _IdleState(loop: loop),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -355,9 +379,7 @@ class _IdleState extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: AppColors.splashAccent.withValues(
-              alpha: 0.55 * (1 - grown),
-            ),
+            color: AppColors.splashAccent.withValues(alpha: 0.55 * (1 - grown)),
             width: 3,
           ),
         ),
@@ -435,9 +457,9 @@ class _BottomScrim extends StatelessWidget {
               begin: Alignment.bottomCenter,
               end: Alignment.topCenter,
               colors: [
-                AppColors.splashBgBottom.withValues(alpha: 0.98),
-                AppColors.splashBgMid.withValues(alpha: 0.72),
-                AppColors.splashBgMid.withValues(alpha: 0),
+                AppColors.seniorBackground,
+                AppColors.seniorBackground.withValues(alpha: 0.85),
+                AppColors.seniorBackground.withValues(alpha: 0),
               ],
               stops: const [0.34, 0.62, 1.0],
             ),
