@@ -341,6 +341,37 @@ void main() {
     await _capture(tester, '16-easy-home');
   });
 
+  testWidgets('자세한 화면 at rest, for comparison with the easy one', (
+    tester,
+  ) async {
+    // The other half of the choice a senior makes on their first run, and it
+    // had no picture either. Its tiles are the same [AppTile] the easy screen
+    // draws, but everything around them — the add-slots, the bottom tabs, the
+    // 설정 list — is still stock Material from before the clay review, and
+    // that only shows up in a render.
+    await pumpApp(
+      tester,
+      overrides: [
+        nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
+        appLauncherProvider.overrideWithValue(
+          FakeAppLauncher(defaultHome: true),
+        ),
+      ],
+      prefs: {
+        SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+          const SeniorSettings(
+            screenMode: ScreenMode.detailed,
+            apps: defaultDetailedApps,
+          ).toJson(),
+        ),
+      },
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await _capture(tester, '17-detailed-home');
+  });
+
   testWidgets('가족 메시지 renders for the guardian', (tester) async {
     final store = InMemorySeniorLinkRepository();
     final pairing = InMemoryPairingRepository(store);
