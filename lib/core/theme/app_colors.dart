@@ -33,6 +33,14 @@ class AppColors {
   static const seniorMoreDeep = Color(0xFF52412F);
   static const seniorMoreWall = Color(0xFF3F3122);
 
+  /// An empty cell in the 자세한 화면 grid. Neutral greys, not the muted clay
+  /// the slot used to be drawn in — the beige came out of the senior palette
+  /// in the 2026-10-20 review. Hollow rather than extruded on purpose: it is
+  /// the one shape on the home screen that is not yet a thing to press.
+  static const seniorSlotFill = Color(0xFFFBFBFC);
+  static const seniorSlotBorder = Color(0xFFC7C9CC);
+  static const seniorSlotInk = Color(0xFF75797F);
+
   /// The raised card the clock and the family line sit on. Its face is
   /// tinted rather than pure white: on a white ground a white card has no
   /// edge, and the clock looked like it was floating outside its own box.

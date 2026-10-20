@@ -1,12 +1,9 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/clay_pad.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
 import '../data/app_launcher.dart';
@@ -15,7 +12,8 @@ import '../../care/presentation/care_consent_prompt.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import '../../family/presentation/primary_guardian_prompt.dart';
 import 'widgets/default_home_prompt.dart';
-import 'widgets/home_strip.dart';
+import 'widgets/home_body.dart';
+import 'widgets/home_pill.dart';
 import 'widgets/sos_button.dart';
 
 /// 정말 쉬운 화면 — the clock-and-family band, 2x2 tiles, 가족, 더 보기, SOS.
@@ -26,16 +24,8 @@ import 'widgets/sos_button.dart';
 class EasyHomeScreen extends ConsumerWidget {
   const EasyHomeScreen({super.key});
 
-  /// One spacing system, so the seams line up. The vertical rule between the
-  /// tiles and the one between 가족 and 더 보기 are both [_gutter]: they were
-  /// 16 and 14 once, and the buttons visibly failed to line up.
-  static const _gutter = 16.0;
+  /// Four tiles have room to breathe where 자세한 화면's eight do not.
   static const _rowGap = 22.0;
-  static const _sectionGap = 24.0;
-  static const _pillHeight = 80.0;
-
-  /// The band gives up its height before the tiles do, but never all of it.
-  static const _minStrip = 110.0;
 
   /// Says so when nothing opened, rather than leaving the senior tapping a
   /// tile that does nothing. Almost always the app is simply not installed.
@@ -59,7 +49,6 @@ class EasyHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final saved = ref.watch(seniorSettingsControllerProvider).value?.apps;
     final apps = (saved == null || saved.isEmpty) ? defaultEasyApps : saved;
-    final rows = (apps.length / 2).ceil();
     // `04_SCREEN_SPEC` gives this slot as 가족 연결 또는 자녀 이름 버튼. Talking
     // to the family moved up into [HomeStrip], which shows their newest
     // message, so what is left for the button is the connection itself —
@@ -77,50 +66,22 @@ class EasyHomeScreen extends ConsumerWidget {
               const PrimaryGuardianPrompt(),
               const DefaultHomePrompt(),
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    // Square tiles, and the band takes whatever is left over.
-                    // Stretching the tiles to fill instead gave 169x250
-                    // rectangles, which is what the band was invented to fix.
-                    final tile = (constraints.maxWidth - _gutter) / 2;
-                    final square = rows * tile + (rows - 1) * _rowGap;
-                    final room =
-                        constraints.maxHeight - _sectionGap - _minStrip;
-                    final grid = math.max(0.0, math.min(square, room));
-
-                    return Column(
-                      children: [
-                        const Expanded(child: HomeStrip()),
-                        const SizedBox(height: _sectionGap),
-                        SizedBox(
-                          height: grid,
-                          child: GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: _rowGap,
-                            crossAxisSpacing: _gutter,
-                            childAspectRatio: grid > 0
-                                ? tile / ((grid - (rows - 1) * _rowGap) / rows)
-                                : 1,
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: [
-                              for (final app in apps)
-                                AppTile(
-                                  app: app,
-                                  onTap: () => _openApp(context, ref, app),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                child: HomeBody(
+                  rowGap: _rowGap,
+                  tiles: [
+                    for (final app in apps)
+                      AppTile(
+                        app: app,
+                        onTap: () => _openApp(context, ref, app),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: _sectionGap),
+              const SizedBox(height: HomeBody.sectionGap),
               Row(
                 children: [
                   Expanded(
-                    child: _Pill(
+                    child: HomePill(
                       label: connected ? '가족' : '가족 연결',
                       icon: Icons.family_restroom,
                       light: AppColors.seniorFamilyLight,
@@ -135,9 +96,9 @@ class EasyHomeScreen extends ConsumerWidget {
                       onTap: () => context.push(Routes.familyLink),
                     ),
                   ),
-                  const SizedBox(width: _gutter),
+                  const SizedBox(width: HomeBody.gutter),
                   Expanded(
-                    child: _Pill(
+                    child: HomePill(
                       label: '더 보기',
                       icon: Icons.apps,
                       light: AppColors.seniorMoreLight,
@@ -150,71 +111,9 @@ class EasyHomeScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: _sectionGap),
+              const SizedBox(height: HomeBody.sectionGap),
               SosButton(onTap: () => context.go(Routes.sos)),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.label,
-    required this.icon,
-    required this.light,
-    required this.face,
-    required this.deep,
-    required this.wall,
-    required this.ink,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color light;
-  final Color face;
-  final Color deep;
-  final Color wall;
-  final Color ink;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: SizedBox(
-        height: EasyHomeScreen._pillHeight,
-        child: ClayPad(
-          light: light,
-          face: face,
-          deep: deep,
-          wall: wall,
-          radius: 26,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 29, color: ink),
-                  const SizedBox(width: 10),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 23,
-                      fontWeight: FontWeight.w900,
-                      color: ink,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
         ),
       ),

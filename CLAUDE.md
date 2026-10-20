@@ -133,12 +133,13 @@ Raising the text size is the point of this app, so anything that only fits at
 the default size is a bug. The app tile, the SOS pill and the pairing-code row
 all scale down to fit rather than overflow — check new screens at 아주 크게.
 
-정말 쉬운 화면's grid sizes its rows from the space actually left rather than
-leaving the tiles square. It does not scroll, and a `GridView` is a scrollable:
-asked for more height than it has, it clips the bottom row in silence instead
-of painting an overflow stripe. `easy_home_fits_test.dart` measures every tile
-against the grid at all three text sizes, because nothing throws when this
-breaks.
+`HomeBody` sizes the grid rows from the space actually left rather than
+leaving the tiles square. Neither home scrolls, and a `GridView` is a
+scrollable: asked for more height than it has, it clips the bottom row in
+silence instead of painting an overflow stripe. `home_fits_test.dart` measures
+every tile against the grid on **both** screens at all three text sizes,
+because nothing throws when this breaks — and it does catch it: replacing the
+clamp with the unclamped square height fails all eight cases.
 
 `flutter test test/screenshots_test.dart` writes each screen to
 `build/screenshots/`. There is no display here and no way to build an APK
@@ -183,12 +184,18 @@ phone:
 and the terracotta came back as a muddy brown on every filled button. Both
 themes now set `primary` and `onPrimary` outright.
 
-## The band across the top of 정말 쉬운 화면
+## The band across the top of both home screens
 
 `HomeStrip`. It exists because square tiles could not fill the screen: stretched
 to fit they became 169x250 rectangles, and left square they left 211px of
 nothing at the bottom. The slack became one wide thing worth looking at — the
 clock, and underneath it whoever is looking after this phone.
+
+It is on 자세한 화면 too since the 2026-10-20 review, at the same 192px, and
+that height is not negotiable: the band gives up nothing and the tile rows
+shrink to 108px instead. Taking it out of the band would drop the clock from
+50px to 35px, and a different-sized clock is what made the two screens read as
+two apps in the first place.
 
 The date sits *above* the clock. Side by side they ran to 328px inside a 310px
 card and the date was pushed out of its own box; Korean glyphs are about as
@@ -196,8 +203,39 @@ wide as the type size, so a line of them has to be measured, not eyeballed.
 
 This is now the 가족 연결 또는 자녀 이름 slot `04_SCREEN_SPEC` asks for: the
 band shows the family's newest message and opens the conversation, so the
-button by 더 보기 is left with the connection itself and is named 가족 연결
+button beside it is left with the connection itself and is named 가족 연결
 until there is one.
+
+## 자세한 화면 lost its tab bar
+
+It was a scrolling grid under a Material `NavigationBar` until the 2026-10-20
+review. Neither problem was colour — its tiles were already the shared
+`AppTile`:
+
+- The tab bar was the one part of the screen the text size never reached, on
+  an app whose whole promise is that the text gets bigger.
+- One home scrolled and the other did not, which is most of why they read as
+  two different apps.
+
+It is now the band, eight cells (2x4, rows 108px), and 긴급 구조 요청 beside
+가족 where the tabs were. Three decisions in it are load-bearing:
+
+- **설정 is a tile, and it had to go somewhere.** That list is the only way
+  into 글씨 크기 조절하기 anywhere in the app — 더 보기 on the easy screen is
+  still a "곧 추가할 수 있어요" placeholder — so dropping the tab bar without
+  rehoming it would have removed the setting the app is sold on. It is brown
+  rather than a category colour because it stands next to 전화 and must not be
+  taken for an app, and it lives at `Routes.seniorSettings` now.
+- **긴급 구조 요청 gets 203 of the 354px, not 177.** Split evenly its label
+  scales to 17px, smaller than the 26px tile labels above it, and SOS ending
+  up the smallest lettering on the screen is wrong. Stacking it full-width
+  under 가족 instead — the easy screen's arrangement — costs the tile rows
+  30px each and the icon no longer fits.
+- **Empty slots stay hollow, and there are one or two of them, never six.**
+  Padding the grid out to eight whatever the senior kept would fill most of
+  their home with 추가하기, which is a reproach rather than an invitation. The
+  slot's muted-clay beige is gone with the rest of the beige;
+  `clay_palette_test.dart` now asserts its three colours are neutral.
 
 `nowProvider` is where the time comes from, so tests and the review
 screenshots can pin it. A screenshot whose clock moves every run is a

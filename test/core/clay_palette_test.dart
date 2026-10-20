@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -87,6 +89,27 @@ void main() {
     test('the small line clears 4.5:1 too, being small', () {
       expect(onCard(AppColors.splashCardLabel), greaterThanOrEqualTo(4.5));
     });
+  });
+
+  test('an empty slot is still readable, and carries no beige', () {
+    // The slot was drawn in the muted clay #C9A98C until the beige came out
+    // of the senior palette. Its lettering is large, so 3:1 is the floor —
+    // but a slot nobody can read is not an invitation to fill it.
+    final fill = AppColors.seniorSlotFill.computeLuminance();
+    final ink = AppColors.seniorSlotInk.computeLuminance();
+    expect((fill + 0.05) / (ink + 0.05), greaterThanOrEqualTo(3.0));
+
+    // Neutral: no channel may lead the others, which is what made the old
+    // one read as beige.
+    for (final c in [AppColors.seniorSlotFill, AppColors.seniorSlotBorder,
+        AppColors.seniorSlotInk]) {
+      final channels = [c.r, c.g, c.b];
+      expect(
+        channels.reduce(math.max) - channels.reduce(math.min),
+        lessThan(0.05),
+        reason: '$c is tinted, not neutral',
+      );
+    }
   });
 
   test('가족 is lettered in ink, because its face is a light amber', () {

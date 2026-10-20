@@ -11,6 +11,7 @@ import '../../features/launcher/presentation/easy_home_screen.dart';
 import '../../features/launcher/presentation/app_settings_screen.dart';
 import '../../features/launcher/presentation/font_size_screen.dart';
 import '../../features/launcher/presentation/more_apps_placeholder.dart';
+import '../../features/launcher/presentation/senior_settings_screen.dart';
 import '../../features/launcher/presentation/sos_screen.dart';
 import '../../features/onboarding/presentation/screen_mode_choice_screen.dart';
 import 'launch_gate.dart';
@@ -64,6 +65,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.moreApps,
         builder: (context, state) => const MoreAppsPlaceholder(),
+      ),
+      GoRoute(
+        path: Routes.seniorSettings,
+        builder: (context, state) => const SeniorSettingsScreen(),
       ),
       GoRoute(
         path: Routes.appSettings,
