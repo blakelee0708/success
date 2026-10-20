@@ -325,12 +325,16 @@ void main() {
     // senior already chose, which may be the largest one.
     for (final (mode, size, name) in [
       (ScreenMode.easy, FontSize.normal, '12-home-prompt-easy'),
-      (ScreenMode.easy, FontSize.extraLarge, '13-home-prompt-easy-extra-large'),
-      (ScreenMode.detailed, FontSize.extraLarge, '14-home-prompt-detailed'),
+      (ScreenMode.easy, FontSize.largest, '13-home-prompt-easy-largest'),
+      (ScreenMode.detailed, FontSize.largest, '14-home-prompt-detailed'),
     ]) {
       await pumpApp(
         tester,
         overrides: [
+          // Pinned, like every other capture. This one was not, so its clock
+          // read a different time on every run and the PNG could not be
+          // diffed against the one before it.
+          nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
           appLauncherProvider.overrideWithValue(
             FakeAppLauncher(defaultHome: false),
           ),

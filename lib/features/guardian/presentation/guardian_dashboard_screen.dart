@@ -305,6 +305,7 @@ class _HomeTab extends ConsumerWidget {
                   FontSize.normal => '보통',
                   FontSize.large => '크게',
                   FontSize.extraLarge => '아주 크게',
+                  FontSize.largest => '제일 크게',
                   null => '아직 고르지 않으셨어요',
                 },
               ),

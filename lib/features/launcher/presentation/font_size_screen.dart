@@ -17,6 +17,7 @@ class FontSizeScreen extends ConsumerWidget {
     FontSize.normal: '보통',
     FontSize.large: '크게',
     FontSize.extraLarge: '아주 크게',
+    FontSize.largest: '제일 크게',
   };
 
   @override

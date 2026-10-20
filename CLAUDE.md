@@ -280,6 +280,34 @@ this is a tall pad with an icon over two lines.
 The 가족 button on both home screens is **still the old amber**. Changing it is
 a separate decision and it was not made, so the two do not match yet.
 
+## 긴급 연락 is three colours now, and the sizes go to four
+
+**The three tiles were all the same red**, which left the digits as the only
+thing telling 119 from 112 — on the screen where getting it right matters
+most and the reader is least composed. They are red, purple and yellow now,
+and the colour carries as far across a room as the digits do. Yellow cannot
+hold white lettering (2.38:1), so 보호자 is written in ink, exactly as the
+카카오톡 tile is.
+
+112's purple is the first short-wavelength colour chosen *deliberately* for a
+senior screen. The rule it bends is real, and so is the reason: telling two
+emergency numbers apart beats absolute visibility when both labels are 48px
+digits. 문자's blue was already there, so it is not the first blue a senior
+meets.
+
+The disabled 보호자 tile fades to **0.75, not 0.5**. `Opacity` fades the whole
+subtree, lettering included: at 0.5 the line explaining why the tile cannot
+be used measured 2.99:1 against its own face, and that line is the only thing
+on the tile worth reading.
+
+**`FontSize` has a fourth step, `largest` (1.7).** The server had
+`check (font_size in ('normal','large','extraLarge'))`, so adding it in Dart
+alone would have let the senior pick a size their phone saves and the sync
+rejects — a failure landing on the one person in the system who can do
+nothing about it. `20261020000000_font_size_largest.sql` widens it and is
+applied to the live project. `home_fits_test.dart` walks `FontSize.values`,
+so the new size was covered the moment it existed.
+
 ## The guardian app is a different design, on purpose
 
 Settled 2026-10-20, from a pastel reference the owner brought. The form came

@@ -8,7 +8,8 @@ enum ScreenMode { easy, detailed }
 enum FontSize {
   normal(1.0),
   large(1.2),
-  extraLarge(1.45);
+  extraLarge(1.45),
+  largest(1.7);
 
   const FontSize(this.scale);
 
