@@ -11,18 +11,8 @@ import '../../../core/widgets/clay_pad.dart';
 ///
 /// There is no separate 시작하기 CTA — see
 /// `docs/superpowers/specs/2026-07-29-splash-and-guardian-entry-design.md`.
-/// Candidate looks for the 가족 및 보호자 card, while one is being chosen.
-enum GuardianCardTone { grass, sunshine, violet, outline }
-
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({
-    super.key,
-    this.entranceTilt = -42,
-    this.cardTone = GuardianCardTone.grass,
-  });
-
-  /// Throwaway: which of the candidate looks the bottom card wears.
-  final GuardianCardTone cardTone;
+  const SplashScreen({super.key, this.entranceTilt = -42});
 
   /// The angle the hand swings up from, in degrees, negative to the left.
   ///
@@ -118,7 +108,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
             const _BottomScrim(),
             const _Wordmark(),
-            _GuardianCard(tone: widget.cardTone),
+            const _GuardianCard(),
           ],
         ),
       ),
@@ -537,47 +527,16 @@ class _BottomScrim extends StatelessWidget {
 }
 
 class _GuardianCard extends StatelessWidget {
-  const _GuardianCard({required this.tone});
+  const _GuardianCard();
 
-  final GuardianCardTone tone;
+  /// White, lettered in terracotta. A colour of its own was tried four ways
+  /// and each one pulled the eye to a control the senior is not meant to use:
+  /// this card is for the son or daughter standing next to them.
+  static const _ink = AppColors.seniorPrimary;
 
   @override
   Widget build(BuildContext context) {
-    // Every face is bright, and the shade under it is kept shallow. On a pad
-    // this short the dark foot is half the area, which is why the first three
-    // candidates came back drab — as much the gradient as the hues.
-    final (light, face, deep, wall, ink) = switch (tone) {
-      GuardianCardTone.grass => (
-        Color(0xFF7BE8A8),
-        Color(0xFF2FBF6D),
-        Color(0xFF23A75E),
-        Color(0xFF18894B),
-        Color(0xFF0C2E1B),
-      ),
-      GuardianCardTone.sunshine => (
-        Color(0xFFFFE888),
-        Color(0xFFFFC83D),
-        Color(0xFFF0B427),
-        Color(0xFFC89214),
-        Color(0xFF3A2A00),
-      ),
-      GuardianCardTone.violet => (
-        Color(0xFFC8ABFF),
-        Color(0xFF9B6DF0),
-        Color(0xFF8757E0),
-        Color(0xFF6E42BE),
-        Colors.white,
-      ),
-      GuardianCardTone.outline => (
-        Color(0xFFFFFFFF),
-        Color(0xFFFFFFFF),
-        Color(0xFFF5F6F7),
-        Color(0xFFDCDEE1),
-        AppColors.seniorPrimary,
-      ),
-    };
-    final onDark = ink == Colors.white;
-    final label = onDark ? Colors.white70 : ink.withValues(alpha: 0.62);
+    final label = _ink.withValues(alpha: 0.62);
     return Positioned(
       left: 20,
       right: 20,
@@ -587,10 +546,10 @@ class _GuardianCard extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: () => context.go(Routes.guardianStart),
         child: ClayPad(
-          light: light,
-          face: face,
-          deep: deep,
-          wall: wall,
+          light: Color(0xFFFFFFFF),
+          face: Color(0xFFFFFFFF),
+          deep: Color(0xFFF5F6F7),
+          wall: Color(0xFFDCDEE1),
           radius: 22,
           wallHeight: 6,
           sheen: 0.4,
@@ -604,13 +563,11 @@ class _GuardianCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: onDark
-                          ? Colors.white38
-                          : AppColors.splashCardBorder,
+                      color: _ink.withValues(alpha: 0.35),
                       width: 1.3,
                     ),
                   ),
-                  child: Icon(Icons.people_outline, size: 22, color: ink),
+                  child: Icon(Icons.people_outline, size: 22, color: _ink),
                 ),
                 const SizedBox(width: 15),
                 Expanded(
@@ -632,7 +589,7 @@ class _GuardianCard extends StatelessWidget {
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,
-                          color: ink,
+                          color: _ink,
                         ),
                       ),
                     ],
