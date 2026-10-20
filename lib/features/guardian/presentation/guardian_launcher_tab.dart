@@ -78,7 +78,12 @@ class _Editor extends ConsumerWidget {
       key: GuardianLauncherKeys.list,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
       header: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 26, 0, 22),
+        padding: const EdgeInsets.fromLTRB(
+          0,
+          GuardianHeading.crown,
+          0,
+          GuardianHeading.gap,
+        ),
         child: GuardianHeading(
           title: '$profile 홈 화면',
           lede:

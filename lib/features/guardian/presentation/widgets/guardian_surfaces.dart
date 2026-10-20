@@ -297,6 +297,17 @@ class GuardianPrimaryButton extends StatelessWidget {
 class GuardianHeading extends StatelessWidget {
   const GuardianHeading({super.key, required this.title, this.lede});
 
+  /// How far down the screen a tab's headline starts.
+  ///
+  /// This is above and beyond the status bar, which `SafeArea` has already
+  /// taken out — the headline is the first thing on the screen and it needs
+  /// room to be that, not to look wedged under the clock. It was 20 on one
+  /// tab and 26 on another, and both were too little.
+  static const crown = 44.0;
+
+  /// Between the headline and whatever the tab puts under it.
+  static const gap = 22.0;
+
   final String title;
   final String? lede;
 

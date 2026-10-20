@@ -114,10 +114,15 @@ class _TabScaffold extends StatelessWidget {
     // Same 26px crown and same 22px gap as 홈 화면, which draws its heading
     // inside its own list. Every tab of this half starts at the same height.
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 26, 20, 28),
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        GuardianHeading.crown,
+        20,
+        28,
+      ),
       children: [
         GuardianHeading(title: title, lede: lede),
-        const SizedBox(height: 22),
+        const SizedBox(height: GuardianHeading.gap),
         ...children,
       ],
     );

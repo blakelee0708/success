@@ -119,6 +119,24 @@ void main() {
     }
   });
 
+  testWidgets('every tab starts its headline at the same height', (
+    tester,
+  ) async {
+    // 홈 draws its heading through _TabScaffold and 홈 화면 passes the same one
+    // as its list's header, so the crown lives in two places and has drifted
+    // once already — 20 on one tab, 26 on the other, and both too close to
+    // the top of the phone to look deliberate.
+    await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 20, 14, 30));
+    final home = tester.getRect(find.text('어머니')).top;
+    expect(home, greaterThanOrEqualTo(GuardianHeading.crown));
+
+    await tester.tap(find.byKey(GuardianNavKeys.destination('홈 화면')));
+    await tester.pumpAndSettle();
+    final launcher = tester.getRect(find.text('어머니 홈 화면')).top;
+
+    expect((launcher - home).abs(), lessThan(1));
+  });
+
   testWidgets('the tabs still open from the new bar', (tester) async {
     await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 20, 14, 30));
 
