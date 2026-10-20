@@ -199,9 +199,10 @@ void main() {
 
     expect(find.textContaining('실시간'), findsNothing);
     expect(find.text('위치 확인'), findsOneWidget);
-    expect(find.text('모르는 번호 통화 알림'), findsOneWidget);
-    // The PRD excludes call-content analysis, so the feature is named for the
-    // contact list rather than for 보이스피싱.
+    // 모르는 번호 통화 알림 is gone, and so is the 보이스피싱 framing the PRD
+    // never allowed: Play grants READ_CALL_LOG to default phone and messaging
+    // apps, and this is a launcher.
+    expect(find.textContaining('통화'), findsNothing);
     expect(find.textContaining('보이스피싱'), findsNothing);
   });
 

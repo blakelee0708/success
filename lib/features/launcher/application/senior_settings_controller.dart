@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/senior_settings_repository.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
+import '../../../data/senior_link_store.dart';
 import '../../../domain/senior_settings.dart';
 import 'senior_settings_sync.dart';
 
@@ -22,9 +23,39 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
   /// need the server to have caught up. Never completes with an error.
   Future<void> get pendingSync => _sync ?? Future<void>.value();
 
+  Future<void>? _pull;
+
+  /// The start-up pull, for tests that need the server to have been read.
+  Future<void> get pendingPull => _pull ?? Future<void>.value();
+
   @override
-  Future<SeniorSettings> build() {
-    return ref.watch(seniorSettingsRepositoryProvider).load();
+  Future<SeniorSettings> build() async {
+    final saved = await ref.watch(seniorSettingsRepositoryProvider).load();
+
+    // Then ask the server, without making the home screen wait for it. The
+    // guardian's tab promises 부모님 폰이 꺼져 있으면 다음에 켤 때 적용돼요, and
+    // until this existed nothing ever read the server except the moment the
+    // phone was first linked — so an arrangement made the next day never
+    // arrived. Awaiting it here instead would make a launcher with no signal
+    // open on a spinner.
+    _pull = _adoptServerCopy(saved);
+    return saved;
+  }
+
+  /// Folds in whatever the server holds, if it differs. Silent on failure:
+  /// the home screen is drawn from disk and has to keep working on a phone
+  /// with no signal.
+  Future<void> _adoptServerCopy(SeniorSettings from) async {
+    // Only a phone that is actually a senior's has anything to read. The
+    // guard is first so a guardian's phone — and every test that never links
+    // one — does not reach the repositories behind the sync at all.
+    final link = await ref.read(seniorLinkStoreProvider).load();
+    if (link.seniorProfileId == null) return;
+
+    final merged = await ref.read(seniorSettingsSyncProvider).pull(from);
+    if (merged == null) return;
+    await ref.read(seniorSettingsRepositoryProvider).save(merged);
+    state = AsyncData(merged);
   }
 
   /// Adopts whatever the server holds for this phone's profile.
@@ -39,6 +70,13 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
     state = AsyncData(merged);
     return true;
   }
+
+  /// Re-reads the server because the phone came back to the foreground.
+  ///
+  /// Same job as the start-up pull; a senior who leaves the launcher open for
+  /// days would otherwise never see a change made in between.
+  Future<void> refresh() =>
+      _adoptServerCopy(state.value ?? const SeniorSettings());
 
   /// Picks the mode and, on a home that has no buttons yet, seeds that mode's
   /// defaults so there is something to edit.
@@ -111,7 +149,9 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
   Future<void> _mapApps(LauncherApp Function(LauncherApp) transform) async {
     final current = state.value ?? const SeniorSettings();
     await _write(
-      current.copyWith(apps: current.apps.map(transform).toList(growable: false)),
+      current.copyWith(
+        apps: current.apps.map(transform).toList(growable: false),
+      ),
     );
   }
 

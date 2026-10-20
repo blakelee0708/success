@@ -109,7 +109,6 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
               const SizedBox(height: 12),
               const Text(
                 '· 5분마다 어디 계신지\n'
-                '· 연락처에 없는 번호와 통화\n'
                 '· 배터리와 소리, 인터넷 상태',
                 style: TextStyle(
                   fontSize: 20,

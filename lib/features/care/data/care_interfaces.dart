@@ -83,16 +83,6 @@ abstract interface class PeriodicLocationCheck {
 /// Scoped exactly as `06_PERMISSION_AND_POLICY` scopes it: whether the number
 /// is in the contact list, and nothing else. No call content is examined and no
 /// spam database is consulted — which is also why the guardian-facing feature
-/// is named for the contact list rather than for 보이스피싱.
-abstract interface class UnknownContactCallWatcher {
-  Future<void> start(String seniorProfileId);
-  Future<void> stop();
-}
-
-/// Apps appearing on the parent's phone.
-///
-/// Reading the installed-app list is a policy question on Android, so this may
-/// end up limited to apps the parent adds through 더 보기. The fallback is
 /// named in `06_PERMISSION_AND_POLICY` and is the reason this is an interface.
 abstract interface class AppInstallWatcher {
   Future<void> start(String seniorProfileId);
@@ -119,17 +109,6 @@ class UnimplementedDeviceStatusSync implements DeviceStatusSync {
 
 class UnimplementedPeriodicLocationCheck implements PeriodicLocationCheck {
   const UnimplementedPeriodicLocationCheck();
-
-  @override
-  Future<void> start(String seniorProfileId) async {}
-
-  @override
-  Future<void> stop() async {}
-}
-
-class UnimplementedUnknownContactCallWatcher
-    implements UnknownContactCallWatcher {
-  const UnimplementedUnknownContactCallWatcher();
 
   @override
   Future<void> start(String seniorProfileId) async {}

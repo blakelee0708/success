@@ -34,8 +34,13 @@ class GuardianCareTab extends ConsumerWidget {
   /// Wording follows `06_PERMISSION_AND_POLICY`: location is a periodic check
   /// rather than tracking, and the call alert is about numbers absent from the
   /// contact list, not about anything heard during the call.
-  /// Each carries its own mark. All four wore the same clock, which turned a
-  /// list of four different capabilities into a wall of identical rows.
+  /// Each carries its own mark. They wore the same clock once, which turned a
+  /// list of different capabilities into a wall of identical rows.
+  ///
+  /// 모르는 번호 통화 알림 was a fourth and is gone. Play grants `READ_CALL_LOG`
+  /// to default phone and messaging apps, and this is a launcher — the
+  /// permission was unlikely to be granted and the feature would have been
+  /// sold before anyone found out.
   static const features = <(IconData, Color, Color, String, String)>[
     (
       Icons.place_rounded,
@@ -43,13 +48,6 @@ class GuardianCareTab extends ConsumerWidget {
       AppColors.guardianTintGreenInk,
       '위치 확인',
       '5분 주기로 어디 계신지 확인합니다',
-    ),
-    (
-      Icons.phone_in_talk_rounded,
-      AppColors.guardianTintAmber,
-      AppColors.guardianTintAmberInk,
-      '모르는 번호 통화 알림',
-      '연락처에 없는 번호와 통화하면 알려드립니다',
     ),
     (
       Icons.battery_charging_full_rounded,
