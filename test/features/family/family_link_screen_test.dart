@@ -30,6 +30,9 @@ Future<Harness> _gotoFamilyLink(WidgetTester tester, {Harness? existing}) async 
       seniorLinkStoreProvider.overrideWithValue(InMemorySeniorLinkStore()),
     ],
   );
+  // The hand is still swinging up for the first frames, and the tap target
+  // rides with it.
+  await settleSplashEntrance(tester);
   await tester.tap(find.byKey(SplashScreen.tapTargetKey));
   await settleAfterSplashTap(tester);
   await tester.tap(find.text('정말 쉬운 화면'));

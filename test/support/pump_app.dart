@@ -71,9 +71,18 @@ Future<void> settleAfterSplashTap(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 1));
 }
 
+/// Lets the hand finish swinging up before anything touches it.
+///
+/// The illustration enters tilted and rotates upright, and the tap target
+/// rides along with it — mid-swing it is somewhere off to the left, which is
+/// not where a test aiming at it expects to find it.
+Future<void> settleSplashEntrance(WidgetTester tester) =>
+    tester.pump(SplashScreen.entrance + const Duration(milliseconds: 50));
+
 /// Taps the phone in the illustration and lands on the screen-mode choice.
 Future<void> enterSeniorFlow(WidgetTester tester) async {
   await pumpApp(tester);
+  await settleSplashEntrance(tester);
   await tester.tap(find.byKey(SplashScreen.tapTargetKey));
   await settleAfterSplashTap(tester);
 }

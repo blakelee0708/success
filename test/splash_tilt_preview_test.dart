@@ -11,8 +11,8 @@ import 'package:app/core/theme/app_colors.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
 
-/// Throwaway: renders the splash at several tilts so the angle can be chosen
-/// by looking at it. Delete once an angle is settled.
+/// Throwaway: the splash's entrance, frame by frame, because the swing cannot
+/// be judged from a still. Delete once the motion is settled.
 void main() {
   setUpAll(() async {
     final korean = FontLoader(AppTheme.fontFamily);
@@ -36,46 +36,47 @@ void main() {
     }
   });
 
-  for (final tilt in const [0.0, -12.0, -25.0, -45.0]) {
-    testWidgets('splash at $tilt', (tester) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
+  testWidgets('the hand swings up', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(
-        RepaintBoundary(
-          key: const Key('root'),
-          child: MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.senior,
-            home: ColoredBox(
-              color: AppColors.seniorBackground,
-              child: SplashScreen(tiltDegrees: tilt),
-            ),
+    await tester.pumpWidget(
+      const RepaintBoundary(
+        key: Key('root'),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: ColoredBox(
+            color: AppColors.seniorBackground,
+            child: SplashScreen(),
           ),
         ),
-      );
-      // Asset images decode asynchronously; without this the first capture
-      // in the file renders with no illustration at all.
-      await tester.runAsync(
-        () => precacheImage(
-          const AssetImage('assets/images/hand_phone.png'),
-          tester.element(find.byType(MaterialApp)),
-        ),
-      );
-      await tester.pump(const Duration(milliseconds: 700));
+      ),
+    );
+    // Asset images decode asynchronously; without this the first frames
+    // render with no illustration at all.
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage('assets/images/hand_phone.png'),
+        tester.element(find.byType(MaterialApp)),
+      ),
+    );
 
+    final dir = Directory('build/motion')..createSync(recursive: true);
+    var elapsed = 0;
+    for (final step in const [0, 110, 130, 150, 180, 280]) {
+      if (step > 0) await tester.pump(Duration(milliseconds: step));
+      elapsed += step;
       final boundary = tester.renderObject<RenderRepaintBoundary>(
         find.byKey(const Key('root')),
       );
       await tester.runAsync(() async {
-        final image = await boundary.toImage(pixelRatio: 2);
+        final image = await boundary.toImage(pixelRatio: 1.6);
         final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-        final dir = Directory('build/tilt')..createSync(recursive: true);
-        File('${dir.path}/tilt${tilt.toInt().abs()}.png')
+        File('${dir.path}/${elapsed.toString().padLeft(3, '0')}ms.png')
             .writeAsBytesSync(bytes!.buffer.asUint8List());
         image.dispose();
       });
-    });
-  }
+    }
+  });
 }

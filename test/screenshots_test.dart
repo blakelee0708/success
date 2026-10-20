@@ -138,6 +138,7 @@ void main() {
   testWidgets('splash renders while entering', (tester) async {
     await pumpApp(tester);
     await _loadImages(tester);
+    await settleSplashEntrance(tester);
     await tester.tap(find.byKey(SplashScreen.tapTargetKey));
     await tester.pump(const Duration(milliseconds: 200));
 

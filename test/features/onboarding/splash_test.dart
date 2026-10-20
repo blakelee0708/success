@@ -32,6 +32,7 @@ void main() {
   ) async {
     await pumpApp(tester);
 
+    await settleSplashEntrance(tester);
     await tester.tap(find.byKey(SplashScreen.tapTargetKey));
     await tester.pump();
 
@@ -49,6 +50,7 @@ void main() {
   ) async {
     await pumpApp(tester);
 
+    await settleSplashEntrance(tester);
     await tester.tap(find.byKey(SplashScreen.tapTargetKey));
     await settleAfterSplashTap(tester);
 
@@ -60,8 +62,10 @@ void main() {
   ) async {
     await pumpApp(tester);
 
+    await settleSplashEntrance(tester);
     await tester.tap(find.byKey(SplashScreen.tapTargetKey));
     await tester.pump();
+    await settleSplashEntrance(tester);
     await tester.tap(find.byKey(SplashScreen.tapTargetKey));
     await settleAfterSplashTap(tester);
 

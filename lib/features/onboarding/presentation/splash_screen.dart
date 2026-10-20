@@ -11,14 +11,19 @@ import '../../../core/theme/app_colors.dart';
 /// There is no separate 시작하기 CTA — see
 /// `docs/superpowers/specs/2026-07-29-splash-and-guardian-entry-design.md`.
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key, this.tiltDegrees = 0});
+  const SplashScreen({super.key, this.entranceTilt = -42});
 
-  /// How far the hand is tilted, in degrees, negative to the left. Zero is
-  /// upright. It is a parameter so the review screenshots can show several
-  /// angles side by side: the phone's screen is drawn over the photo, so a
-  /// tilt turns the 눌러보세요 on it too, and how far that stays readable is
-  /// a thing to look at rather than argue about.
-  final double tiltDegrees;
+  /// The angle the hand swings up from, in degrees, negative to the left.
+  ///
+  /// A tilt the screen *rests* at does not work with this illustration: the
+  /// phone leaves the frame, the 눌러보세요 drawn over it lies on its side,
+  /// and a render lit from above ends up lit from the side. As the start of a
+  /// movement none of that matters — the hand is only there for a moment on
+  /// its way to upright, and coming in from off-frame is the point.
+  final double entranceTilt;
+
+  /// How long the hand takes to swing up and settle.
+  static const entrance = Duration(milliseconds: 780);
 
   static const tapTargetKey = Key('splash-tap-target');
   static const guardianCardKey = Key('splash-guardian-card');
@@ -34,17 +39,25 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _loop = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2200),
   )..repeat();
+
+  /// The one-shot swing up. Separate from [_loop], which never ends: a
+  /// repeating controller cannot also be the thing that finishes.
+  late final AnimationController _raise = AnimationController(
+    vsync: this,
+    duration: SplashScreen.entrance,
+  )..forward();
 
   bool _entering = false;
 
   @override
   void dispose() {
     _loop.dispose();
+    _raise.dispose();
     super.dispose();
   }
 
@@ -73,8 +86,9 @@ class _SplashScreenState extends State<SplashScreen>
             _Illustration(
               entering: _entering,
               loop: _loop,
+              raise: _raise,
               onTap: _onPhoneTap,
-              tiltDegrees: widget.tiltDegrees,
+              startTilt: widget.entranceTilt,
             ),
             const _BottomScrim(),
             const _Wordmark(),
@@ -203,17 +217,20 @@ class _Illustration extends StatelessWidget {
   const _Illustration({
     required this.entering,
     required this.loop,
+    required this.raise,
     required this.onTap,
-    this.tiltDegrees = 0,
+    this.startTilt = -42,
   });
 
   final bool entering;
   final Animation<double> loop;
   final VoidCallback onTap;
 
-  /// Negative tilts the phone to the left, as a raised hand would. Zero is
-  /// upright, which is how the illustration was rendered and lit.
-  final double tiltDegrees;
+  /// Drives the swing up. Runs once, then the hand is upright for good.
+  final Animation<double> raise;
+
+  /// The angle it swings up from, negative to the left.
+  final double startTilt;
 
   // The design draws the illustration in a 390x801 box sitting 76px above the
   // bottom edge; the tap target is a fraction of that box.
@@ -247,12 +264,25 @@ class _Illustration extends StatelessWidget {
               width: boxWidth,
               height: boxHeight,
               // The phone's screen is drawn by Flutter on top of the photo,
-              // so a tilt has to turn both together or the two come apart.
-              // Which is also the catch: past about 15° the 눌러보세요 on that
-              // screen is lying on its side.
-              child: Transform.rotate(
-                angle: tiltDegrees * math.pi / 180,
-                alignment: Alignment.bottomCenter,
+              // so the swing has to turn both together or the two come apart.
+              //
+              // `easeOutBack` overshoots a little past upright and settles
+              // back, which is the 딱 at the end of the movement. Pivoting at
+              // the wrist rather than the middle of the box is what makes it
+              // read as a hand being raised instead of a picture spinning.
+              child: AnimatedBuilder(
+                animation: raise,
+                builder: (context, child) {
+                  final t = Curves.easeOutBack.transform(raise.value);
+                  return Transform.translate(
+                    offset: Offset(0, (1 - raise.value) * boxHeight * 0.16),
+                    child: Transform.rotate(
+                      angle: startTilt * (1 - t) * math.pi / 180,
+                      alignment: const Alignment(-0.45, 1),
+                      child: child,
+                    ),
+                  );
+                },
                 child: Stack(
                   children: [
                     Positioned.fill(
