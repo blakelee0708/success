@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/supabase/supabase_providers.dart';
 import '../../../core/theme/app_colors.dart';
+import 'widgets/guardian_surfaces.dart';
 
 /// Widget keys the tests drive.
 class GuardianStartKeys {
@@ -35,40 +36,36 @@ class GuardianStartScreen extends StatelessWidget {
   /// promises, so it is the worst place in the app to make one that is not
   /// kept — the same reasoning that took the mocked 배터리 72% off the
   /// dashboard, one screen earlier.
-  static const _benefits = <(String, String, String)>[
+  static const _benefits = <(IconData, Color, Color, String, String)>[
     (
-      '1',
+      Icons.grid_view_rounded,
+      AppColors.guardianTintBlue,
+      AppColors.guardianTintBlueInk,
       '부모님을 대신해 필요한 앱을 관리해 드릴 수 있어요',
       '홈 화면 버튼의 이름과 색을 멀리서 정리합니다',
     ),
     (
-      '2',
+      Icons.chat_bubble_rounded,
+      AppColors.guardianTintViolet,
+      AppColors.guardianTintVioletInk,
       '부모님과 큰 글씨로 메시지를 주고받을 수 있어요',
       '보내면 부모님 첫 화면에 바로 뜹니다',
     ),
     (
-      '3',
+      Icons.schedule_rounded,
+      AppColors.guardianTintGreen,
+      AppColors.guardianTintGreenInk,
       '부모님 폰을 언제 쓰셨는지 알 수 있어요',
       '마지막으로 쓰신 시각이 보입니다',
     ),
   ];
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.guardianStartBgTop,
-              AppColors.guardianStartBgMid,
-              AppColors.guardianStartBgBottom,
-            ],
-            stops: [0.0, 0.52, 1.0],
-          ),
-        ),
+      backgroundColor: AppColors.guardianGroundEnd,
+      body: GuardianGround(
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,7 +77,7 @@ class GuardianStartScreen extends StatelessWidget {
                   onPressed: () => context.go(Routes.firstScreen),
                   icon: const Icon(Icons.chevron_left),
                   iconSize: 26,
-                  color: const Color(0xFF6B6459),
+                  color: AppColors.guardianInkSoft,
                 ),
               ),
               Expanded(
@@ -92,11 +89,13 @@ class GuardianStartScreen extends StatelessWidget {
                       const _Header(),
                       const SizedBox(height: 30),
                       for (var i = 0; i < _benefits.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 10),
+                        if (i > 0) const SizedBox(height: 12),
                         _BenefitCard(
-                          number: _benefits[i].$1,
-                          title: _benefits[i].$2,
-                          subtitle: _benefits[i].$3,
+                          icon: _benefits[i].$1,
+                          tint: _benefits[i].$2,
+                          tintInk: _benefits[i].$3,
+                          title: _benefits[i].$4,
+                          subtitle: _benefits[i].$5,
                           order: i,
                         ),
                       ],
@@ -104,7 +103,7 @@ class GuardianStartScreen extends StatelessWidget {
                       const Divider(
                         height: 1,
                         thickness: 1,
-                        color: AppColors.guardianStartLine,
+                        color: AppColors.guardianRule,
                       ),
                       const SizedBox(height: 18),
                       // Kakao first: effectively every guardian in this age
@@ -134,7 +133,7 @@ class GuardianStartScreen extends StatelessWidget {
                           fontSize: 11.5,
                           height: 1.7,
                           fontWeight: FontWeight.w400,
-                          color: AppColors.guardianStartFaint,
+                          color: AppColors.guardianInkDisabled,
                         ),
                       ),
                     ],
@@ -164,7 +163,7 @@ class _Header extends StatelessWidget {
               height: 5,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.guardianStartAccent,
+                color: AppColors.guardianPrimary,
               ),
             ),
             const SizedBox(width: 8),
@@ -174,7 +173,7 @@ class _Header extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 2.2,
-                color: AppColors.guardianStartMuted,
+                color: AppColors.guardianInkFaint,
               ),
             ),
           ],
@@ -187,7 +186,7 @@ class _Header extends StatelessWidget {
             height: 1.42,
             fontWeight: FontWeight.w700,
             letterSpacing: -1.4,
-            color: AppColors.guardianStartInk,
+            color: AppColors.guardianInk,
           ),
         ),
         const SizedBox(height: 12),
@@ -197,7 +196,7 @@ class _Header extends StatelessWidget {
             fontSize: 14.5,
             fontWeight: FontWeight.w500,
             letterSpacing: -0.3,
-            color: AppColors.guardianStartSub,
+            color: AppColors.guardianInkFaint,
           ),
         ),
       ],
@@ -208,13 +207,20 @@ class _Header extends StatelessWidget {
 /// One benefit, fading up from below so the eye is walked from 1 to 3.
 class _BenefitCard extends StatefulWidget {
   const _BenefitCard({
-    required this.number,
+    required this.icon,
+    required this.tint,
+    required this.tintInk,
     required this.title,
     required this.subtitle,
     required this.order,
   });
 
-  final String number;
+  /// A mark rather than a number. The three are not steps — nobody does them
+  /// in order — and the numbered badges said they were.
+  final IconData icon;
+  final Color tint;
+  final Color tintInk;
+
   final String title;
   final String subtitle;
   final int order;
@@ -256,35 +262,19 @@ class _BenefitCardState extends State<_BenefitCard>
           begin: const Offset(0, 0.12),
           end: Offset.zero,
         ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut)),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(17, 18, 18, 18),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.guardianStartCardBorder),
-          ),
+        child: GuardianCard(
+          padding: const EdgeInsets.fromLTRB(16, 17, 18, 17),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 30,
-                height: 30,
-                alignment: Alignment.center,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.guardianStartBadgeFill,
-                  border: Border.all(
-                    color: AppColors.guardianStartBadgeBorder,
-                  ),
+                  color: widget.tint,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Text(
-                  widget.number,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.guardianStartAccent,
-                  ),
-                ),
+                child: Icon(widget.icon, size: 21, color: widget.tintInk),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -298,7 +288,7 @@ class _BenefitCardState extends State<_BenefitCard>
                         height: 1.5,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.5,
-                        color: AppColors.guardianStartInk,
+                        color: AppColors.guardianInk,
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -309,7 +299,7 @@ class _BenefitCardState extends State<_BenefitCard>
                         height: 1.55,
                         fontWeight: FontWeight.w500,
                         letterSpacing: -0.2,
-                        color: AppColors.guardianStartMuted,
+                        color: AppColors.guardianInkFaint,
                       ),
                     ),
                   ],

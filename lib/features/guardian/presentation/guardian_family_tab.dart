@@ -155,22 +155,14 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
           ),
         ),
         const SizedBox(height: 10),
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(
-              value: false,
-              label: Text('설치 문자 보내기'),
-              icon: Icon(Icons.sms_outlined, size: 18),
-            ),
-            ButtonSegment(
-              value: true,
-              label: Text('번호 입력하기'),
-              icon: Icon(Icons.dialpad, size: 18),
-            ),
+        GuardianSwitcher(
+          options: const [
+            ('설치 문자 보내기', Icons.sms_rounded),
+            ('번호 입력하기', Icons.dialpad_rounded),
           ],
-          selected: {_byCode},
-          onSelectionChanged: (s) => setState(() {
-            _byCode = s.first;
+          selected: _byCode ? 1 : 0,
+          onSelected: (i) => setState(() {
+            _byCode = i == 1;
             _error = null;
             _issued = null;
           }),
@@ -205,10 +197,7 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
               letterSpacing: 8,
               fontWeight: FontWeight.w700,
             ),
-            decoration: const InputDecoration(
-              labelText: '부모님 폰에 나온 번호',
-              border: OutlineInputBorder(),
-            ),
+            decoration: guardianField(label: '부모님 폰에 나온 번호'),
           ),
           const SizedBox(height: 12),
         ],
@@ -216,13 +205,9 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
           key: GuardianFamilyKeys.nameField,
           controller: _name,
           enabled: !_busy,
-          decoration: const InputDecoration(
-            labelText: '부모님 이름',
-            // The contact's own name is the parent's; what goes on the senior's
-            // home screen is the name they will recognise.
-            hintText: '어머니',
-            border: OutlineInputBorder(),
-          ),
+          // The contact's own name is the parent's; what goes on the senior's
+          // home screen is the name they will recognise.
+          decoration: guardianField(label: '부모님 이름', hint: '어머니'),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -230,11 +215,7 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
           controller: _phone,
           enabled: !_busy,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: '부모님 전화번호',
-            helperText: '비워 두셔도 됩니다',
-            border: OutlineInputBorder(),
-          ),
+          decoration: guardianField(label: '부모님 전화번호', helper: '비워 두셔도 됩니다'),
         ),
         if (_error case final message?) ...[
           const SizedBox(height: 10),

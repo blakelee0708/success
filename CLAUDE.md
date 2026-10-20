@@ -354,8 +354,19 @@ earlier.
 
 The parts are shared, in `presentation/widgets/guardian_surfaces.dart`:
 `GuardianGround`, `GuardianCard`, `GuardianActionCard`, `GuardianFact`,
-`GuardianPrimaryButton` and `GuardianHeading`. 홈, 홈 화면 and 가족 are all
-built from them. The one filled button on the half wears the **hero's gradient**
+`GuardianPrimaryButton`, `GuardianHeading`, `GuardianSwitcher` and the
+`guardianField` decoration. 홈, 홈 화면, 가족 and the sign-in screen are all
+built from them.
+
+Two Material controls went the way of the `NavigationBar`, for the same
+reason — each brings a look of its own that has to be fought rather than
+used. `SegmentedButton` slid a check mark in beside the chosen label, which
+reads as *done* rather than *chosen*; `GuardianSwitcher` lifts the chosen
+side onto a white card instead. `OutlineInputBorder` draws a 1px box that
+fights the soft cards around it; `guardianField` fills and rounds instead.
+
+The sign-in screen's three benefits carry **a tinted mark, not a number**.
+Numbered badges said they were steps, and nobody does them in order. The one filled button on the half wears the **hero's gradient**
 rather than a flat `guardianPrimary` — a solid slab of `#0B5FD9` under a
 gradient card reads as a Material default nobody styled, which is what it
 was. The launcher rows' drag handle was `#9C8770`, the muted clay that came

@@ -351,3 +351,143 @@ class GuardianHeading extends StatelessWidget {
     );
   }
 }
+
+/// A two-way switch between the two forms of one job.
+///
+/// Material's `SegmentedButton` brings a tonal fill, a check mark that slides
+/// in beside the label and a pill border, none of which belong to this type
+/// scale — and the check in particular reads as "done" rather than "chosen".
+class GuardianSwitcher extends StatelessWidget {
+  const GuardianSwitcher({
+    super.key,
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  /// Label and mark for each side, in order.
+  final List<(String, IconData)> options;
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F4F6),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < options.length; i++)
+            Expanded(
+              child: _Side(
+                label: options[i].$1,
+                icon: options[i].$2,
+                selected: i == selected,
+                onTap: () => onSelected(i),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Side extends StatelessWidget {
+  const _Side({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final corners = BorderRadius.circular(12);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Material(
+        color: selected ? Colors.white : Colors.transparent,
+        borderRadius: corners,
+        elevation: selected ? 1 : 0,
+        shadowColor: AppColors.guardianCardShadow,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: corners,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 6),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    size: 17,
+                    color: selected
+                        ? AppColors.guardianPrimary
+                        : AppColors.guardianInkFaint,
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                      color: selected
+                          ? AppColors.guardianInk
+                          : AppColors.guardianInkFaint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The input decoration every guardian field uses: filled, round, no hard
+/// outline. Material's default `OutlineInputBorder` draws a 1px box that
+/// fights the soft cards around it.
+InputDecoration guardianField({
+  required String label,
+  String? hint,
+  String? helper,
+}) => InputDecoration(
+  labelText: label,
+  hintText: hint,
+  helperText: helper,
+  filled: true,
+  fillColor: const Color(0xFFF7F9FC),
+  labelStyle: const TextStyle(color: AppColors.guardianInkFaint),
+  helperStyle: const TextStyle(color: AppColors.guardianInkFaint),
+  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(14),
+    borderSide: const BorderSide(color: AppColors.guardianRule),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(14),
+    borderSide: const BorderSide(color: AppColors.guardianRule),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(14),
+    borderSide: const BorderSide(
+      color: AppColors.guardianPrimary,
+      width: 1.6,
+    ),
+  ),
+);
