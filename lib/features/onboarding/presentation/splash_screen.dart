@@ -12,13 +12,13 @@ import '../../../core/widgets/clay_pad.dart';
 /// There is no separate 시작하기 CTA — see
 /// `docs/superpowers/specs/2026-07-29-splash-and-guardian-entry-design.md`.
 /// Candidate looks for the 가족 및 보호자 card, while one is being chosen.
-enum GuardianCardTone { neutral, terracotta, charcoal }
+enum GuardianCardTone { grass, sunshine, violet, outline }
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({
     super.key,
     this.entranceTilt = -42,
-    this.cardTone = GuardianCardTone.neutral,
+    this.cardTone = GuardianCardTone.grass,
   });
 
   /// Throwaway: which of the candidate looks the bottom card wears.
@@ -543,29 +543,41 @@ class _GuardianCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onDark = tone != GuardianCardTone.neutral;
-    final ink = onDark ? Colors.white : AppColors.splashCardTitle;
-    final label = onDark ? Colors.white70 : AppColors.splashCardLabel;
-    final (light, face, deep, wall) = switch (tone) {
-      GuardianCardTone.neutral => (
-        const Color(0xFFFFFFFF),
-        AppColors.seniorCard,
-        AppColors.seniorCardDeep,
-        AppColors.seniorCardWall,
+    // Every face is bright, and the shade under it is kept shallow. On a pad
+    // this short the dark foot is half the area, which is why the first three
+    // candidates came back drab — as much the gradient as the hues.
+    final (light, face, deep, wall, ink) = switch (tone) {
+      GuardianCardTone.grass => (
+        Color(0xFF7BE8A8),
+        Color(0xFF2FBF6D),
+        Color(0xFF23A75E),
+        Color(0xFF18894B),
+        Color(0xFF0C2E1B),
       ),
-      GuardianCardTone.terracotta => (
-        const Color(0xFFF08A66),
-        const Color(0xFFD9542B),
-        const Color(0xFFB03D18),
-        const Color(0xFF8E2F10),
+      GuardianCardTone.sunshine => (
+        Color(0xFFFFE888),
+        Color(0xFFFFC83D),
+        Color(0xFFF0B427),
+        Color(0xFFC89214),
+        Color(0xFF3A2A00),
       ),
-      GuardianCardTone.charcoal => (
-        const Color(0xFF5C636C),
-        const Color(0xFF363C44),
-        const Color(0xFF262B31),
-        const Color(0xFF1A1E23),
+      GuardianCardTone.violet => (
+        Color(0xFFC8ABFF),
+        Color(0xFF9B6DF0),
+        Color(0xFF8757E0),
+        Color(0xFF6E42BE),
+        Colors.white,
+      ),
+      GuardianCardTone.outline => (
+        Color(0xFFFFFFFF),
+        Color(0xFFFFFFFF),
+        Color(0xFFF5F6F7),
+        Color(0xFFDCDEE1),
+        AppColors.seniorPrimary,
       ),
     };
+    final onDark = ink == Colors.white;
+    final label = onDark ? Colors.white70 : ink.withValues(alpha: 0.62);
     return Positioned(
       left: 20,
       right: 20,
@@ -581,7 +593,7 @@ class _GuardianCard extends StatelessWidget {
           wall: wall,
           radius: 22,
           wallHeight: 6,
-          sheen: onDark ? 0.8 : 0.3,
+          sheen: 0.4,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             child: Row(
