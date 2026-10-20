@@ -8,10 +8,9 @@ import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
 import '../data/app_launcher.dart';
 import 'widgets/app_tile.dart';
-import '../../care/presentation/care_consent_prompt.dart';
 import '../../family/application/senior_pairing_controller.dart';
-import '../../family/presentation/primary_guardian_prompt.dart';
 import 'widgets/home_body.dart';
+import 'widgets/senior_notice_layer.dart';
 import 'widgets/home_pill.dart';
 import 'widgets/sos_button.dart';
 
@@ -56,68 +55,71 @@ class EasyHomeScreen extends ConsumerWidget {
         (ref.watch(seniorGuardiansProvider).value ?? const []).isNotEmpty;
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
-          child: Column(
-            children: [
-              const CareConsentPrompt(),
-              const PrimaryGuardianPrompt(),
-              Expanded(
-                child: HomeBody(
-                  rowGap: _rowGap,
-                  tiles: [
-                    for (final app in apps)
-                      AppTile(
-                        app: app,
-                        onTap: () => _openApp(context, ref, app),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: HomeBody.sectionGap),
-              Row(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+              child: Column(
                 children: [
                   Expanded(
-                    child: HomePill(
-                      label: connected ? '가족' : '가족 연결',
-                      icon: Icons.family_restroom,
-                      light: AppColors.seniorFamilyLight,
-                      face: AppColors.seniorFamily,
-                      deep: AppColors.seniorFamilyDeep,
-                      wall: AppColors.seniorFamilyWall,
-                      // Amber is too light to carry white lettering, so this
-                      // one is written in ink. Blue and teal are gone from
-                      // the senior's screens entirely: short-wavelength
-                      // colours are the first an ageing eye loses.
-                      ink: AppColors.seniorInk,
-                      onTap: () => context.push(Routes.familyLink),
+                    child: HomeBody(
+                      rowGap: _rowGap,
+                      tiles: [
+                        for (final app in apps)
+                          AppTile(
+                            app: app,
+                            onTap: () => _openApp(context, ref, app),
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: HomeBody.gutter),
-                  Expanded(
-                    child: HomePill(
-                      label: '더 보기',
-                      icon: Icons.apps,
-                      light: AppColors.seniorMoreLight,
-                      face: AppColors.seniorMore,
-                      deep: AppColors.seniorMoreDeep,
-                      wall: AppColors.seniorMoreWall,
-                      ink: Colors.white,
-                      // Straight to 설정. The screen that used to sit in
-                      // between held one button and a line saying apps
-                      // cannot be added yet, which is a screen that exists
-                      // to be passed through.
-                      onTap: () => context.push(Routes.seniorSettings),
-                    ),
+                  const SizedBox(height: HomeBody.sectionGap),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: HomePill(
+                          label: connected ? '가족' : '가족 연결',
+                          icon: Icons.family_restroom,
+                          light: AppColors.seniorFamilyLight,
+                          face: AppColors.seniorFamily,
+                          deep: AppColors.seniorFamilyDeep,
+                          wall: AppColors.seniorFamilyWall,
+                          // Amber is too light to carry white lettering, so this
+                          // one is written in ink. Blue and teal are gone from
+                          // the senior's screens entirely: short-wavelength
+                          // colours are the first an ageing eye loses.
+                          ink: AppColors.seniorInk,
+                          onTap: () => context.push(Routes.familyLink),
+                        ),
+                      ),
+                      const SizedBox(width: HomeBody.gutter),
+                      Expanded(
+                        child: HomePill(
+                          label: '더 보기',
+                          icon: Icons.apps,
+                          light: AppColors.seniorMoreLight,
+                          face: AppColors.seniorMore,
+                          deep: AppColors.seniorMoreDeep,
+                          wall: AppColors.seniorMoreWall,
+                          ink: Colors.white,
+                          // Straight to 설정. The screen that used to sit in
+                          // between held one button and a line saying apps
+                          // cannot be added yet, which is a screen that exists
+                          // to be passed through.
+                          onTap: () => context.push(Routes.seniorSettings),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: HomeBody.sectionGap),
+                  SosButton(onTap: () => context.go(Routes.sos)),
                 ],
               ),
-              const SizedBox(height: HomeBody.sectionGap),
-              SosButton(onTap: () => context.go(Routes.sos)),
-            ],
+            ),
           ),
-        ),
+          const SeniorNoticeLayer(),
+        ],
       ),
     );
   }

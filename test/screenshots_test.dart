@@ -28,6 +28,8 @@ import 'package:app/data/remote/subscription_repository.dart';
 import 'package:app/features/family/presentation/family_link_screen.dart';
 import 'package:app/features/messages/presentation/conversation_view.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
+import 'package:app/features/care/presentation/care_consent_prompt.dart';
+import 'package:app/features/family/presentation/primary_guardian_prompt.dart';
 import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
 import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
 import 'package:app/features/guardian/presentation/guardian_login_screen.dart';
@@ -430,6 +432,73 @@ void main() {
 
     expect(tester.takeException(), isNull);
     await _capture(tester, '17-detailed-home');
+  });
+
+  testWidgets('the two cards that sit on the senior\'s home', (tester) async {
+    // 안심 케어 동의 and the primary-guardian handover. Both are answered on
+    // the parent's own phone and both appear above the tiles, and neither
+    // had a picture — which is how they stayed on the pre-2026-10-20 look.
+    final store = InMemorySeniorLinkRepository();
+    final pairing = InMemoryPairingRepository(store);
+    final subs = InMemorySubscriptionRepository(store);
+    await store.ensureGuardianAccount(displayName: '김보호');
+    final started = await pairing.startSeniorPairing(installId: 'senior-phone');
+    final profile = await pairing.claimSeniorPairingCode(
+      code: started.code,
+      displayName: '어머니',
+    );
+
+    Future<void> pumpSeniorHome() async {
+      await pumpApp(
+        tester,
+        overrides: [
+          nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
+          appLauncherProvider.overrideWithValue(
+            FakeAppLauncher(defaultHome: true),
+          ),
+          seniorLinkRepositoryProvider.overrideWithValue(store),
+          pairingRepositoryProvider.overrideWithValue(pairing),
+          subscriptionRepositoryProvider.overrideWithValue(subs),
+          homeAppsRepositoryProvider.overrideWithValue(
+            InMemoryHomeAppsRepository(),
+          ),
+          seniorLinkStoreProvider.overrideWithValue(
+            InMemorySeniorLinkStore(
+              SeniorLink(
+                installId: 'senior-phone',
+                seniorProfileId: profile.id,
+              ),
+            ),
+          ),
+        ],
+        prefs: {
+          SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+            const SeniorSettings(
+              screenMode: ScreenMode.easy,
+              apps: defaultEasyApps,
+            ).toJson(),
+          ),
+        },
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await subs.startCare(profile.id);
+    await pumpSeniorHome();
+    expect(find.byKey(CareConsentPrompt.promptKey), findsOneWidget);
+    await _capture(tester, '24-care-consent-card');
+
+    await subs.resolveCareConsent(profile.id, true);
+    // A sibling asks to take over, which is the only way this card appears —
+    // the guardian who claimed the code is already the primary one.
+    final invite = await pairing.createFamilyInvite(profile.id);
+    pairing.actingGuardianId = 'sibling';
+    await pairing.redeemFamilyInvite(invite.code);
+    await pairing.requestPrimaryGuardian(profile.id);
+    pairing.actingGuardianId = 'account-1';
+    await pumpSeniorHome();
+    expect(find.byKey(PrimaryGuardianPrompt.promptKey), findsOneWidget);
+    await _capture(tester, '25-primary-guardian-card');
   });
 
   testWidgets('the senior screens that are still on the old design', (

@@ -9,10 +9,9 @@ import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
 import '../data/app_launcher.dart';
 import 'widgets/app_tile.dart';
-import '../../care/presentation/care_consent_prompt.dart';
 import '../../family/application/senior_pairing_controller.dart';
-import '../../family/presentation/primary_guardian_prompt.dart';
 import 'widgets/home_body.dart';
+import 'widgets/senior_notice_layer.dart';
 import 'widgets/home_pill.dart';
 
 /// 자세한 화면 — the same band and the same clay as 정말 쉬운 화면, with eight
@@ -74,68 +73,71 @@ class DetailedHomeScreen extends ConsumerWidget {
     final slots = (apps.length + 1).isEven ? 2 : 1;
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
-          child: Column(
-            children: [
-              const CareConsentPrompt(),
-              const PrimaryGuardianPrompt(),
-              Expanded(
-                child: HomeBody(
-                  rowGap: _rowGap,
-                  tiles: [
-                    for (final app in apps)
-                      AppTile(
-                        app: app,
-                        onTap: () => _openApp(context, ref, app),
-                      ),
-                    _SettingsTile(
-                      onTap: () => context.push(Routes.seniorSettings),
-                    ),
-                    for (var i = 0; i < slots; i++)
-                      _AddSlot(
-                        onTap: () => context.push(Routes.appSettings),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: HomeBody.sectionGap),
-              Row(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+              child: Column(
                 children: [
                   Expanded(
-                    flex: _sosFlex,
-                    child: HomePill(
-                      label: '긴급 구조 요청',
-                      icon: Icons.notifications_active,
-                      light: AppColors.seniorSosLight,
-                      face: AppColors.seniorSos,
-                      deep: AppColors.seniorSosDeep,
-                      wall: AppColors.seniorSosWall,
-                      ink: Colors.white,
-                      onTap: () => context.go(Routes.sos),
+                    child: HomeBody(
+                      rowGap: _rowGap,
+                      tiles: [
+                        for (final app in apps)
+                          AppTile(
+                            app: app,
+                            onTap: () => _openApp(context, ref, app),
+                          ),
+                        _SettingsTile(
+                          onTap: () => context.push(Routes.seniorSettings),
+                        ),
+                        for (var i = 0; i < slots; i++)
+                          _AddSlot(
+                            onTap: () => context.push(Routes.appSettings),
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: HomeBody.gutter),
-                  Expanded(
-                    flex: _familyFlex,
-                    child: HomePill(
-                      label: connected ? '가족' : '가족 연결',
-                      icon: Icons.family_restroom,
-                      light: AppColors.seniorFamilyLight,
-                      face: AppColors.seniorFamily,
-                      deep: AppColors.seniorFamilyDeep,
-                      wall: AppColors.seniorFamilyWall,
-                      // Amber is too light to carry white lettering.
-                      ink: AppColors.seniorInk,
-                      onTap: () => context.push(Routes.familyLink),
-                    ),
+                  const SizedBox(height: HomeBody.sectionGap),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: _sosFlex,
+                        child: HomePill(
+                          label: '긴급 구조 요청',
+                          icon: Icons.notifications_active,
+                          light: AppColors.seniorSosLight,
+                          face: AppColors.seniorSos,
+                          deep: AppColors.seniorSosDeep,
+                          wall: AppColors.seniorSosWall,
+                          ink: Colors.white,
+                          onTap: () => context.go(Routes.sos),
+                        ),
+                      ),
+                      const SizedBox(width: HomeBody.gutter),
+                      Expanded(
+                        flex: _familyFlex,
+                        child: HomePill(
+                          label: connected ? '가족' : '가족 연결',
+                          icon: Icons.family_restroom,
+                          light: AppColors.seniorFamilyLight,
+                          face: AppColors.seniorFamily,
+                          deep: AppColors.seniorFamilyDeep,
+                          wall: AppColors.seniorFamilyWall,
+                          // Amber is too light to carry white lettering.
+                          ink: AppColors.seniorInk,
+                          onTap: () => context.push(Routes.familyLink),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
+          const SeniorNoticeLayer(),
+        ],
       ),
     );
   }
@@ -223,11 +225,7 @@ class _AddSlot extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.add,
-                      size: 44,
-                      color: AppColors.seniorSlotInk,
-                    ),
+                    Icon(Icons.add, size: 44, color: AppColors.seniorSlotInk),
                     SizedBox(height: 10),
                     Text(
                       '추가하기',

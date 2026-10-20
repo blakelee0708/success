@@ -322,6 +322,25 @@ there** now. The screen that used to sit in between held one button and a
 line saying apps cannot be added yet, which is a screen that exists to be
 passed through.
 
+## The two consent cards cover the home
+
+안심 케어 동의 and the primary-guardian handover are the two things only the
+senior can answer, on their own phone, so neither can move to another screen.
+They used to sit above the tiles and they did what the 첫 화면 card did: at
+제일 크게 they asked for more height than the phone had, and because every
+tile is a `FittedBox` nothing overflowed — the tiles came out **24px** tall,
+wide bars with no icon and no label.
+
+`SeniorNoticeLayer` draws whichever one is pending over the whole home
+instead, one at a time, care first because money is already held against it.
+That costs a senior their tiles until they answer, and both are answered by
+pressing one of two buttons; a grid they cannot read costs them the tiles
+anyway.
+
+`home_fits_test.dart` now covers these two as well. It only ever covered the
+첫 화면 card, which is why they kept the fault after that one was fixed — the
+check was written around the card that happened to be in front of me.
+
 ## 설정 is six rows of three kinds
 
 Six identical Material cards in the warm brown ink that came out of the

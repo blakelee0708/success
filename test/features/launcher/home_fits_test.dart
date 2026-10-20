@@ -6,6 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
+import 'package:app/core/supabase/supabase_providers.dart';
+import 'package:app/data/remote/home_apps_repository.dart';
+import 'package:app/data/remote/pairing_repository.dart';
+import 'package:app/data/remote/senior_link_repository.dart';
+import 'package:app/data/remote/subscription_repository.dart';
+import 'package:app/data/senior_link_store.dart';
+import 'package:app/features/care/presentation/care_consent_prompt.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/core/clock.dart';
 import 'package:app/features/launcher/presentation/widgets/app_tile.dart';
@@ -52,25 +59,7 @@ Future<void> _pumpHome(
 void main() {
   _bandHeightTests();
 
-  for (final mode in ScreenMode.values) {
-    testWidgets('${mode.name}: the tiles stay usable with the 첫 화면 card up', (
-      tester,
-    ) async {
-      // Nothing overflows when they do not — every tile is a FittedBox — so
-      // the failure is silent: at 제일 크게 with the card on screen the rows
-      // came out 45px tall and the labels shrank to a few pixels, smaller
-      // than the 가족 pill under them. A home whose app names are the
-      // smallest writing on it is not a home screen.
-      await _pumpHome(tester, mode, FontSize.largest);
-
-      final tile = tester.getSize(find.byType(AppTile).first);
-      expect(
-        tile.height,
-        greaterThanOrEqualTo(HomeBody.minRow),
-        reason: 'the 첫 화면 card has eaten the grid',
-      );
-    });
-  }
+  _noticeCardTests();
 
   for (final mode in ScreenMode.values) {
     for (final size in FontSize.values) {
@@ -151,6 +140,77 @@ void _bandHeightTests() {
       );
       // And the clock is the size the design draws it, not a fraction of it.
       expect(tester.getSize(find.text('오후 2:30')).height, greaterThan(45));
+    });
+  }
+}
+
+/// The two cards that still sit on the senior's home: 안심 케어 동의 and the
+/// primary-guardian handover. Both are answered on the parent's own phone, so
+/// neither can move anywhere else.
+///
+/// The 첫 화면 card had this exact problem and was taken off the home for it.
+/// These two were never covered, and had it too — at 제일 크게 the tiles came
+/// out 24px tall, wide bars with no icon and no label, because every tile is
+/// a FittedBox and nothing overflows.
+void _noticeCardTests() {
+  for (final mode in ScreenMode.values) {
+    testWidgets('${mode.name}: the tiles survive the 안심 케어 card', (
+      tester,
+    ) async {
+      final store = InMemorySeniorLinkRepository();
+      final pairing = InMemoryPairingRepository(store);
+      final subs = InMemorySubscriptionRepository(store);
+      await store.ensureGuardianAccount(displayName: '김보호');
+      final started = await pairing.startSeniorPairing(
+        installId: 'senior-phone',
+      );
+      final profile = await pairing.claimSeniorPairingCode(
+        code: started.code,
+        displayName: '어머니',
+      );
+      await subs.startCare(profile.id);
+
+      await pumpApp(
+        tester,
+        overrides: [
+          appLauncherProvider.overrideWithValue(
+            FakeAppLauncher(defaultHome: true),
+          ),
+          seniorLinkRepositoryProvider.overrideWithValue(store),
+          pairingRepositoryProvider.overrideWithValue(pairing),
+          subscriptionRepositoryProvider.overrideWithValue(subs),
+          homeAppsRepositoryProvider.overrideWithValue(
+            InMemoryHomeAppsRepository(),
+          ),
+          seniorLinkStoreProvider.overrideWithValue(
+            InMemorySeniorLinkStore(
+              SeniorLink(
+                installId: 'senior-phone',
+                seniorProfileId: profile.id,
+              ),
+            ),
+          ),
+        ],
+        prefs: {
+          SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+            SeniorSettings(
+              screenMode: mode,
+              fontSize: FontSize.largest,
+              apps: mode == ScreenMode.easy
+                  ? defaultEasyApps
+                  : defaultDetailedApps,
+            ).toJson(),
+          ),
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(CareConsentPrompt.promptKey), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(AppTile).first).height,
+        greaterThanOrEqualTo(HomeBody.minRow),
+        reason: 'the 안심 케어 card has eaten the grid',
+      );
     });
   }
 }
