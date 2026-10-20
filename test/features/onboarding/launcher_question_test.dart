@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/features/launcher/data/app_launcher.dart';
-import 'package:app/features/launcher/presentation/more_apps_placeholder.dart';
+import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
 import 'package:app/features/launcher/presentation/widgets/default_home_prompt.dart';
 import 'package:app/features/onboarding/presentation/screen_mode_choice_screen.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
@@ -60,11 +60,13 @@ void main() {
     // all until 더 보기 got one.
     await tester.tap(find.text('더 보기'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(MoreAppsPlaceholder.settingsKey));
-    await tester.pumpAndSettle();
 
-    expect(find.byKey(DefaultHomePrompt.promptKey), findsOneWidget);
     expect(find.text('글씨 크기 조절하기'), findsOneWidget);
+    expect(find.byKey(SeniorSettingsScreen.homeAppRow), findsOneWidget);
+
+    await tester.tap(find.byKey(SeniorSettingsScreen.homeAppRow));
+    await tester.pumpAndSettle();
+    expect(find.byKey(DefaultHomePrompt.promptKey), findsOneWidget);
   });
 
   testWidgets('a phone that cannot answer is not asked at all', (tester) async {

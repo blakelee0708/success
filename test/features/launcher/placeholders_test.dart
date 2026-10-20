@@ -17,10 +17,16 @@ void main() {
     expect(find.text('자녀분에게\n이 번호를 불러 주세요'), findsOneWidget);
   });
 
-  testWidgets('더 보기 opens the more-apps placeholder', (tester) async {
+  testWidgets('더 보기 opens 설정', (tester) async {
+    // It used to open a screen holding one button and a line saying apps
+    // cannot be added yet — a screen that existed to be passed through. And
+    // until it led here, 정말 쉬운 화면 had no route to 설정 at all, so a
+    // senior on the easy screen could not change their text size.
     await _gotoEasyHome(tester);
     await tester.tap(find.text('더 보기'));
     await tester.pumpAndSettle();
-    expect(find.text('더 많은 앱을 곧 추가할 수 있어요'), findsOneWidget);
+
+    expect(find.text('앱 설정하기'), findsOneWidget);
+    expect(find.text('글씨 크기 조절하기'), findsOneWidget);
   });
 }

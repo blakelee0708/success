@@ -6,7 +6,7 @@ import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
-import 'package:app/features/launcher/presentation/more_apps_placeholder.dart';
+import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
 import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
 import 'package:app/features/launcher/presentation/widgets/default_home_prompt.dart';
 
@@ -37,14 +37,16 @@ Future<void> _pumpHome(
   );
   await tester.pumpAndSettle();
 
-  if (mode == ScreenMode.easy) {
-    await tester.tap(find.text('더 보기'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(MoreAppsPlaceholder.settingsKey));
-  } else {
-    await tester.tap(find.text('설정'));
-  }
+  // 더 보기 on the easy screen, the 설정 tile on the detailed one.
+  await tester.tap(find.text(mode == ScreenMode.easy ? '더 보기' : '설정'));
   await tester.pumpAndSettle();
+
+  // The row is only there when the phone says this app is not its home app,
+  // which is the whole point of two of these cases.
+  if (find.byKey(SeniorSettingsScreen.homeAppRow).evaluate().isNotEmpty) {
+    await tester.tap(find.byKey(SeniorSettingsScreen.homeAppRow));
+    await tester.pumpAndSettle();
+  }
 }
 
 void main() {

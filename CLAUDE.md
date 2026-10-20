@@ -300,11 +300,32 @@ strands the senior on the screen they just answered whenever it does not
 reply — `flutter test` is such a platform, and so is a phone whose launcher
 service is wedged. Seven tests caught exactly that.
 
-`DefaultHomePrompt` now lives in **설정**, for the ones who said 나중에 and for
-the phones that refuse the chooser. That made a second gap visible and worth
-closing: **정말 쉬운 화면 had no route to 설정 at all**, so a senior on the easy
-screen could not change their text size either — the setting the app is sold
-on. 더 보기 is that route now, with the "곧 추가할 수 있어요" line kept under it.
+`DefaultHomePrompt` now lives behind **설정 → 첫 화면으로 정하기**, one row
+among the others and only where the phone says this app is not its home app.
+It was briefly a card at the top of 설정, which was the same mistake one
+screen along — the offer is a setting, not an announcement.
+
+That made a second gap visible and worth closing: **정말 쉬운 화면 had no
+route to 설정 at all**, so a senior on the easy screen could not change their
+text size either — the setting the app is sold on. **더 보기 goes straight
+there** now. The screen that used to sit in between held one button and a
+line saying apps cannot be added yet, which is a screen that exists to be
+passed through.
+
+## 설정 is six rows of three kinds
+
+Six identical Material cards in the warm brown ink that came out of the
+palette, which made this look like a different app from the home it opens
+off. They are the same clay object the home screen is made of now, and
+grouped, because the six are not six of a kind: **이 화면** (앱 설정하기, 글씨
+크기, and 첫 화면으로 정하기 when it applies), **가족** (메시지, 연결 설정) and
+**아직 준비 중** (진동/벨소리, 사용하지 않기).
+
+The last pair have no `onTap` at all, so they cannot be pressed — the way the
+disabled SOS tile says the same thing. They fade to 0.6 rather than 0.5:
+`Opacity` fades lettering with the face, and `곧 쓰실 수 있어요` is the only
+thing on those rows worth reading. 가족 메시지 is lettered in ink because its
+amber cannot hold white, the same rule as everywhere else.
 
 ## 긴급 연락 is three colours now, and the sizes go to four
 

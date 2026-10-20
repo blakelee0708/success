@@ -104,7 +104,11 @@ class EasyHomeScreen extends ConsumerWidget {
                       deep: AppColors.seniorMoreDeep,
                       wall: AppColors.seniorMoreWall,
                       ink: Colors.white,
-                      onTap: () => context.go(Routes.moreApps),
+                      // Straight to 설정. The screen that used to sit in
+                      // between held one button and a line saying apps
+                      // cannot be added yet, which is a screen that exists
+                      // to be passed through.
+                      onTap: () => context.push(Routes.seniorSettings),
                     ),
                   ),
                 ],
