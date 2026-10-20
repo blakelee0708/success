@@ -55,58 +55,78 @@ class _DefaultHomePromptState extends ConsumerState<DefaultHomePrompt> {
         elevation: 1,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                '이 화면을 첫 화면으로 만들어 두세요',
-                style: TextStyle(
-                  fontSize: 20,
-                  height: 1.4,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.seniorOnSurface,
-                ),
+          // Capped at a third of the phone and scaled down inside it. At
+          // 제일 크게 this card asked for more height than the tiles under it
+          // had, and because every tile is a FittedBox nothing overflowed —
+          // the tiles just shrank, to 12px.
+          child: LayoutBuilder(
+            builder: (context, box) => ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.26,
               ),
-              const SizedBox(height: 6),
-              const Text(
-                '한 번만 정해두면, 홈 버튼을 누를 때마다\n이 화면이 나옵니다',
-                style: TextStyle(
-                  fontSize: 16,
-                  height: 1.5,
-                  color: AppColors.seniorOnSurface,
-                ),
-              ),
-              const SizedBox(height: 14),
-              FilledButton(
-                key: DefaultHomePrompt.buttonKey,
-                onPressed: _ask,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(56),
-                ),
-                child: const Text(
-                  '첫 화면으로 정하기',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
-                ),
-              ),
-              // Some phones refuse the in-app chooser outright, and Samsung
-              // keeps its own launcher set as the default so pressing Home
-              // never offers a choice either. Then this is the only way, and
-              // saying so beats a button that appears to do nothing.
-              if (_chooserRefused) ...[
-                const SizedBox(height: 10),
-                const Text(
-                  '이 휴대폰에서는 여기서 바로 정할 수 없어요.\n'
-                  '휴대폰 설정 → 애플리케이션 → 기본 앱 선택 → 홈 화면 앱\n'
-                  '에서 ‘잘보이네’를 골라 주세요.',
-                  key: DefaultHomePrompt.manualKey,
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                    color: AppColors.seniorOnSurface,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SizedBox(
+                  width: box.maxWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        '이 화면을 첫 화면으로 만들어 두세요',
+                        style: TextStyle(
+                          fontSize: 20,
+                          height: 1.4,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.seniorOnSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        '한 번만 정해두면, 홈 버튼을 누를 때마다\n이 화면이 나옵니다',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.5,
+                          color: AppColors.seniorOnSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      FilledButton(
+                        key: DefaultHomePrompt.buttonKey,
+                        onPressed: _ask,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(56),
+                        ),
+                        child: const Text(
+                          '첫 화면으로 정하기',
+                          style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      // Some phones refuse the in-app chooser outright, and Samsung
+                      // keeps its own launcher set as the default so pressing Home
+                      // never offers a choice either. Then this is the only way, and
+                      // saying so beats a button that appears to do nothing.
+                      if (_chooserRefused) ...[
+                        const SizedBox(height: 10),
+                        const Text(
+                          '이 휴대폰에서는 여기서 바로 정할 수 없어요.\n'
+                          '휴대폰 설정 → 애플리케이션 → 기본 앱 선택 → 홈 화면 앱\n'
+                          '에서 ‘잘보이네’를 골라 주세요.',
+                          key: DefaultHomePrompt.manualKey,
+                          style: TextStyle(
+                            fontSize: 15,
+                            height: 1.5,
+                            color: AppColors.seniorOnSurface,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ],
-            ],
+              ),
+            ),
           ),
         ),
       ),

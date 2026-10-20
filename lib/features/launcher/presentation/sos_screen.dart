@@ -153,8 +153,10 @@ class _SosTile extends StatelessWidget {
                   Text(
                     label,
                     style: TextStyle(
-                      fontSize: 48,
-                      height: 1.1,
+                      // As big as the tile will hold. These are the two
+                      // numbers on the screen and the reader is rattled.
+                      fontSize: 72,
+                      height: 1.05,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
                       color: ink,
@@ -166,7 +168,7 @@ class _SosTile extends StatelessWidget {
                     caption,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 19,
+                      fontSize: 26,
                       fontWeight: FontWeight.w700,
                       color: ink,
                       shadows: onDark ? lift : null,

@@ -280,6 +280,32 @@ this is a tall pad with an icon over two lines.
 The 가족 button on both home screens is **still the old amber**. Changing it is
 a separate decision and it was not made, so the two do not match yet.
 
+## The home-app question moved into onboarding
+
+It used to live on the home screen as a card over the tiles, and at 제일 크게
+that card asked for more height than the phone had. Nothing overflowed —
+every tile is a `FittedBox` — so the tiles simply shrank, to **12px**, with
+their labels smaller than the 가족 pill underneath. That is the same silent
+failure the band had, one screen along.
+
+Three things changed, and all three are needed:
+
+- **The question is asked at the end of onboarding**, right after the screen
+  is chosen. `06_PERMISSION_AND_POLICY` allows exactly this one request
+  during onboarding, so that is where it belongs.
+- **The answer is read, never awaited.** `ScreenModeChoiceScreen.build`
+  watches `isDefaultHomeProvider` so the platform is asked the moment the
+  screen opens; `_choose` reads the value. Awaiting the channel there instead
+  strands the senior on the screen they just answered whenever it does not
+  reply — `flutter test` is such a platform, and so is a phone whose launcher
+  service is wedged. Seven tests caught exactly that.
+- **`DefaultHomePrompt` stays, as a fallback**, for 나중에 and for the phones
+  that refuse the chooser. It is capped at 26% of the screen and scales down
+  inside, and while it is up `HomeBody` drops the band: the clock is the
+  nicest thing on the screen and the first to go, because the alternative is
+  tiles nobody can read. `home_fits_test.dart` asserts a tile is at least
+  `HomeBody.minRow` tall with the card up, on both screens at 제일 크게.
+
 ## 긴급 연락 is three colours now, and the sizes go to four
 
 **The three tiles were all the same red**, which left the digits as the only

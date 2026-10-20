@@ -55,6 +55,7 @@ class EasyHomeScreen extends ConsumerWidget {
     // still named for the job a senior has at the time.
     final connected =
         (ref.watch(seniorGuardiansProvider).value ?? const []).isNotEmpty;
+    final setupPending = ref.watch(isDefaultHomeProvider).value == false;
 
     return Scaffold(
       body: SafeArea(
@@ -68,6 +69,8 @@ class EasyHomeScreen extends ConsumerWidget {
               Expanded(
                 child: HomeBody(
                   rowGap: _rowGap,
+                  // The band stands down while the one-time setup card is up.
+                  showStrip: !setupPending,
                   tiles: [
                     for (final app in apps)
                       AppTile(

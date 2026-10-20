@@ -67,6 +67,7 @@ class DetailedHomeScreen extends ConsumerWidget {
     final apps = (saved == null || saved.isEmpty) ? defaultDetailedApps : saved;
     final connected =
         (ref.watch(seniorGuardiansProvider).value ?? const []).isNotEmpty;
+    final setupPending = ref.watch(isDefaultHomeProvider).value == false;
 
     // One empty slot after 설정, or two where that would leave a half-finished
     // row. Padding the grid out to eight whatever the senior kept would fill
@@ -86,6 +87,8 @@ class DetailedHomeScreen extends ConsumerWidget {
               Expanded(
                 child: HomeBody(
                   rowGap: _rowGap,
+                  // The band stands down while the one-time setup card is up.
+                  showStrip: !setupPending,
                   tiles: [
                     for (final app in apps)
                       AppTile(

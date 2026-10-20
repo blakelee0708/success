@@ -8,10 +8,14 @@ import '../../../core/widgets/clay_pad.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/senior_settings.dart';
 import '../../launcher/application/senior_settings_controller.dart';
+import '../../launcher/data/app_launcher.dart';
 import 'widgets/screen_mode_preview.dart';
 
 /// Widget keys the tests drive.
 class ScreenModeChoiceKeys {
+  /// The home-app question, asked once at the end of onboarding.
+  static const homeAppAsk = Key('screen-mode-home-app-ask');
+
   ScreenModeChoiceKeys._();
 
   static const easyPreview = Key('mode-preview-easy');
@@ -35,11 +39,93 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
         .read(seniorSettingsControllerProvider.notifier)
         .chooseScreenMode(mode);
     if (!context.mounted) return;
+
+    // The one request `06_PERMISSION_AND_POLICY` allows during onboarding, so
+    // onboarding is where it belongs. It used to wait on the home screen as a
+    // card over the tiles — which at 제일 크게 left the tiles 45px tall.
+    //
+    // Only where the phone says it is not already the home app. A null means
+    // the platform cannot answer at all (a desktop build, `flutter test`),
+    // and a dialog about it there is noise.
+    //
+    // Read, never awaited. The screen asks the platform the moment it opens
+    // (see `build`), so by the time anyone has read two options and tapped
+    // one the answer is in. Awaiting it here instead strands the senior on
+    // the screen they just answered whenever the channel does not reply —
+    // `flutter test` is one such platform, and a phone whose launcher service
+    // is wedged is another. Still loading means "cannot say", same as null.
+    final isHome = ref.read(isDefaultHomeProvider).value;
+    final launcher = ref.read(appLauncherProvider);
+    if (isHome == false && context.mounted) {
+      final yes = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          key: ScreenModeChoiceKeys.homeAppAsk,
+          backgroundColor: AppColors.seniorSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text(
+            '이 앱을 첫 화면으로 쓸까요?',
+            style: TextStyle(
+              fontSize: 24,
+              height: 1.4,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+              color: AppColors.seniorInk,
+            ),
+          ),
+          content: const Text(
+            '한 번만 정해두면, 홈 버튼을 누를 때마다\n이 화면이 나옵니다.',
+            style: TextStyle(
+              fontSize: 18,
+              height: 1.55,
+              color: AppColors.seniorInkMuted,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text(
+                '나중에',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.seniorInkMuted,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text(
+                '첫 화면으로 정하기',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.seniorPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+      if (yes == true) {
+        await launcher.openHomeSettings();
+        ref.invalidate(isDefaultHomeProvider);
+      }
+    }
+    if (!context.mounted) return;
     context.go(mode == ScreenMode.easy ? Routes.easyHome : Routes.detailedHome);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Asked here so the answer is ready when a choice is made. _choose reads
+    // it rather than waiting for it.
+    ref.watch(isDefaultHomeProvider);
+
     return Scaffold(
       body: SafeArea(
         child: Padding(

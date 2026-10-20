@@ -53,6 +53,26 @@ void main() {
   _bandHeightTests();
 
   for (final mode in ScreenMode.values) {
+    testWidgets('${mode.name}: the tiles stay usable with the 첫 화면 card up', (
+      tester,
+    ) async {
+      // Nothing overflows when they do not — every tile is a FittedBox — so
+      // the failure is silent: at 제일 크게 with the card on screen the rows
+      // came out 45px tall and the labels shrank to a few pixels, smaller
+      // than the 가족 pill under them. A home whose app names are the
+      // smallest writing on it is not a home screen.
+      await _pumpHome(tester, mode, FontSize.largest);
+
+      final tile = tester.getSize(find.byType(AppTile).first);
+      expect(
+        tile.height,
+        greaterThanOrEqualTo(HomeBody.minRow),
+        reason: 'the 첫 화면 card has eaten the grid',
+      );
+    });
+  }
+
+  for (final mode in ScreenMode.values) {
     for (final size in FontSize.values) {
       testWidgets('${mode.name}: every tile is fully visible at ${size.name}', (
         tester,
