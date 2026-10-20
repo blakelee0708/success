@@ -50,9 +50,23 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _raise = AnimationController(
     vsync: this,
     duration: SplashScreen.entrance,
-  )..forward();
+  );
+
+  /// True once the hand has arrived. Until then the phone's screen is dark
+  /// and nothing is tappable: the start control is still moving, and asking
+  /// a senior to hit a moving target — or worse, inviting a tap and then
+  /// ignoring it — is the one thing this screen must not do.
+  bool _landed = false;
 
   bool _entering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _raise.forward().whenComplete(() {
+      if (mounted) setState(() => _landed = true);
+    });
+  }
 
   @override
   void dispose() {
@@ -87,6 +101,7 @@ class _SplashScreenState extends State<SplashScreen>
               entering: _entering,
               loop: _loop,
               raise: _raise,
+              landed: _landed,
               onTap: _onPhoneTap,
               startTilt: widget.entranceTilt,
             ),
@@ -218,6 +233,7 @@ class _Illustration extends StatelessWidget {
     required this.entering,
     required this.loop,
     required this.raise,
+    required this.landed,
     required this.onTap,
     this.startTilt = -42,
   });
@@ -228,6 +244,10 @@ class _Illustration extends StatelessWidget {
 
   /// Drives the swing up. Runs once, then the hand is upright for good.
   final Animation<double> raise;
+
+  /// Whether the swing has finished. Nothing on the phone is shown or
+  /// tappable before it has.
+  final bool landed;
 
   /// The angle it swings up from, negative to the left.
   final double startTilt;
@@ -300,13 +320,18 @@ class _Illustration extends StatelessWidget {
                       child: GestureDetector(
                         key: SplashScreen.tapTargetKey,
                         behavior: HitTestBehavior.opaque,
-                        onTap: onTap,
+                        onTap: landed ? onTap : null,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           child: Center(
-                            child: entering
-                                ? _EnteringState(loop: loop)
-                                : _IdleState(loop: loop),
+                            // The screen lights up as the phone arrives.
+                            child: AnimatedOpacity(
+                              opacity: landed ? 1 : 0,
+                              duration: const Duration(milliseconds: 240),
+                              child: entering
+                                  ? _EnteringState(loop: loop)
+                                  : _IdleState(loop: loop),
+                            ),
                           ),
                         ),
                       ),

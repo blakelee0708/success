@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
@@ -5,6 +6,39 @@ import 'package:app/features/onboarding/presentation/splash_screen.dart';
 import '../../support/pump_app.dart';
 
 void main() {
+  /// The tap target rides up with the hand, so a tap aimed at it mid-swing
+  /// misses the widget entirely — which means a test that taps and checks
+  /// nothing happened passes whether the gate exists or not. Read the handler
+  /// instead.
+  GestureDetector phone(WidgetTester tester) =>
+      tester.widget<GestureDetector>(find.byKey(SplashScreen.tapTargetKey));
+
+  testWidgets('the phone does not answer while it is still swinging up', (
+    tester,
+  ) async {
+    // Nothing invites the tap yet either — the screen is dark until the hand
+    // arrives — because a control that asks to be pressed and then ignores
+    // the press is worse than one that waits.
+    await pumpApp(tester);
+
+    expect(phone(tester).onTap, isNull);
+    expect(
+      tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity,
+      0,
+    );
+  });
+
+  testWidgets('and answers once it has arrived', (tester) async {
+    await pumpApp(tester);
+    await settleSplashEntrance(tester);
+
+    expect(phone(tester).onTap, isNotNull);
+    expect(
+      tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity,
+      1,
+    );
+  });
+
   testWidgets('splash shows the wordmark, tagline and tap prompt', (
     tester,
   ) async {
