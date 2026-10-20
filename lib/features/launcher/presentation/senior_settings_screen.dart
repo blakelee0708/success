@@ -23,6 +23,61 @@ class SeniorSettingsScreen extends ConsumerWidget {
 
   static const homeAppRow = Key('senior-settings-home-app');
 
+  /// Shown only when the phone refuses to open its own chooser.
+  static const manualKey = Key('senior-settings-home-app-manual');
+
+  /// Opens the phone's home-app chooser, and says what to do by hand when the
+  /// phone will not open it.
+  ///
+  /// Straight from the row, with no screen in between. There was one, and it
+  /// said 첫 화면으로 정하기 three times — as its title, as its heading and on
+  /// its only button — before doing what this does.
+  static Future<void> _setHomeApp(BuildContext context, WidgetRef ref) async {
+    final opened = await ref.read(appLauncherProvider).openHomeSettings();
+    // The chooser is a separate screen and the app cannot see what was
+    // picked, so the answer is re-read on return rather than assumed.
+    ref.invalidate(isDefaultHomeProvider);
+    if (opened || !context.mounted) return;
+
+    // Some phones refuse the in-app chooser outright, and Samsung keeps its
+    // own launcher set as the default so pressing Home never offers a choice
+    // either. Then this is the only way, and saying so beats a button that
+    // appears to do nothing.
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: SeniorSettingsScreen.manualKey,
+        backgroundColor: AppColors.seniorSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        content: const Text(
+          '이 휴대폰에서는 여기서 바로 정할 수 없어요.\n'
+          '휴대폰 설정 → 애플리케이션 → 기본 앱 선택 → 홈 화면 앱\n'
+          '에서 ‘잘보이네’를 골라 주세요.',
+          style: TextStyle(
+            fontSize: 19,
+            height: 1.6,
+            color: AppColors.seniorInk,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(
+              '알겠어요',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.seniorPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Shown only where the phone says this app is not its home app, which is
@@ -81,7 +136,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
                 light: AppColors.seniorSosLight,
                 deep: AppColors.seniorSosDeep,
                 wall: AppColors.seniorSosWall,
-                onTap: () => context.push(Routes.homeApp),
+                onTap: () => _setHomeApp(context, ref),
               ),
             const SizedBox(height: 26),
             const _GroupTitle('가족'),

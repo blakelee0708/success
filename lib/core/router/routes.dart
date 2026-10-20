@@ -21,7 +21,6 @@ class Routes {
   // that screen's tab bar was replaced by 긴급 구조 요청 and 가족; the list is
   // the only way into the two screens below it, so it needed a route.
   static const seniorSettings = '/settings';
-  static const homeApp = '/settings/home-app';
   static const appSettings = '/settings/apps';
   static const fontSize = '/settings/font-size';
 }

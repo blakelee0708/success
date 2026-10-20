@@ -300,10 +300,20 @@ strands the senior on the screen they just answered whenever it does not
 reply — `flutter test` is such a platform, and so is a phone whose launcher
 service is wedged. Seven tests caught exactly that.
 
-`DefaultHomePrompt` now lives behind **설정 → 첫 화면으로 정하기**, one row
-among the others and only where the phone says this app is not its home app.
-It was briefly a card at the top of 설정, which was the same mistake one
-screen along — the offer is a setting, not an announcement.
+The way back is **설정 → 첫 화면으로 정하기**: one row among the others, and
+only where the phone says this app is not its home app. Tapping it opens the
+phone's own chooser directly. There is no screen in between, and no card —
+both existed and both were wrong. The card was an announcement where a
+setting belonged; the screen said 첫 화면으로 정하기 three times, as its
+title, as its heading and on its only button, before doing what the row now
+does on tap. When the phone refuses to open its chooser — Samsung keeps its
+own launcher set, so pressing Home never offers a choice — a dialog gives the
+path through the phone's settings.
+
+**Almost nobody sees any of it.** The row exists only after a senior answers
+나중에 during onboarding. It showed up in every review screenshot because
+those pump `FakeAppLauncher(defaultHome: false)`, which is a phone that was
+never set up.
 
 That made a second gap visible and worth closing: **정말 쉬운 화면 had no
 route to 설정 at all**, so a senior on the easy screen could not change their

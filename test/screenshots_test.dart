@@ -29,7 +29,6 @@ import 'package:app/features/family/presentation/family_link_screen.dart';
 import 'package:app/features/messages/presentation/conversation_view.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
-import 'package:app/features/launcher/presentation/widgets/default_home_prompt.dart';
 import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
 import 'package:app/features/guardian/presentation/guardian_login_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_dashboard_screen.dart';
@@ -347,10 +346,8 @@ void main() {
     expect(find.byKey(SeniorSettingsScreen.homeAppRow), findsOneWidget);
     await _capture(tester, '13-senior-settings');
 
-    await tester.tap(find.byKey(SeniorSettingsScreen.homeAppRow));
-    await tester.pumpAndSettle();
-    expect(find.byKey(DefaultHomePrompt.promptKey), findsOneWidget);
-    await _capture(tester, '14-home-app');
+    // No capture of a 첫 화면으로 정하기 screen, because there is no longer
+    // one: the row opens the phone's own chooser.
   });
 
   testWidgets('정말 쉬운 화면 at rest, which is how it is actually used', (

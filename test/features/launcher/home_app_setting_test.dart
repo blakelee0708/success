@@ -1,0 +1,107 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:app/data/senior_settings_repository.dart';
+import 'package:app/domain/launcher_app.dart';
+import 'package:app/domain/senior_settings.dart';
+import 'package:app/features/launcher/data/app_launcher.dart';
+import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
+
+import '../../support/pump_app.dart';
+
+/// 설정 → 첫 화면으로 정하기.
+///
+/// The offer lives here and nowhere else. Onboarding asks once, right after
+/// the screen is chosen; this is the way back for anyone who said 나중에 and
+/// for the phones that refuse the chooser. It used to be a card on the home
+/// screen, and then briefly a screen of its own that said 첫 화면으로 정하기
+/// three times before doing anything.
+Future<void> _openSettings(
+  WidgetTester tester,
+  FakeAppLauncher launcher, {
+  ScreenMode mode = ScreenMode.easy,
+}) async {
+  await pumpApp(
+    tester,
+    overrides: [appLauncherProvider.overrideWithValue(launcher)],
+    prefs: {
+      SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+        SeniorSettings(
+          screenMode: mode,
+          apps: mode == ScreenMode.easy ? defaultEasyApps : defaultDetailedApps,
+        ).toJson(),
+      ),
+    },
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(mode == ScreenMode.easy ? '더 보기' : '설정'));
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  testWidgets('a phone that is not the home app is offered the row', (
+    tester,
+  ) async {
+    await _openSettings(tester, FakeAppLauncher(defaultHome: false));
+
+    expect(find.byKey(SeniorSettingsScreen.homeAppRow), findsOneWidget);
+  });
+
+  testWidgets('a phone already using this launcher never sees it', (
+    tester,
+  ) async {
+    // Which is almost everyone, almost always: onboarding asked, they said
+    // yes, and this row does not exist for them.
+    await _openSettings(tester, FakeAppLauncher(defaultHome: true));
+
+    expect(find.byKey(SeniorSettingsScreen.homeAppRow), findsNothing);
+  });
+
+  testWidgets('a platform that cannot answer shows nothing either', (
+    tester,
+  ) async {
+    // A desktop build, or `flutter test`, has no home app to be. Reading that
+    // silence as "no" would put the row on every screenshot.
+    await _openSettings(tester, FakeAppLauncher());
+
+    expect(find.byKey(SeniorSettingsScreen.homeAppRow), findsNothing);
+  });
+
+  testWidgets('the row opens the chooser itself, with no screen between', (
+    tester,
+  ) async {
+    final launcher = FakeAppLauncher(defaultHome: false);
+    await _openSettings(tester, launcher);
+
+    await tester.tap(find.byKey(SeniorSettingsScreen.homeAppRow));
+    await tester.pumpAndSettle();
+
+    expect(launcher.homeSettingsOpened, 1);
+    expect(find.byKey(SeniorSettingsScreen.manualKey), findsNothing);
+  });
+
+  testWidgets('says what to do when the phone will not open the chooser', (
+    tester,
+  ) async {
+    final launcher = FakeAppLauncher(defaultHome: false)
+      ..homeSettingsOpens = false;
+    await _openSettings(tester, launcher);
+
+    await tester.tap(find.byKey(SeniorSettingsScreen.homeAppRow));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(SeniorSettingsScreen.manualKey), findsOneWidget);
+    expect(find.textContaining('기본 앱 선택'), findsOneWidget);
+  });
+
+  testWidgets('자세한 화면 reaches it through its 설정 tile', (tester) async {
+    await _openSettings(
+      tester,
+      FakeAppLauncher(defaultHome: false),
+      mode: ScreenMode.detailed,
+    );
+
+    expect(find.byKey(SeniorSettingsScreen.homeAppRow), findsOneWidget);
+  });
+}
