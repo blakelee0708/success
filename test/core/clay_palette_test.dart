@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:app/core/theme/app_colors.dart';
+import 'package:app/core/theme/app_theme.dart';
+import 'package:app/domain/app_category.dart';
+
+/// The palette the 2026-10-20 design review settled on: white ground, and
+/// every pressable thing drawn as a solid object with a lit top, a shaded
+/// bottom and a visible side wall.
+void main() {
+  test('the senior ground is white', () {
+    // The cream gradient is gone. It was the one thing every reviewer named.
+    expect(AppColors.seniorBackground, const Color(0xFFFFFFFF));
+  });
+
+  group('every tile colour can be extruded', () {
+    for (final category in AppCategory.values) {
+      test('${category.name} runs light → base → deep → wall', () {
+        // The side wall is what makes the tile look like an object rather
+        // than a rectangle, and it only reads if it is darker than the face
+        // above it. A wall lighter than its own tile is not a wall.
+        final steps = [
+          category.lightColor,
+          category.baseColor,
+          category.deepColor,
+          category.wallColor,
+        ].map((c) => c.computeLuminance()).toList();
+
+        for (var i = 1; i < steps.length; i++) {
+          expect(
+            steps[i],
+            lessThan(steps[i - 1]),
+            reason: '${category.name}: step $i is not darker than step ${i - 1}',
+          );
+        }
+      });
+
+      test('${category.name} letters itself legibly', () {
+        // 04_SCREEN_SPEC's whole premise. The label has to clear 3:1 against
+        // its own face, which is the floor for text this large. White does
+        // not manage it on yellow — that face takes ink instead, and this is
+        // the check that found it rather than a phone did.
+        final face = category.baseColor.computeLuminance();
+        final ink = category.letteringColor.computeLuminance();
+        final contrast = face > ink
+            ? (face + 0.05) / (ink + 0.05)
+            : (ink + 0.05) / (face + 0.05);
+
+        expect(
+          contrast,
+          greaterThanOrEqualTo(3.0),
+          reason: '${category.name} cannot carry its own lettering',
+        );
+      });
+    }
+  });
+
+  test('filled buttons use the terracotta the design names', () {
+    // ColorScheme.fromSeed does not keep its seed — it generates a tonal
+    // palette from it, and the terracotta came out of that as the muddy
+    // brown that every filled button in the app was wearing.
+    expect(AppTheme.senior.colorScheme.primary, AppColors.seniorPrimary);
+    expect(AppTheme.senior.colorScheme.onPrimary, Colors.white);
+    expect(AppTheme.guardian.colorScheme.primary, AppColors.guardianPrimary);
+    expect(AppTheme.guardian.colorScheme.onPrimary, Colors.white);
+  });
+
+  test('가족 is lettered in ink, because its face is a light amber', () {
+    // Short-wavelength colours go first as eyes age, so the two home buttons
+    // are amber and brown rather than the blue and teal they were. Amber is
+    // too light for white lettering, so it takes dark ink instead.
+    final face = AppColors.seniorFamily.computeLuminance();
+    final contrast = (face + 0.05) / (AppColors.seniorInk.computeLuminance() + 0.05);
+
+    expect(contrast, greaterThanOrEqualTo(4.5));
+  });
+}

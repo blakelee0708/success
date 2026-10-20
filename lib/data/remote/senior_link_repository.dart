@@ -228,6 +228,12 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// than one guardian, so a flat list of ids no longer says enough.
   final Map<String, Map<String, String>> rolesByProfile = {};
 
+  /// guardian account id -> display name. The real `guardiansFor` joins
+  /// `guardian_accounts` to get this; without it here the twin answered with
+  /// nameless guardians and the home screen quietly fell back to "가족" while
+  /// its test passed for the wrong reason.
+  final Map<String, String> guardianNames = {};
+
   /// Who [resolvePrimaryGuardian] is waiting on, per profile.
   final Map<String, String> pendingPrimaryByProfile = {};
 
@@ -311,13 +317,15 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     String? displayName,
     String? phoneNumber,
   }) async {
-    return _account = GuardianAccount(
+    final account = _account = GuardianAccount(
       id: _account?.id ?? 'account-1',
       authUserId: guardianAuthUserId,
       displayName: displayName ?? _account?.displayName,
       phoneNumber: phoneNumber ?? _account?.phoneNumber,
       email: _account?.email,
     );
+    if (account.displayName case final name?) guardianNames[account.id] = name;
+    return account;
   }
 
   @override

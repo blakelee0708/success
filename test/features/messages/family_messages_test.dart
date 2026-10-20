@@ -15,6 +15,7 @@ import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/guardian_account.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
+import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
 import 'package:app/features/messages/presentation/conversation_view.dart';
 
 import '../../support/pump_app.dart';
@@ -95,7 +96,10 @@ Future<void> _pumpSeniorMessages(WidgetTester tester, Harness h) async {
     },
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('가족 메시지'));
+  // The conversation is reached from the band across the top of the home,
+  // which shows the family's newest message. It used to be a button down by
+  // 더 보기; the band replaced it and shows the message itself.
+  await tester.tap(find.byKey(HomeStrip.stripKey));
   await tester.pumpAndSettle();
 }
 
@@ -242,7 +246,8 @@ void main() {
       tester,
     ) async {
       // 04_SCREEN_SPEC gives this slot as 가족 연결 또는 자녀 이름 버튼: once a
-      // family is attached, connecting is not what they need it for.
+      // family is attached, connecting is not what they need it for. The slot
+      // is now the band at the top, which carries the name and the message.
       final h = await _family();
       await _pumpSeniorMessages(tester, h);
 
@@ -304,7 +309,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('가족 연결'), findsOneWidget);
-      expect(find.text('가족 메시지'), findsNothing);
+      expect(find.byKey(HomeStrip.connectKey), findsOneWidget);
+      expect(find.byKey(HomeStrip.messageKey), findsNothing);
     });
   });
 }

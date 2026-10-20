@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/core/clock.dart';
 import 'package:app/core/supabase/supabase_config.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
@@ -25,6 +26,7 @@ import 'package:app/features/family/presentation/family_link_screen.dart';
 import 'package:app/features/messages/presentation/conversation_view.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/launcher/presentation/widgets/default_home_prompt.dart';
+import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
 import 'package:app/features/guardian/presentation/guardian_login_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_start_screen.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
@@ -285,6 +287,57 @@ void main() {
       expect(tester.takeException(), isNull);
       await _capture(tester, name);
     }
+  });
+
+  testWidgets('정말 쉬운 화면 at rest, which is how it is actually used', (
+    tester,
+  ) async {
+    // Every other capture of this screen has the 첫 화면 card on it, which is
+    // the one state the band is squeezed in. The screen a senior looks at
+    // every day had no picture at all until this.
+    final store = InMemorySeniorLinkRepository();
+    final pairing = InMemoryPairingRepository(store);
+    final subs = InMemorySubscriptionRepository(store);
+    final messages = InMemoryMessageRepository(store, subscriptions: subs);
+    await store.ensureGuardianAccount(displayName: '영희');
+    final started = await pairing.startSeniorPairing(installId: 'senior-phone');
+    final profile = await pairing.claimSeniorPairingCode(
+      code: started.code,
+      displayName: '어머니',
+    );
+    await messages.send(profile.id, body: '엄마, 점심 드셨어요?');
+
+    await pumpApp(
+      tester,
+      overrides: [
+        nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
+        appLauncherProvider.overrideWithValue(
+          FakeAppLauncher(defaultHome: true),
+        ),
+        seniorLinkRepositoryProvider.overrideWithValue(store),
+        pairingRepositoryProvider.overrideWithValue(pairing),
+        subscriptionRepositoryProvider.overrideWithValue(subs),
+        messageRepositoryProvider.overrideWithValue(messages),
+        seniorLinkStoreProvider.overrideWithValue(
+          InMemorySeniorLinkStore(
+            SeniorLink(installId: 'senior-phone', seniorProfileId: profile.id),
+          ),
+        ),
+      ],
+      prefs: {
+        SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+          const SeniorSettings(
+            screenMode: ScreenMode.easy,
+            apps: defaultEasyApps,
+          ).toJson(),
+        ),
+      },
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(HomeStrip.messageKey), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _capture(tester, '16-easy-home');
   });
 
   testWidgets('가족 메시지 renders for the guardian', (tester) async {

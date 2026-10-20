@@ -22,6 +22,11 @@ class AppTheme {
           seedColor: AppColors.seniorPrimary,
           brightness: Brightness.light,
         ).copyWith(
+          // Kept rather than generated: a tonal palette built from the
+          // terracotta seed turns it into a muddy brown, and every filled
+          // button in the app wore that instead of the colour the design names.
+          primary: AppColors.seniorPrimary,
+          onPrimary: Colors.white,
           surface: AppColors.seniorSurface,
           onSurface: AppColors.seniorOnSurface,
         );
@@ -46,6 +51,8 @@ class AppTheme {
           seedColor: AppColors.guardianPrimary,
           brightness: Brightness.light,
         ).copyWith(
+          primary: AppColors.guardianPrimary,
+          onPrimary: Colors.white,
           surface: AppColors.guardianSurface,
           onSurface: AppColors.guardianOnSurface,
         );

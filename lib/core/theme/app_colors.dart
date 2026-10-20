@@ -10,9 +10,38 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // ── Senior — warm cream / clay (launcher.jsx, splash.jsx) ──
-  // PAGE_BG = linear-gradient(180deg, #FDF7EE 0%, #F6EBDA 100%)
-  static const seniorBackground = Color(0xFFFDF7EE); // gradient top (cream)
+  // ── Senior — white ground, extruded clay buttons ──
+  //
+  // Settled in the 2026-10-20 design review, which replaced the cream ground
+  // of `launcher.jsx` with white and gave every pressable thing a lit top, a
+  // shaded bottom and a side wall. The tile hues are that review's, a shade
+  // off `launcher.jsx`'s originals; the approved mock is the source now.
+  static const seniorBackground = Color(0xFFFFFFFF); // the ground is white
+  static const seniorInk = Color(0xFF1B1A18); // headings, amber lettering
+  static const seniorInkMuted = Color(0xFF8E8A84); // the date above the clock
+  static const seniorHairline = Color(0xFFE6E0D6); // the rule inside the card
+
+  /// The two home buttons. Blue and teal went first — short-wavelength
+  /// colours are the first an ageing eye loses, which is why 가족 is amber
+  /// (lettered in ink, since amber is too light for white) and 더 보기 brown.
+  static const seniorFamily = Color(0xFFF2A93B);
+  static const seniorFamilyLight = Color(0xFFFFD98A);
+  static const seniorFamilyDeep = Color(0xFFD08B1E);
+  static const seniorFamilyWall = Color(0xFFB0720F);
+  static const seniorMore = Color(0xFF6B5945);
+  static const seniorMoreLight = Color(0xFF9A866E);
+  static const seniorMoreDeep = Color(0xFF52412F);
+  static const seniorMoreWall = Color(0xFF3F3122);
+
+  /// The raised card the clock and the family line sit on. Its face is
+  /// tinted rather than pure white: on a white ground a white card has no
+  /// edge, and the clock looked like it was floating outside its own box.
+  static const seniorCardLight = Color(0xFFFFFFFF);
+  static const seniorCard = Color(0xFFFAF8F3);
+  static const seniorCardDeep = Color(0xFFEFEAE1);
+  static const seniorCardWall = Color(0xFFD7CFC2);
+
+  static const seniorCreamLegacy = Color(0xFFFDF7EE); // splash only
   static const seniorBackgroundEnd = Color(
     0xFFF6EBDA,
   ); // gradient bottom (soft clay)
@@ -27,22 +56,37 @@ class AppColors {
   static const seniorBorder = Color(
     0xFFC9A98C,
   ); // muted clay (chevron / divider)
-  static const seniorSos = Color(0xFFD62116); // SOS gradient base (긴급 구조)
+  static const seniorSos = Color(0xFFE13A24); // SOS face (긴급 구조)
+  static const seniorSosLight = Color(0xFFFB8168);
+  static const seniorSosDeep = Color(0xFFBB2113);
+  static const seniorSosWall = Color(0xFF981610);
 
   // Senior launcher app-tile categories (c1 light → c2 base), from APPS in
   // launcher.jsx. Used by the home grid in Phase 1.
-  static const seniorButtonGreen = Color(0xFF4E9457); // 전화
-  static const seniorButtonGreenLight = Color(0xFF6FB36A);
-  static const seniorButtonBlue = Color(0xFF4374B8); // 메시지
-  static const seniorButtonBlueLight = Color(0xFF5E96D6);
-  static const seniorButtonYellow = Color(0xFFF2A93B); // 카카오톡
-  static const seniorButtonYellowLight = Color(0xFFFFCE5C);
-  static const seniorButtonRed = Color(0xFFD8431C); // 유튜브
-  static const seniorButtonRedLight = Color(0xFFF2683E);
-  static const seniorButtonPurple = Color(0xFF7E55B0); // 카메라
-  static const seniorButtonPurpleLight = Color(0xFFA074C8);
-  static const seniorButtonPink = Color(0xFFC85E94); // 갤러리
-  static const seniorButtonPinkLight = Color(0xFFE07AAC);
+  static const seniorButtonGreen = Color(0xFF55A05D); // 전화
+  static const seniorButtonGreenLight = Color(0xFF84C97C);
+  static const seniorButtonGreenDeep = Color(0xFF3F7F48);
+  static const seniorButtonGreenWall = Color(0xFF336A3C);
+  static const seniorButtonBlue = Color(0xFF4A7FC4); // 메시지
+  static const seniorButtonBlueLight = Color(0xFF78AEE6);
+  static const seniorButtonBlueDeep = Color(0xFF35619C);
+  static const seniorButtonBlueWall = Color(0xFF2C5287);
+  static const seniorButtonYellow = Color(0xFFE09A2B); // 카카오톡
+  static const seniorButtonYellowLight = Color(0xFFFFD98A);
+  static const seniorButtonYellowDeep = Color(0xFFC47F19);
+  static const seniorButtonYellowWall = Color(0xFFA86B13);
+  static const seniorButtonRed = Color(0xFFDF4F28); // 유튜브
+  static const seniorButtonRedLight = Color(0xFFFA8A64);
+  static const seniorButtonRedDeep = Color(0xFFB83A17);
+  static const seniorButtonRedWall = Color(0xFF9E2E11);
+  static const seniorButtonPurple = Color(0xFF8E62BE); // 카메라
+  static const seniorButtonPurpleLight = Color(0xFFC3A0E2);
+  static const seniorButtonPurpleDeep = Color(0xFF6A4394);
+  static const seniorButtonPurpleWall = Color(0xFF5A3880);
+  static const seniorButtonPink = Color(0xFFCE6799); // 갤러리
+  static const seniorButtonPinkLight = Color(0xFFEE95BE);
+  static const seniorButtonPinkDeep = Color(0xFFAC4F7E);
+  static const seniorButtonPinkWall = Color(0xFF94406B);
 
   // ── Splash / guardian entry (2026-07-29 design) ──
   // Warm paper gradient behind the hand illustration.

@@ -389,6 +389,7 @@ class InMemoryPairingRepository implements PairingRepository {
         guardianAccountId: entry.key,
         role: entry.value,
         status: 'active',
+        displayName: store.guardianNames[entry.key],
       ),
   ];
 

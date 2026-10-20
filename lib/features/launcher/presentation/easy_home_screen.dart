@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/clay_pad.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
 import '../data/app_launcher.dart';
@@ -12,14 +15,27 @@ import '../../care/presentation/care_consent_prompt.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import '../../family/presentation/primary_guardian_prompt.dart';
 import 'widgets/default_home_prompt.dart';
+import 'widgets/home_strip.dart';
 import 'widgets/sos_button.dart';
 
-/// 정말 쉬운 화면 — 2x2 tiles, 가족 연결, SOS, 더 보기. No scrolling, depth 1.
+/// 정말 쉬운 화면 — the clock-and-family band, 2x2 tiles, 가족, 더 보기, SOS.
+/// No scrolling, depth 1.
 ///
 /// The tiles come from the saved settings rather than the constant defaults,
 /// so a rename or a removal made in 설정 actually reaches the home screen.
 class EasyHomeScreen extends ConsumerWidget {
   const EasyHomeScreen({super.key});
+
+  /// One spacing system, so the seams line up. The vertical rule between the
+  /// tiles and the one between 가족 and 더 보기 are both [_gutter]: they were
+  /// 16 and 14 once, and the buttons visibly failed to line up.
+  static const _gutter = 16.0;
+  static const _rowGap = 22.0;
+  static const _sectionGap = 24.0;
+  static const _pillHeight = 80.0;
+
+  /// The band gives up its height before the tiles do, but never all of it.
+  static const _minStrip = 110.0;
 
   /// Says so when nothing opened, rather than leaving the senior tapping a
   /// tile that does nothing. Almost always the app is simply not installed.
@@ -43,81 +59,98 @@ class EasyHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final saved = ref.watch(seniorSettingsControllerProvider).value?.apps;
     final apps = (saved == null || saved.isEmpty) ? defaultEasyApps : saved;
-    // `04_SCREEN_SPEC` gives this slot as 가족 연결 또는 자녀 이름 버튼: before a
-    // family is attached it is the way to attach one, and afterwards it is the
-    // way to talk to them. A senior who is already connected has no use for a
-    // 가족 연결 button, and every use for a way to answer their child.
+    final rows = (apps.length / 2).ceil();
+    // `04_SCREEN_SPEC` gives this slot as 가족 연결 또는 자녀 이름 버튼. Talking
+    // to the family moved up into [HomeStrip], which shows their newest
+    // message, so what is left for the button is the connection itself —
+    // still named for the job a senior has at the time.
     final connected =
         (ref.watch(seniorGuardiansProvider).value ?? const []).isNotEmpty;
 
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
           child: Column(
             children: [
               const CareConsentPrompt(),
               const PrimaryGuardianPrompt(),
               const DefaultHomePrompt(),
-              // Two per row, laid out from the saved list so the grid shrinks
-              // with it instead of indexing past the end.
-              //
-              // The rows are sized from the space actually left rather than
-              // left square. This screen does not scroll, and at 아주 크게 with
-              // the 첫 화면 card showing there is not room for two square
-              // tiles — a square grid quietly clips the bottom row instead of
-              // complaining, so the labels simply vanish. Shorter tiles keep
-              // every button whole; `AppTile` scales its own contents to fit.
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    const spacing = 14.0;
-                    final rows = (apps.length / 2).ceil();
-                    final width = (constraints.maxWidth - spacing) / 2;
-                    final height =
-                        (constraints.maxHeight - spacing * (rows - 1)) / rows;
-                    return GridView.count(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: spacing,
-                      crossAxisSpacing: spacing,
-                      childAspectRatio: height > 0 ? width / height : 1,
-                      physics: const NeverScrollableScrollPhysics(),
+                    // Square tiles, and the band takes whatever is left over.
+                    // Stretching the tiles to fill instead gave 169x250
+                    // rectangles, which is what the band was invented to fix.
+                    final tile = (constraints.maxWidth - _gutter) / 2;
+                    final square = rows * tile + (rows - 1) * _rowGap;
+                    final room =
+                        constraints.maxHeight - _sectionGap - _minStrip;
+                    final grid = math.max(0.0, math.min(square, room));
+
+                    return Column(
                       children: [
-                        for (final app in apps)
-                          AppTile(
-                            app: app,
-                            onTap: () => _openApp(context, ref, app),
+                        const Expanded(child: HomeStrip()),
+                        const SizedBox(height: _sectionGap),
+                        SizedBox(
+                          height: grid,
+                          child: GridView.count(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: _rowGap,
+                            crossAxisSpacing: _gutter,
+                            childAspectRatio: grid > 0
+                                ? tile / ((grid - (rows - 1) * _rowGap) / rows)
+                                : 1,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              for (final app in apps)
+                                AppTile(
+                                  app: app,
+                                  onTap: () => _openApp(context, ref, app),
+                                ),
+                            ],
                           ),
+                        ),
                       ],
                     );
                   },
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: _sectionGap),
               Row(
                 children: [
                   Expanded(
-                    child: _PillButton(
-                      label: connected ? '가족 메시지' : '가족 연결',
-                      icon: connected
-                          ? Icons.chat_bubble_outline
-                          : Icons.family_restroom,
-                      onTap: () => context.push(
-                        connected ? Routes.familyMessages : Routes.familyLink,
-                      ),
+                    child: _Pill(
+                      label: connected ? '가족' : '가족 연결',
+                      icon: Icons.family_restroom,
+                      light: AppColors.seniorFamilyLight,
+                      face: AppColors.seniorFamily,
+                      deep: AppColors.seniorFamilyDeep,
+                      wall: AppColors.seniorFamilyWall,
+                      // Amber is too light to carry white lettering, so this
+                      // one is written in ink. Blue and teal are gone from
+                      // the senior's screens entirely: short-wavelength
+                      // colours are the first an ageing eye loses.
+                      ink: AppColors.seniorInk,
+                      onTap: () => context.push(Routes.familyLink),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: _gutter),
                   Expanded(
-                    child: _PillButton(
+                    child: _Pill(
                       label: '더 보기',
                       icon: Icons.apps,
+                      light: AppColors.seniorMoreLight,
+                      face: AppColors.seniorMore,
+                      deep: AppColors.seniorMoreDeep,
+                      wall: AppColors.seniorMoreWall,
+                      ink: Colors.white,
                       onTap: () => context.go(Routes.moreApps),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: _sectionGap),
               SosButton(onTap: () => context.go(Routes.sos)),
             ],
           ),
@@ -127,41 +160,61 @@ class EasyHomeScreen extends ConsumerWidget {
   }
 }
 
-class _PillButton extends StatelessWidget {
-  const _PillButton({
+class _Pill extends StatelessWidget {
+  const _Pill({
     required this.label,
     required this.icon,
+    required this.light,
+    required this.face,
+    required this.deep,
+    required this.wall,
+    required this.ink,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
+  final Color light;
+  final Color face;
+  final Color deep;
+  final Color wall;
+  final Color ink;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.seniorSurface,
-      borderRadius: BorderRadius.circular(20),
-      elevation: 1,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          child: Column(
-            children: [
-              Icon(icon, size: 30, color: AppColors.seniorPrimary),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.seniorOnSurface,
-                ),
+    return Semantics(
+      button: true,
+      label: label,
+      child: SizedBox(
+        height: EasyHomeScreen._pillHeight,
+        child: ClayPad(
+          light: light,
+          face: face,
+          deep: deep,
+          wall: wall,
+          radius: 26,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 29, color: ink),
+                  const SizedBox(width: 10),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 23,
+                      fontWeight: FontWeight.w900,
+                      color: ink,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

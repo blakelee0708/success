@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/clay_pad.dart';
 
-/// Always-visible red emergency bar (launcher.jsx SOS).
+/// Always-visible red emergency bar, drawn as the deepest object on the
+/// screen — it is the one control that must read as pressable from across a
+/// room.
 class SosButton extends StatelessWidget {
   const SosButton({super.key, required this.onTap});
 
@@ -13,49 +16,55 @@ class SosButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: '긴급 구조 요청',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+      child: SizedBox(
+        height: 96,
+        child: ClayPad(
+          light: AppColors.seniorSosLight,
+          face: AppColors.seniorSos,
+          deep: AppColors.seniorSosDeep,
+          wall: AppColors.seniorSosWall,
+          radius: 28,
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
-          child: Ink(
-            height: 76,
-            decoration: BoxDecoration(
-              color: AppColors.seniorSos,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.seniorSos.withValues(alpha: 0.45),
-                  blurRadius: 22,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
-            // Scales down rather than clipping: at 아주 크게 the label and
-            // icon no longer fit the pill, and SOS is the one control that
-            // must never be half off the screen.
-            child: const Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.notifications_active,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      '긴급 구조 요청',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
+          // Scales down rather than clipping: at 아주 크게 the label and
+          // icon no longer fit the pill, and SOS is the one control that
+          // must never be half off the screen.
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.notifications_active,
+                    color: Colors.white,
+                    size: 31,
+                    shadows: [
+                      Shadow(
+                        color: Color(0x4D000000),
+                        offset: Offset(0, 3),
+                        blurRadius: 3,
                       ),
+                    ],
+                  ),
+                  SizedBox(width: 13),
+                  Text(
+                    '긴급 구조 요청',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x52000000),
+                          offset: Offset(0, 2),
+                          blurRadius: 5,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

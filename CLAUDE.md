@@ -152,6 +152,57 @@ re-examines the first app. `pumpApp` tears the old tree down first. Until it
 did, every 아주 크게 screenshot was byte-identical to its normal-size twin, and
 the clipped grid above had been sitting in plain sight for weeks.
 
+## The look: white ground, clay buttons
+
+Settled in the 2026-10-20 review, which threw out the cream ground and the
+flat tiles. Everything a senior can press is drawn as a solid object by
+`lib/core/widgets/clay_pad.dart`, and that one widget is what keeps the screen
+coherent — the tiles, 가족, 더 보기, SOS, the clock card and the avatar are all
+lit from the same direction.
+
+Three parts make the object, and dropping any one leaves a flat rectangle: the
+**wall** (a shadow with no blur, offset straight down, always the darkest of
+the four colours), the **face gradient** (light → base → deep), and the
+**sheen**. Flutter has no inset shadow, so the sheen is a gradient painted over
+the face and *under* the content; as a `foregroundDecoration` it would wash out
+the icon and the label too. `sheen` scales it down for the near-white card,
+where full strength reads as grime.
+
+Two rules about colour, both found by `clay_palette_test.dart` rather than by a
+phone:
+
+- **No blue or teal on the senior's screens.** Short-wavelength colours are the
+  first an ageing eye loses. 가족 is amber and 더 보기 brown for that reason.
+  The 문자 tile keeps its blue only because it was there before the rule and
+  removing it was not asked for.
+- **A face carries lettering it can actually hold.** White needs 3:1 against
+  the face; yellow cannot manage it, so the yellow tile and the amber 가족
+  button are lettered in ink. `AppCategory.letteringColor` decides.
+
+`ColorScheme.fromSeed` does not keep its seed — it generates a tonal palette,
+and the terracotta came back as a muddy brown on every filled button. Both
+themes now set `primary` and `onPrimary` outright.
+
+## The band across the top of 정말 쉬운 화면
+
+`HomeStrip`. It exists because square tiles could not fill the screen: stretched
+to fit they became 169x250 rectangles, and left square they left 211px of
+nothing at the bottom. The slack became one wide thing worth looking at — the
+clock, and underneath it whoever is looking after this phone.
+
+The date sits *above* the clock. Side by side they ran to 328px inside a 310px
+card and the date was pushed out of its own box; Korean glyphs are about as
+wide as the type size, so a line of them has to be measured, not eyeballed.
+
+This is now the 가족 연결 또는 자녀 이름 slot `04_SCREEN_SPEC` asks for: the
+band shows the family's newest message and opens the conversation, so the
+button by 더 보기 is left with the connection itself and is named 가족 연결
+until there is one.
+
+`nowProvider` is where the time comes from, so tests and the review
+screenshots can pin it. A screenshot whose clock moves every run is a
+screenshot nobody can diff.
+
 ## The font is bundled
 
 `assets/fonts/NotoSansKR-{Regular,Bold}.ttf`, declared in `pubspec.yaml` and
