@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
+import 'widgets/category_picker.dart';
 
 /// 앱 설정하기 — the senior's own view of their home buttons: reorder, rename,
 /// recolour, remove, add.
@@ -77,12 +78,23 @@ class AppSettingsScreen extends ConsumerWidget {
         .renameApp(app.id, name);
   }
 
+  /// The kind comes first, then the name.
+  ///
+  /// Both ways in used to add every button as `AppCategory.message`, so a
+  /// button called 딸 wore the 문자 icon, came out blue and opened the
+  /// messaging app. The kind decides all three, so it has to be asked.
   Future<void> _add(BuildContext context, WidgetRef ref) async {
-    final name = await _askForName(context, title: '버튼 추가하기', initial: '');
+    final category = await askForCategory(context);
+    if (category == null || !context.mounted) return;
+    final name = await _askForName(
+      context,
+      title: '버튼 추가하기',
+      initial: category.defaultLabel,
+    );
     if (name == null) return;
     await ref
         .read(seniorSettingsControllerProvider.notifier)
-        .addApp(label: name, category: AppCategory.message);
+        .addApp(label: name, category: category);
   }
 
   Future<void> _recolour(

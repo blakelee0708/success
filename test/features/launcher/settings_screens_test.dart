@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/data/senior_settings_repository.dart';
+import 'package:app/domain/app_category.dart';
+import 'package:app/features/launcher/presentation/widgets/category_picker.dart';
 
 import '../../support/pump_app.dart';
 
@@ -122,6 +124,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('버튼 추가하기'));
+    await tester.pumpAndSettle();
+    // The kind is asked before the name, so the button gets the right icon,
+    // colour and app rather than always being a 문자.
+    await tester.tap(find.byKey(CategoryPickerKeys.option(AppCategory.camera)));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '사진');
     await tester.tap(find.text('저장'));

@@ -543,6 +543,12 @@ void main() {
     await tester.pumpAndSettle();
     await _capture(tester, '22-app-settings');
 
+    await tester.tap(find.text('버튼 추가하기'));
+    await tester.pumpAndSettle();
+    await _capture(tester, '22b-add-button-kind');
+    await tester.tap(find.text('그만두기'));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
     await tester.tap(find.text('글씨 크기 조절하기'));

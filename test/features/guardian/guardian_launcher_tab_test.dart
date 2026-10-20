@@ -10,6 +10,7 @@ import 'package:app/domain/guardian_account.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/features/guardian/presentation/guardian_launcher_tab.dart';
 import 'package:app/features/guardian/presentation/widgets/guardian_surfaces.dart';
+import 'package:app/features/launcher/presentation/widgets/category_picker.dart';
 
 import '../../support/pump_app.dart';
 
@@ -150,6 +151,8 @@ void main() {
 
     await tester.tap(find.byKey(GuardianLauncherKeys.add));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(CategoryPickerKeys.option(AppCategory.kakao)));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '딸');
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
@@ -197,6 +200,8 @@ void main() {
     expect(before, greaterThan(lastRow.bottom));
 
     await tester.tap(find.byKey(GuardianLauncherKeys.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(CategoryPickerKeys.option(AppCategory.kakao)));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '딸');
     await tester.tap(find.text('저장'));

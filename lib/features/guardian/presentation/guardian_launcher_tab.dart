@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
+import '../../launcher/presentation/widgets/category_picker.dart';
 import '../application/guardian_home_apps_controller.dart';
 import 'widgets/guardian_surfaces.dart';
 
@@ -158,14 +159,21 @@ class _Editor extends ConsumerWidget {
     await _run(context, ref, (c) => c.rename(app.id, name));
   }
 
+  /// The kind comes first, then the name.
+  ///
+  /// The picker draws the parent's own tiles rather than this half's cards:
+  /// the guardian is choosing what will appear on their mother's home screen,
+  /// so what they are shown is that button, not a form control.
   Future<void> _add(BuildContext context, WidgetRef ref) async {
-    final name = await _askForName(context, title: '버튼 추가하기', initial: '');
-    if (name == null || !context.mounted) return;
-    await _run(
+    final category = await askForCategory(context);
+    if (category == null || !context.mounted) return;
+    final name = await _askForName(
       context,
-      ref,
-      (c) => c.add(label: name, category: AppCategory.message),
+      title: '버튼 추가하기',
+      initial: category.defaultLabel,
     );
+    if (name == null || !context.mounted) return;
+    await _run(context, ref, (c) => c.add(label: name, category: category));
   }
 
   Future<void> _recolour(

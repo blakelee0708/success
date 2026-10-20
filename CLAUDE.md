@@ -366,6 +366,20 @@ being consented to at 20px bold, the two buttons 72px tall.
 첫 화면 card, which is why they kept the fault after that one was fixed — the
 check was written around the card that happened to be in front of me.
 
+## Adding a button asks what kind it is
+
+Both ways in — 앱 설정하기 on the senior's phone and 홈 화면 on the guardian's —
+used to add every new button as `AppCategory.message`. A button called 딸 came
+out blue, wore the 문자 icon and opened the messaging app, which is the one
+thing on that screen the senior cannot fix themselves.
+
+`askForCategory` asks first, and the name dialog then opens pre-filled with
+`AppCategory.defaultLabel` so the common case is one tap and 저장. The options
+are drawn as the tiles themselves rather than as a list of names: what is being
+picked is the thing about to appear on the home screen, and on the guardian's
+half that is the one place the senior's clay belongs — it is a depiction of
+their mother's phone, not chrome for this one.
+
 ## 설정 is six rows of three kinds
 
 Six identical Material cards in the warm brown ink that came out of the

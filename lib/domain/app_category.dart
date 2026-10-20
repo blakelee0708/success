@@ -56,6 +56,20 @@ extension AppCategoryStyle on AppCategory {
   Color get letteringColor =>
       this == AppCategory.kakao ? AppColors.seniorInk : Colors.white;
 
+  /// What a button of this kind is called when it is first made.
+  ///
+  /// Adding a button used to hard-code `AppCategory.message` on both sides,
+  /// so a button called 딸 came out blue, wore the 문자 icon and opened the
+  /// messaging app. The kind is chosen now, and this is what it suggests.
+  String get defaultLabel => switch (this) {
+    AppCategory.phone => '전화',
+    AppCategory.message => '문자',
+    AppCategory.kakao => '카카오톡',
+    AppCategory.youtube => '영상 보기',
+    AppCategory.camera => '사진찍기',
+    AppCategory.gallery => '사진 보기',
+  };
+
   /// Nearest Material glyph to the launcher.jsx custom icon.
   IconData get icon => switch (this) {
     AppCategory.phone => Icons.call,
