@@ -17,7 +17,18 @@ class AppColors {
   // shaded bottom and a side wall. The tile hues are that review's, a shade
   // off `launcher.jsx`'s originals; the approved mock is the source now.
   static const seniorBackground = Color(0xFFFFFFFF); // the ground is white
-  static const seniorInk = Color(0xFF1B1A18); // headings, amber lettering
+  /// Headings, and the lettering on every face too light for white.
+  ///
+  /// A warm near-black rather than the #1B1A18 it was. On a white ground that
+  /// value measured 17.4:1 — the highest in the app — and high contrast at
+  /// this size is not free: the bright ground spreads into the strokes and
+  /// large glyphs read as though they are bleeding. This is one step back
+  /// from that at 13.2:1, warmed to the same side as the terracotta and the
+  /// amber so the screen reads as one thing.
+  ///
+  /// It is not the brown that came out of the palette. That was #3A2410 and
+  /// plainly brown; this is ink with warmth in it.
+  static const seniorInk = Color(0xFF352F29);
   static const seniorInkMuted = Color(0xFF8E8A84); // the date above the clock
   static const seniorHairline = Color(0xFFE3E4E6); // the rule inside the card
 
@@ -101,7 +112,7 @@ class AppColors {
   static const splashBgTop = Color(0xFFFFFFFF);
   static const splashBgMid = Color(0xFFFFFFFF);
   static const splashBgBottom = Color(0xFFFFFFFF);
-  static const splashInk = Color(0xFF1B1A18); // wordmark
+  static const splashInk = Color(0xFF352F29); // wordmark
   static const splashTagline = Color(0xFF75797F);
   static const splashAccent = Color(0xFFD93516); // tap circle, wordmark dot
   static const splashPromptInk = Color(0xFF7A3D24); // 스마트폰이 쉬워져요
@@ -113,18 +124,15 @@ class AppColors {
   static const splashCardDeep = Color(0xFFF5F6F7);
   static const splashCardWall = Color(0xFFDCDEE1);
   static const splashCardLabel = Color(0xFF6A6E74);
-  static const splashCardTitle = Color(0xFF1B1A18);
+  static const splashCardTitle = Color(0xFF352F29);
 
   // Guardian start screen — same paper, cooler ink.
   static const guardianStartBgTop = Color(0xFFFFFFFF);
   static const guardianStartBgMid = Color(0xFFFFFFFF);
   static const guardianStartBgBottom = Color(0xFFF7F7F8);
-  static const guardianStartInk = Color(0xFF1B1A18);
   static const guardianStartMuted = Color(0xFF85898F);
-  static const guardianStartSub = Color(0xFF75797F);
   static const guardianStartFaint = Color(0xFFA2A6AC);
   static const guardianStartAccent = Color(0xFFC4451F);
-  static const guardianStartLine = Color(0xFFE3E4E6);
   static const guardianStartCardBorder = Color(0xFFE8E9EB);
   static const guardianStartBadgeFill = Color(0xFFF2F3F4);
   static const guardianStartBadgeBorder = Color(0xFFE0E2E5);

@@ -121,9 +121,9 @@ class GuardianStartScreen extends StatelessWidget {
                         buttonKey: GuardianStartKeys.google,
                         label: '구글로 시작하기',
                         background: Colors.white,
-                        foreground: AppColors.guardianStartInk,
+                        foreground: AppColors.guardianInk,
                         icon: Icons.g_mobiledata,
-                        borderColor: AppColors.guardianStartLine,
+                        borderColor: AppColors.guardianRule,
                       ),
                       const SizedBox(height: 22),
                       const Text(
@@ -347,7 +347,7 @@ Future<void> _start(
               style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppColors.guardianStartInk,
+                color: AppColors.guardianInk,
               ),
             ),
             const SizedBox(height: 10),
@@ -357,7 +357,7 @@ Future<void> _start(
               style: TextStyle(
                 fontSize: 14,
                 height: 1.6,
-                color: AppColors.guardianStartSub,
+                color: AppColors.guardianInkFaint,
               ),
             ),
             const SizedBox(height: 22),

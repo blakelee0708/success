@@ -112,6 +112,25 @@ void main() {
     }
   });
 
+  test('the ink is warm, and a step back from black', () {
+    // Pure-ish black on a white ground measured 17.4:1 and the strokes of
+    // large glyphs read as though they were bleeding — the bright ground
+    // spreading into them. This is one step back from that, warmed to the
+    // same side as the terracotta and the amber.
+    //
+    // The floor matters as much as the ceiling: past about 12:1 the ink stops
+    // looking solid and starts looking faded, which is the opposite failure.
+    final onWhite = 1.05 / (AppColors.seniorInk.computeLuminance() + 0.05);
+    expect(onWhite, lessThan(15.0), reason: 'dark enough to bleed');
+    expect(onWhite, greaterThan(12.0), reason: 'so pale it reads as faded');
+
+    // Warm: red leads, blue trails. A neutral grey here would sit apart from
+    // every other colour on the senior's screens.
+    final ink = AppColors.seniorInk;
+    expect(ink.r, greaterThan(ink.g));
+    expect(ink.g, greaterThan(ink.b));
+  });
+
   test('가족 is lettered in ink, because its face is a light amber', () {
     // Short-wavelength colours go first as eyes age, so the two home buttons
     // are amber and brown rather than the blue and teal they were. Amber is

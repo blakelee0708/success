@@ -179,6 +179,16 @@ phone:
 - **A face carries lettering it can actually hold.** White needs 3:1 against
   the face; yellow cannot manage it, so the yellow tile and the amber 가족
   button are lettered in ink. `AppCategory.letteringColor` decides.
+- **The ink is a step back from black, and warm.** `seniorInk` was `#1B1A18`
+  — 17.4:1 on the white ground, the highest value in the app — and at this
+  size that is not free: the bright ground spreads into the strokes and large
+  glyphs read as though they are bleeding. `#352F29` is 13.2:1, on the same
+  warm side as the terracotta and the amber. It is **not** the `#3A2410` that
+  came out of the palette; that was plainly brown, this is ink with warmth in
+  it. The test brackets it from both ends, because past about 12:1 it stops
+  looking solid and starts looking faded — the opposite failure. Changing
+  this one constant changes every heading, the 카카오톡 tile's lettering and
+  the 가족 button's, because they all read it.
 
 `ColorScheme.fromSeed` does not keep its seed — it generates a tonal palette,
 and the terracotta came back as a muddy brown on every filled button. Both
