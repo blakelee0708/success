@@ -366,7 +366,22 @@ side onto a white card instead. `OutlineInputBorder` draws a 1px box that
 fights the soft cards around it; `guardianField` fills and rounds instead.
 
 The sign-in screen's three benefits carry **a tinted mark, not a number**.
-Numbered badges said they were steps, and nobody does them in order. The one filled button on the half wears the **hero's gradient**
+Numbered badges said they were steps, and nobody does them in order. 돌봄's
+four capabilities got the same treatment for the same reason: all four wore
+the same clock, which turned four different things into a wall of identical
+rows.
+
+**`준비 중` on 돌봄 is a block, not a footnote.** It was a 13px grey line under
+a heading — the least visible thing on the screen it is most important to be
+honest on, since that screen takes money for four features none of which is
+built. It is now amber, bold, and carries its whole sentence rather than a
+chip's worth of it; `care_consent_test.dart` still looks for that sentence.
+
+`ConversationView` draws both personas, so it cannot hold a colour of its
+own: its bubbles and its composer read `ColorScheme`, which is terracotta on
+the senior's phone and blue on the guardian's. The allowance line under the
+heading was centred — the `Column` it sits in centres its children and the
+`Padding` shrink-wrapped the text — and is now where the heading starts. The one filled button on the half wears the **hero's gradient**
 rather than a flat `guardianPrimary` — a solid slab of `#0B5FD9` under a
 gradient card reads as a Material default nobody styled, which is what it
 was. The launcher rows' drag handle was `#9C8770`, the muted clay that came

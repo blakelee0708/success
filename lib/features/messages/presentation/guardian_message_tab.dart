@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../guardian/application/guardian_home_apps_controller.dart';
+import '../../guardian/presentation/widgets/guardian_surfaces.dart';
 import 'conversation_view.dart';
 
 /// 메시지 — the guardian's end of the same conversation.
@@ -28,7 +30,11 @@ class GuardianMessageTab extends ConsumerWidget {
           child: Text(
             '부모님을 먼저 연결해 주세요.\n연결되면 여기에서 이야기를 나눌 수 있어요.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 15, height: 1.6, color: Color(0xFF6B6459)),
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.6,
+              color: AppColors.guardianInkFaint,
+            ),
           ),
         ),
       );
@@ -37,13 +43,10 @@ class GuardianMessageTab extends ConsumerWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          padding: const EdgeInsets.fromLTRB(20, GuardianHeading.crown, 20, 0),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              profile.displayName,
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-            ),
+            child: GuardianHeading(title: profile.displayName),
           ),
         ),
         Expanded(child: ConversationView(title: profile.displayName)),

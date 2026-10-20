@@ -137,10 +137,30 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                     style: TextStyle(fontSize: 16 * scale),
                     decoration: InputDecoration(
                       hintText: widget.large ? '여기에 쓰세요' : '메시지 보내기',
-                      border: const OutlineInputBorder(),
+                      // Filled and rounded rather than a 1px box: the box
+                      // fought the bubbles above it on both personas.
+                      filled: true,
+                      fillColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
                       contentPadding: EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: widget.large ? 16 : 12,
+                        horizontal: 16,
+                        vertical: widget.large ? 16 : 13,
                       ),
                     ),
                   ),
@@ -151,6 +171,9 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                   onPressed: _busy ? null : _send,
                   style: FilledButton.styleFrom(
                     minimumSize: Size(widget.large ? 96 : 72, 52 * scale),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                   ),
                   child: Text(
                     '보내기',
@@ -177,18 +200,21 @@ class _Quota extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (quota.unlimited) {
-      return const Padding(
+      return Padding(
         key: ConversationKeys.quota,
-        padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
-        child: Text(
-          '안심 케어로 메시지를 제한 없이 보낼 수 있어요.',
-          style: TextStyle(fontSize: 13, color: Color(0xFF6B6459)),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 2),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            '안심 케어로 메시지를 제한 없이 보낼 수 있어요.',
+            style: TextStyle(fontSize: 13, color: _muted(context)),
+          ),
         ),
       );
     }
     return Padding(
       key: ConversationKeys.quota,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -196,22 +222,30 @@ class _Quota extends StatelessWidget {
             '이번 달 ${quota.textLeft}번 더 보낼 수 있어요',
             style: TextStyle(
               fontSize: 13,
-              fontWeight: quota.isRunningLow ? FontWeight.w700 : FontWeight.w400,
-              color: const Color(0xFF6B6459),
+              fontWeight: quota.isRunningLow
+                  ? FontWeight.w700
+                  : FontWeight.w400,
+              color: _muted(context),
             ),
           ),
           // Offered when it starts to matter rather than only once they are
           // stuck — and phrased as what it buys, not as a wall.
           if (quota.isRunningLow)
-            const Text(
+            Text(
               '안심 케어를 시작하시면 제한 없이 보낼 수 있어요.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF6B6459)),
+              style: TextStyle(fontSize: 13, color: _muted(context)),
             ),
         ],
       ),
     );
   }
 }
+
+/// Secondary ink, taken from whichever persona is drawing this view — warm on
+/// the senior's phone, cool on the guardian's. One widget draws both ends of
+/// the conversation, so it cannot hold a colour of its own.
+Color _muted(BuildContext context) =>
+    Theme.of(context).colorScheme.onSurfaceVariant;
 
 class _Bubble extends StatelessWidget {
   const _Bubble({

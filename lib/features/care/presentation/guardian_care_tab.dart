@@ -6,6 +6,7 @@ import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/subscription.dart';
 import '../../guardian/application/guardian_home_apps_controller.dart';
 import '../application/care_controller.dart';
+import '../../guardian/presentation/widgets/guardian_surfaces.dart';
 
 /// Widget keys the tests drive.
 class GuardianCareKeys {
@@ -33,11 +34,37 @@ class GuardianCareTab extends ConsumerWidget {
   /// Wording follows `06_PERMISSION_AND_POLICY`: location is a periodic check
   /// rather than tracking, and the call alert is about numbers absent from the
   /// contact list, not about anything heard during the call.
-  static const features = <(String, String)>[
-    ('위치 확인', '5분 주기로 어디 계신지 확인합니다'),
-    ('모르는 번호 통화 알림', '연락처에 없는 번호와 통화하면 알려드립니다'),
-    ('기기 상태 확인', '배터리 · 소리 · 인터넷을 5분 주기로 확인합니다'),
-    ('앱 설치 알림', '새 앱이 깔리면 알려드립니다'),
+  /// Each carries its own mark. All four wore the same clock, which turned a
+  /// list of four different capabilities into a wall of identical rows.
+  static const features = <(IconData, Color, Color, String, String)>[
+    (
+      Icons.place_rounded,
+      AppColors.guardianTintGreen,
+      AppColors.guardianTintGreenInk,
+      '위치 확인',
+      '5분 주기로 어디 계신지 확인합니다',
+    ),
+    (
+      Icons.phone_in_talk_rounded,
+      AppColors.guardianTintAmber,
+      AppColors.guardianTintAmberInk,
+      '모르는 번호 통화 알림',
+      '연락처에 없는 번호와 통화하면 알려드립니다',
+    ),
+    (
+      Icons.battery_charging_full_rounded,
+      AppColors.guardianTintBlue,
+      AppColors.guardianTintBlueInk,
+      '기기 상태 확인',
+      '배터리 · 소리 · 인터넷을 5분 주기로 확인합니다',
+    ),
+    (
+      Icons.download_rounded,
+      AppColors.guardianTintViolet,
+      AppColors.guardianTintVioletInk,
+      '앱 설치 알림',
+      '새 앱이 깔리면 알려드립니다',
+    ),
   ];
 
   @override
@@ -46,13 +73,10 @@ class GuardianCareTab extends ConsumerWidget {
     final care = ref.watch(careStateProvider);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+      padding: const EdgeInsets.fromLTRB(20, GuardianHeading.crown, 20, 32),
       children: [
-        const Text(
-          '안심 케어',
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 16),
+        const GuardianHeading(title: '안심 케어'),
+        const SizedBox(height: GuardianHeading.gap),
         if (profile == null)
           const _Card(
             child: Text(
@@ -61,7 +85,9 @@ class GuardianCareTab extends ConsumerWidget {
             ),
           )
         else
-          _Card(child: _CareState(seniorName: profile.displayName, care: care)),
+          _Card(
+            child: _CareState(seniorName: profile.displayName, care: care),
+          ),
         const _Card(child: _Features()),
         _Card(child: _FamilyPlan()),
         if (profile != null) _Card(child: _Alerts(seniorProfileId: profile.id)),
@@ -85,14 +111,16 @@ class _CareState extends ConsumerWidget {
         CareStage.waitingOnSenior => _Notice(
           noticeKey: GuardianCareKeys.waiting,
           title: '$seniorName님의 허락을 기다리고 있어요',
-          detail: '부모님 폰에 동의 화면이 떴습니다. 허락하시면 바로 켜집니다.\n'
+          detail:
+              '부모님 폰에 동의 화면이 떴습니다. 허락하시면 바로 켜집니다.\n'
               '아직은 아무 기능도 동작하지 않아요.',
         ),
         CareStage.refused => _Notice(
           noticeKey: GuardianCareKeys.refused,
           title: '$seniorName님이 원하지 않으셨어요',
           // A refusal is final and refunded. It is not a retry prompt.
-          detail: '결제는 환불 처리되었습니다. 무료 기능은 그대로 쓰실 수 있어요.\n'
+          detail:
+              '결제는 환불 처리되었습니다. 무료 기능은 그대로 쓰실 수 있어요.\n'
               '부모님과 이야기해 보신 뒤에 다시 신청하실 수 있습니다.',
           child: _Buy(seniorName: seniorName, label: '다시 신청하기'),
         ),
@@ -154,14 +182,11 @@ class _BuyState extends ConsumerState<_Buy> {
           ),
           const SizedBox(height: 10),
         ],
-        FilledButton(
+        GuardianPrimaryButton(
           key: GuardianCareKeys.buyCare,
           onPressed: _busy ? null : _buy,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.guardianPrimary,
-            minimumSize: const Size.fromHeight(48),
-          ),
-          child: Text(_busy ? '신청하는 중이에요' : widget.label),
+          icon: Icons.favorite_rounded,
+          label: _busy ? '신청하는 중이에요' : widget.label,
         ),
       ],
     );
@@ -205,10 +230,22 @@ class _Notice extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: AppColors.guardianInk,
+          ),
         ),
         const SizedBox(height: 8),
-        Text(detail, style: const TextStyle(fontSize: 14, height: 1.5)),
+        Text(
+          detail,
+          style: const TextStyle(
+            fontSize: 14,
+            height: 1.55,
+            color: AppColors.guardianInkSoft,
+          ),
+        ),
         if (child case final it?) ...[const SizedBox(height: 14), it],
       ],
     );
@@ -225,37 +262,90 @@ class _Features extends StatelessWidget {
       children: [
         const Text(
           '안심 케어로 할 수 있는 일',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: AppColors.guardianInk,
+          ),
         ),
-        const SizedBox(height: 4),
-        // Said once, plainly, rather than implied by a lock icon: none of these
-        // is built yet, and a paid screen that looks ready is a promise.
-        const Text(
-          '아래 기능은 아직 준비 중입니다. 신청하셔도 지금은 동작하지 않아요.',
-          style: TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF6B6459)),
+        const SizedBox(height: 10),
+        // Said once, plainly, and given enough weight to be read: none of
+        // these is built yet, and a paid screen that looks ready is a
+        // promise. It was a 13px grey line, the least visible thing on the
+        // screen it is most important to be honest on.
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.guardianTintAmber,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.schedule_rounded,
+                size: 17,
+                color: AppColors.guardianTintAmberInk,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  '아래 기능은 아직 준비 중입니다. 신청하셔도 지금은 동작하지 않아요.',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.guardianTintAmberInk,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        for (final (title, detail) in GuardianCareTab.features)
+        const SizedBox(height: 16),
+        for (final (icon, tint, tintInk, title, detail)
+            in GuardianCareTab.features)
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.schedule, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: tint,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 19, color: tintInk),
                 ),
-                const SizedBox(height: 4),
-                Text(detail, style: const TextStyle(fontSize: 14, height: 1.4)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                          color: AppColors.guardianInk,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        detail,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          height: 1.5,
+                          color: AppColors.guardianInkFaint,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -282,7 +372,12 @@ class _FamilyPlanState extends ConsumerState<_FamilyPlan> {
       children: [
         const Text(
           '가족 플랜',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: AppColors.guardianInk,
+          ),
         ),
         const SizedBox(height: 6),
         // Two different things that both say 가족: inviting a sibling to help
@@ -297,10 +392,14 @@ class _FamilyPlanState extends ConsumerState<_FamilyPlan> {
         if (has)
           const Text(
             '가족 플랜을 쓰고 계세요.',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.guardianInk,
+            ),
           )
         else
-          FilledButton(
+          GuardianPrimaryButton(
             onPressed: _busy
                 ? null
                 : () async {
@@ -315,10 +414,8 @@ class _FamilyPlanState extends ConsumerState<_FamilyPlan> {
                       if (mounted) setState(() => _busy = false);
                     }
                   },
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.guardianPrimary,
-            ),
-            child: Text(_busy ? '신청하는 중이에요' : '가족 플랜 신청하기'),
+            icon: Icons.people_rounded,
+            label: _busy ? '신청하는 중이에요' : '가족 플랜 신청하기',
           ),
       ],
     );
@@ -341,7 +438,12 @@ class _Alerts extends ConsumerWidget {
       children: [
         const Text(
           '알림',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: AppColors.guardianInk,
+          ),
         ),
         const SizedBox(height: 10),
         for (final alert in alerts)
@@ -352,7 +454,10 @@ class _Alerts extends ConsumerWidget {
               children: [
                 Text(
                   alert.title,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 if (alert.body case final body?)
                   Text(body, style: const TextStyle(fontSize: 14, height: 1.4)),
@@ -371,15 +476,9 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.guardianSurface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.guardianBorder),
-      ),
-      child: child,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GuardianCard(child: child),
     );
   }
 }

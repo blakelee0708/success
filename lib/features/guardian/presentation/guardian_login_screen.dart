@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import 'widgets/guardian_surfaces.dart';
 import '../application/guardian_session_controller.dart';
 
 /// Widget keys the tests drive.
@@ -48,14 +49,8 @@ class _GuardianLoginScreenState extends ConsumerState<GuardianLoginScreen> {
   Future<void> _submit() async {
     final controller = ref.read(guardianLoginControllerProvider.notifier);
     final ok = _creatingAccount
-        ? await controller.signUp(
-            email: _email.text,
-            password: _password.text,
-          )
-        : await controller.signIn(
-            email: _email.text,
-            password: _password.text,
-          );
+        ? await controller.signUp(email: _email.text, password: _password.text)
+        : await controller.signIn(email: _email.text, password: _password.text);
     if (ok && mounted) context.go(Routes.guardianDashboard);
   }
 
@@ -67,93 +62,79 @@ class _GuardianLoginScreenState extends ConsumerState<GuardianLoginScreen> {
     return Theme(
       data: AppTheme.guardian,
       child: Scaffold(
-        backgroundColor: AppColors.guardianBackground,
+        backgroundColor: AppColors.guardianGroundEnd,
         appBar: AppBar(
-          backgroundColor: AppColors.guardianBackground,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.chevron_left),
+            color: AppColors.guardianInkSoft,
             onPressed: () => context.go(Routes.guardianStart),
           ),
         ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(26, 8, 26, 34),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _creatingAccount ? '보호자 계정 만들기' : '보호자 로그인',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+        // The one guardian screen still on plain white until now, which is
+        // conspicuous when it sits between two that are not.
+        body: GuardianGround(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(22, 8, 22, 34),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GuardianHeading(
+                    title: _creatingAccount ? '보호자 계정 만들기' : '보호자 로그인',
+                    lede: '부모님 폰을 대신 정리해 드리려면 보호자 계정이 필요해요.',
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '부모님 폰을 대신 정리해 드리려면 보호자 계정이 필요해요.',
-                  style: TextStyle(fontSize: 15, height: 1.5),
-                ),
-                const SizedBox(height: 26),
-                TextField(
-                  key: GuardianLoginKeys.email,
-                  controller: _email,
-                  enabled: !busy,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                  decoration: const InputDecoration(
-                    labelText: '이메일',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 26),
+                  TextField(
+                    key: GuardianLoginKeys.email,
+                    controller: _email,
+                    enabled: !busy,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: guardianField(label: '이메일'),
                   ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  key: GuardianLoginKeys.password,
-                  controller: _password,
-                  enabled: !busy,
-                  obscureText: true,
-                  autofillHints: const [AutofillHints.password],
-                  decoration: const InputDecoration(
-                    labelText: '비밀번호',
-                    helperText: '6자 이상',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                if (_messageFor(state) case final message?) ...[
                   const SizedBox(height: 14),
-                  _Message(
-                    key: GuardianLoginKeys.message,
-                    text: message,
-                    isError: state is GuardianLoginFailed,
+                  TextField(
+                    key: GuardianLoginKeys.password,
+                    controller: _password,
+                    enabled: !busy,
+                    obscureText: true,
+                    autofillHints: const [AutofillHints.password],
+                    decoration: guardianField(label: '비밀번호', helper: '6자 이상'),
+                  ),
+                  if (_messageFor(state) case final message?) ...[
+                    const SizedBox(height: 14),
+                    _Message(
+                      key: GuardianLoginKeys.message,
+                      text: message,
+                      isError: state is GuardianLoginFailed,
+                    ),
+                  ],
+                  const SizedBox(height: 22),
+                  GuardianPrimaryButton(
+                    key: GuardianLoginKeys.submit,
+                    onPressed: busy ? null : _submit,
+                    icon: _creatingAccount
+                        ? Icons.person_add_rounded
+                        : Icons.login_rounded,
+                    label: busy ? '잠시만요' : (_creatingAccount ? '가입하기' : '로그인'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    key: GuardianLoginKeys.toggleMode,
+                    onPressed: busy
+                        ? null
+                        : () => setState(() {
+                            _creatingAccount = !_creatingAccount;
+                          }),
+                    child: Text(
+                      _creatingAccount ? '이미 계정이 있어요' : '계정이 없어요, 새로 만들래요',
+                    ),
                   ),
                 ],
-                const SizedBox(height: 22),
-                FilledButton(
-                  key: GuardianLoginKeys.submit,
-                  onPressed: busy ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                  ),
-                  child: busy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(_creatingAccount ? '가입하기' : '로그인'),
-                ),
-                const SizedBox(height: 10),
-                TextButton(
-                  key: GuardianLoginKeys.toggleMode,
-                  onPressed: busy
-                      ? null
-                      : () => setState(() {
-                          _creatingAccount = !_creatingAccount;
-                        }),
-                  child: Text(
-                    _creatingAccount ? '이미 계정이 있어요' : '계정이 없어요, 새로 만들래요',
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
