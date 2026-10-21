@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../domain/device_status.dart';
 import '../../domain/guardian_account.dart';
 import '../../domain/senior_device.dart';
 import '../../domain/senior_profile.dart';
@@ -52,7 +53,12 @@ abstract interface class SeniorLinkRepository {
   /// foreground, which on a phone whose home screen it is means the parent
   /// unlocked it or came back from another app. Called often and never
   /// awaited by anything the senior is looking at.
-  Future<void> touchDevice(String installId);
+  ///
+  /// [status] rides along rather than going on a schedule of its own: a
+  /// reading is worth having exactly when the parent used the phone, and a
+  /// second trip would be a second thing to fail. Null when this phone could
+  /// read nothing, which leaves whatever was last reported standing.
+  Future<void> touchDevice(String installId, {DeviceStatus? status});
 
   Future<SeniorProfile> fetchProfile(String seniorProfileId);
 
@@ -146,10 +152,14 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
   }
 
   @override
-  Future<void> touchDevice(String installId) async {
+  Future<void> touchDevice(String installId, {DeviceStatus? status}) async {
     try {
       await _client.rpc('touch_senior_device', params: {
         'p_install_id': installId,
+        'p_battery_percent': status?.batteryPercent,
+        'p_is_charging': status?.isCharging,
+        'p_ringer_mode': status?.ringer?.name,
+        'p_status_read_at': status?.readAt.toUtc().toIso8601String(),
       });
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);
@@ -397,7 +407,7 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   bool offline = false;
 
   @override
-  Future<void> touchDevice(String installId) async {
+  Future<void> touchDevice(String installId, {DeviceStatus? status}) async {
     if (offline) throw const SeniorLinkException('연결하지 못했어요.');
     touchCount++;
     for (final entry in activeDeviceByProfile.entries) {
@@ -410,6 +420,9 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
         deviceLabel: device.deviceLabel,
         platform: device.platform,
         lastSeenAt: DateTime.now(),
+        // A phone that could read nothing leaves the last real reading
+        // standing rather than wiping it.
+        status: status ?? device.status,
       );
     }
   }

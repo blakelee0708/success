@@ -54,6 +54,16 @@ void main() {
       expect(contrast(AppColors.guardianInk, card), greaterThanOrEqualTo(7.0));
     });
 
+    test('the low-battery amber is lettering, not decoration', () {
+      // It carries the value itself — 12% — at 15px, so it has to clear the
+      // small-text floor against the bottom of the card and not merely look
+      // like a warning colour.
+      expect(
+        contrast(AppColors.guardianTintAmberInk, card),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
     test('the caption clears 4.5:1, being 12.5px', () {
       // #8B95A1 is the colour this family usually puts here and it measures
       // 3.04 against white — under the bar before the gradient is even

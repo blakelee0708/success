@@ -165,11 +165,18 @@ class GuardianFact extends StatelessWidget {
     required this.label,
     required this.value,
     this.first = false,
+    this.warn = false,
   });
 
   final String label;
   final String value;
   final bool first;
+
+  /// Draws the value in amber. For the one row on this card that is a call to
+  /// do something — a parent's phone at 12% and off the charger — rather than
+  /// a fact to read in passing. Used sparingly on purpose: a card where two
+  /// rows shout is a card where neither does.
+  final bool warn;
 
   @override
   Widget build(BuildContext context) {
@@ -195,11 +202,13 @@ class GuardianFact extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
-                color: AppColors.guardianInk,
+                color: warn
+                    ? AppColors.guardianTintAmberInk
+                    : AppColors.guardianInk,
               ),
             ),
           ),

@@ -220,12 +220,15 @@ void main() {
   });
 
   group('the interfaces are declared, not faked', () {
-    test('nothing reports a device reading it does not have', () async {
-      // A stub returning plausible numbers would ship fabricated readings on a
-      // dashboard whose whole job is to reassure.
+    test('the unbuilt background sync does nothing rather than pretending', () {
+      // The readings themselves are real now — they ride on the check-in. What
+      // is still missing is the schedule that would refresh them while the
+      // phone sits untouched, and an implementation that quietly did nothing
+      // while claiming to run is worse than one that is plainly absent.
       const sync = UnimplementedDeviceStatusSync();
 
-      expect(await sync.latest('p1'), isNull);
+      expect(sync.start('p1'), completes);
+      expect(sync.stop(), completes);
     });
 
     test('the periodic checks state the interval the policy fixed', () {

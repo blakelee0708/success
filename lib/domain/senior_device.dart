@@ -1,3 +1,5 @@
+import 'device_status.dart';
+
 /// The parent's phone, as the guardian's dashboard sees it.
 ///
 /// A profile outlives any device — replacing the phone adds a row rather than
@@ -11,6 +13,7 @@ class SeniorDevice {
     this.deviceLabel,
     this.platform,
     this.lastSeenAt,
+    this.status,
   });
 
   final String id;
@@ -19,6 +22,10 @@ class SeniorDevice {
   final String? deviceLabel;
   final String? platform;
   final DateTime? lastSeenAt;
+
+  /// The last battery / ringer reading this phone sent, or null when it has
+  /// sent none. Never an empty reading: see [DeviceStatus].
+  final DeviceStatus? status;
 
   static SeniorDevice? fromRow(Map<String, Object?> row) {
     final id = row['id'];
@@ -34,6 +41,7 @@ class SeniorDevice {
         final String value => DateTime.tryParse(value),
         _ => null,
       },
+      status: DeviceStatus.fromRow(row),
     );
   }
 
@@ -45,9 +53,11 @@ class SeniorDevice {
       other.isActive == isActive &&
       other.deviceLabel == deviceLabel &&
       other.platform == platform &&
-      other.lastSeenAt == lastSeenAt;
+      other.lastSeenAt == lastSeenAt &&
+      other.status == status;
 
   @override
   int get hashCode =>
-      Object.hash(id, installId, isActive, deviceLabel, platform, lastSeenAt);
+      Object.hash(id, installId, isActive, deviceLabel, platform, lastSeenAt,
+          status);
 }

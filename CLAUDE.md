@@ -770,6 +770,66 @@ one active device per profile would start rejecting the real one.
 `tool/verify_supabase_presence.py` checks that against the live project, along
 with one phone reporting for another and a call with no session.
 
+## 기기 상태 rides on the check-in, not on a schedule
+
+The second capability, and the second that needs **no permission at all**:
+Android hands any app the battery level and the ringer mode with no runtime
+permission, no manifest permission and nothing for Play to review.
+
+`07_PHASE_PLAN` asks for a *5-minute background sync*, which is a foreground
+service this environment cannot build or verify. It is not what shipped and it
+was not needed: a reading is worth having exactly when the parent used the
+phone, and `SeniorPresenceReporter` already fires at that moment. One call, one
+row, one thing to fail. `DeviceStatusSync` survives in `care_interfaces.dart`
+as **only** the background schedule that would keep a reading fresh while the
+phone sits untouched; its `latest` is gone, because the reading is a column on
+the device row now and an interface returning null beside a screen showing a
+real number is the misleading one.
+
+Four decisions, and the first two are the same mistake made twice:
+
+- **The check-in never waits for the phone.** Awaiting the channel was the
+  first attempt and it stopped the parent's phone reporting at all whenever
+  the channel did not answer — `flutter test` is such a phone, and so is one
+  whose launcher service has wedged. Bounding it with `.timeout` was the
+  second and was worse: the timer outlives the widget tree, and **eighteen
+  tests failed at teardown** rather than in the open. The read is now started
+  and not awaited, and its result goes up with the **next** check-in. That is
+  the whole cost: one resume of staleness, on a reading that is stamped with
+  the time it was taken anyway.
+- **Null never overwrites.** `touch_senior_device` coalesces, so a phone that
+  could not read its battery leaves the last real reading standing. Writing
+  the null through would take the card from 72% to 아직 받지 못했어요 for no
+  reason the guardian could see.
+- **A missing reading is never a zero.** The Kotlin omits a key it cannot
+  read, the Dart treats a missing key as *this phone did not say*, and
+  `DeviceStatusLines` says so in words. 배터리 0% is the most alarming reading
+  the card can show and nothing may invent it.
+- **인터넷 is gone from the row rather than left as a third 준비 중.**
+  Reporting it means `ACCESS_NETWORK_STATE` for a fact the check-in already
+  proves: a reading that arrived is a reading that got through.
+
+The ringer is a **mode**, not the `ringerPercent` the Phase 6 sketch declared.
+The question a guardian is asking is 왜 전화를 안 받으시지, and a phone can sit
+in silent mode with its ring volume at 100% — a percentage answers the wrong
+question with a confident-looking number.
+
+A battery under 15% is drawn in amber, **unless it is charging**: 8% on the
+charger is a problem being solved, and flagging it teaches the guardian to
+ignore the flag. `guardian_palette_test.dart` measures that amber against the
+bottom of the card, because it carries the value itself at 15px.
+
+The Kotlin is in `MainActivity.deviceStatus()` and, like everything else in
+that file, **has never run** — see `## The launcher half is native`. Two things
+in it are easy to get wrong: `EXTRA_SCALE` is not always 100, so dividing by a
+hard-coded 100 reads 7% on a full phone, and `ACTION_BATTERY_CHANGED` is sticky,
+so a null receiver returns the last broadcast at once instead of waiting for a
+change that may be minutes away.
+
+`tool/verify_supabase_presence.py` covers both capabilities against the live
+project — 18 checks, including the coalesce, the range constraint, and a new
+phone starting with no reading rather than inheriting the old one's.
+
 ## The paid features are interfaces
 
 `lib/features/care/data/care_interfaces.dart` declares four capabilities and

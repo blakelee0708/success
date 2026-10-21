@@ -2,7 +2,12 @@ library;
 
 import '../../../domain/senior_profile.dart';
 
-/// The four paid capabilities, as interfaces only.
+/// What is left of the four paid capabilities, as interfaces.
+///
+/// Two of the four have since been built, because neither needs a permission:
+/// 안부 신호 (`SeniorPresenceReporter`) and the battery/ringer reading it
+/// carries. What remains here is what still cannot be built or verified from
+/// this environment.
 ///
 /// `07_PHASE_PLAN` asks Phase 6 for a *location interface*, an *unknown-contact
 /// call alert interface*, an *app install alert interface* and a *5-minute
@@ -28,38 +33,31 @@ abstract interface class CareGate {
   Future<bool> isActive(String seniorProfileId);
 }
 
-/// Battery, ringer and network, read on a schedule.
+/// The *background* half of 기기 상태, and the only half still missing.
 ///
-/// Five minutes is the MVP figure from `06_PERMISSION_AND_POLICY`. The guardian
-/// dashboard says so out loud, because a reading with no stated age is
-/// indistinguishable from a current one.
+/// The readings themselves now exist: the battery and the ringer ride on the
+/// check-in the launcher already sends when the parent comes back to their
+/// home screen, which is `SeniorPresenceReporter` and needs no permission, no
+/// service and nothing from Play. `DeviceStatus` moved to the domain for that
+/// reason, and the dashboard draws real numbers.
+///
+/// What this interface is still for is the five-minute figure
+/// `06_PERMISSION_AND_POLICY` fixed: keeping the reading fresh while the phone
+/// sits untouched. That needs a foreground service, which cannot be built or
+/// verified from this environment — so it stays an interface, and the
+/// dashboard states the age of every reading rather than implying one.
+///
+/// `latest` is gone: the reading is a column on the parent's device row now,
+/// and an interface that returns null beside a screen showing a real number
+/// would be the misleading one.
 abstract interface class DeviceStatusSync {
   static const interval = Duration(minutes: 5);
 
-  /// Null when nothing has been collected yet — which is the honest answer
-  /// until this is implemented, and the state the dashboard already renders.
-  Future<DeviceStatus?> latest(String seniorProfileId);
-
-  /// Starts reporting from the parent's phone. Must do nothing at all when
-  /// [CareGate.isActive] is false.
+  /// Starts the background schedule on the parent's phone. Must do nothing at
+  /// all when [CareGate.isActive] is false.
   Future<void> start(String seniorProfileId);
 
   Future<void> stop();
-}
-
-/// One reading of the parent's phone.
-class DeviceStatus {
-  const DeviceStatus({
-    required this.readAt,
-    this.batteryPercent,
-    this.ringerPercent,
-    this.isOnline,
-  });
-
-  final DateTime readAt;
-  final int? batteryPercent;
-  final int? ringerPercent;
-  final bool? isOnline;
 }
 
 /// Where the parent is, checked periodically.
@@ -96,9 +94,6 @@ abstract interface class AppInstallWatcher {
 /// ship fabricated readings.
 class UnimplementedDeviceStatusSync implements DeviceStatusSync {
   const UnimplementedDeviceStatusSync();
-
-  @override
-  Future<DeviceStatus?> latest(String seniorProfileId) async => null;
 
   @override
   Future<void> start(String seniorProfileId) async {}

@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/family_message.dart';
 import '../../../domain/senior_profile.dart';
 import '../../../domain/senior_settings.dart';
+import '../application/device_status_lines.dart';
 import '../application/senior_presence.dart';
 import '../application/guardian_home_apps_controller.dart';
 import '../application/guardian_session_controller.dart';
@@ -212,6 +213,7 @@ class _HomeTab extends ConsumerWidget {
     // is what `폰은 잘 켜져 있어요` did for as long as `last_seen_at` was
     // written only at registration.
     final presence = SeniorPresence.from(lastSeen: device?.lastSeenAt, now: now);
+    final status = DeviceStatusLines.from(status: device?.status, now: now);
 
     return _TabScaffold(
       title: profile.displayName,
@@ -313,7 +315,23 @@ class _HomeTab extends ConsumerWidget {
                   null => '아직 고르지 않으셨어요',
                 },
               ),
-              const GuardianFact(label: '배터리 · 소리 · 인터넷', value: '준비 중'),
+              // 준비 중 was the honest answer while nothing read the phone.
+              // It stops being the honest answer the moment something does.
+              //
+              // 인터넷 is gone from the row rather than kept as a third
+              // 준비 중: reporting it would mean ACCESS_NETWORK_STATE for a
+              // fact the check-in already proves.
+              if (!status.hasReading)
+                GuardianFact(label: '배터리 · 소리', value: status.battery)
+              else ...[
+                GuardianFact(
+                  label: '배터리',
+                  value: status.battery,
+                  warn: status.isBatteryLow,
+                ),
+                GuardianFact(label: '소리', value: status.ringer),
+                GuardianFact(label: '읽은 때', value: status.age),
+              ],
             ],
           ),
         ),

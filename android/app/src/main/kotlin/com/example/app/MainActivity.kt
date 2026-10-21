@@ -2,9 +2,13 @@ package com.example.app
 
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.net.Uri
+import android.os.BatteryManager
 import android.os.Build
 import android.provider.MediaStore
 import android.provider.Settings
@@ -36,6 +40,7 @@ class MainActivity : FlutterActivity() {
                         )
                     )
                     "isDefaultHome" -> result.success(isDefaultHome())
+                    "deviceStatus" -> result.success(deviceStatus())
                     "openHomeSettings" -> result.success(openHomeSettings())
                     else -> result.notImplemented()
                 }
@@ -123,6 +128,61 @@ class MainActivity : FlutterActivity() {
         false
     } catch (e: SecurityException) {
         false
+    }
+
+    /**
+     * 기기 상태 — the battery and the ringer, for the guardian's dashboard.
+     *
+     * Both are free: Android hands them to any app with no runtime permission,
+     * no manifest permission and nothing for Play to review. That is the whole
+     * reason this exists before 위치, which cannot ship until the
+     * 위치기반서비스사업 신고 is through.
+     *
+     * The network is deliberately not reported. ConnectivityManager would mean
+     * asking for ACCESS_NETWORK_STATE, and the answer is already implied by the
+     * call having arrived at all.
+     *
+     * Every value is omitted rather than defaulted when it cannot be read. The
+     * Flutter side treats a missing key as "this phone did not say" and leaves
+     * the last real reading standing; a 0 here would be drawn on the dashboard
+     * as 배터리 0%, the most alarming reading on the card, invented.
+     */
+    private fun deviceStatus(): Map<String, Any> {
+        val status = HashMap<String, Any>()
+
+        // ACTION_BATTERY_CHANGED is sticky, so registering a null receiver
+        // returns the last broadcast immediately rather than waiting for the
+        // next change — which may be minutes away on a phone sitting still.
+        val battery = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        if (battery != null) {
+            val level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            val scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+            // The scale is not always 100. Dividing by a hard-coded 100 is the
+            // usual way this reads 7% on a phone that is actually full.
+            if (level >= 0 && scale > 0) {
+                status["batteryPercent"] = level * 100 / scale
+            }
+            when (battery.getIntExtra(BatteryManager.EXTRA_STATUS, -1)) {
+                BatteryManager.BATTERY_STATUS_CHARGING,
+                BatteryManager.BATTERY_STATUS_FULL -> status["isCharging"] = true
+                BatteryManager.BATTERY_STATUS_DISCHARGING,
+                BatteryManager.BATTERY_STATUS_NOT_CHARGING -> status["isCharging"] = false
+                // BATTERY_STATUS_UNKNOWN and anything new: say nothing.
+            }
+        }
+
+        // Reading the ringer mode needs no permission. *Changing* it needs
+        // Do Not Disturb access, which this app neither has nor wants — the
+        // dashboard reports what the parent chose, it does not override it.
+        val audio = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        when (audio?.ringerMode) {
+            AudioManager.RINGER_MODE_SILENT -> status["ringer"] = "silent"
+            AudioManager.RINGER_MODE_VIBRATE -> status["ringer"] = "vibrate"
+            AudioManager.RINGER_MODE_NORMAL -> status["ringer"] = "normal"
+            else -> {}
+        }
+
+        return status
     }
 
     private fun isDefaultHome(): Boolean {

@@ -16,6 +16,7 @@ import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/home_apps_repository.dart';
 import 'package:app/data/remote/senior_link_repository.dart';
+import 'package:app/domain/device_status.dart';
 import 'package:app/domain/senior_device.dart';
 import 'package:app/data/senior_link_store.dart';
 import 'package:app/data/senior_settings_repository.dart';
@@ -199,6 +200,12 @@ void main() {
       isActive: true,
       deviceLabel: '갤럭시 A54',
       lastSeenAt: DateTime(2026, 10, 20, 14, 30),
+      status: DeviceStatus(
+        readAt: DateTime(2026, 10, 20, 14, 30),
+        batteryPercent: 61,
+        isCharging: false,
+        ringer: RingerMode.vibrate,
+      ),
     );
 
     final homeApps = InMemoryHomeAppsRepository();
@@ -241,6 +248,14 @@ void main() {
       isActive: true,
       deviceLabel: '갤럭시 A54',
       lastSeenAt: DateTime(2026, 10, 17, 9, 0),
+      // The reading is three days old too, and the card has to say so rather
+      // than drawing 12% as though it were this morning's.
+      status: DeviceStatus(
+        readAt: DateTime(2026, 10, 17, 9, 0),
+        batteryPercent: 12,
+        isCharging: false,
+        ringer: RingerMode.silent,
+      ),
     );
     await pumpApp(
       tester,
@@ -254,6 +269,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('3일째'), findsOneWidget);
     await _capture(tester, '18b-dashboard-home-quiet');
+
+    // The facts card sits below the fold on a phone, and it is the half of
+    // this change worth looking at: the numbers are real now, and the row
+    // under them says how old they are.
+    await tester.drag(find.text('무엇을 해 드릴까요'), const Offset(0, -320));
+    await tester.pumpAndSettle();
+    expect(find.text('12%'), findsOneWidget);
+    expect(find.text('3일 전'), findsOneWidget);
+    await _capture(tester, '18c-dashboard-status-quiet');
   });
 
   testWidgets('the guardian dashboard renders every tab', (tester) async {

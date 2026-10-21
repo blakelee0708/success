@@ -111,9 +111,14 @@ def remember(profile):
 def device_row(token, profile_id):
     st, rows = call(
         f"/rest/v1/senior_devices?senior_profile_id=eq.{profile_id}"
-        "&select=install_id,last_seen_at,is_active",
+        "&select=install_id,last_seen_at,is_active,battery_percent,is_charging,"
+        "ringer_mode,status_read_at",
         token=token, method="GET")
     return st, rows
+
+
+def active(rows):
+    return [r for r in rows if r["is_active"]][0]
 
 
 try:
@@ -145,14 +150,53 @@ try:
           (before, rows[0]["last_seen_at"]))
     check("reporting does not disturb is_active", rows[0]["is_active"] is True, rows)
 
+    # --- 기기 상태 rides on the same call ------------------------------------
+    st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
+                 body={"p_install_id": install, "p_battery_percent": 61,
+                       "p_is_charging": False, "p_ringer_mode": "vibrate",
+                       "p_status_read_at": "2026-10-20T14:30:00Z"})
+    check("the check-in carries the battery and the ringer", st in (200, 204), st)
+
+    st, rows = device_row(g1, profile_id)
+    r = active(rows)
+    check("the guardian reads the battery the phone sent",
+          r["battery_percent"] == 61 and r["ringer_mode"] == "vibrate"
+          and r["is_charging"] is False, r)
+    check("the reading keeps the time the phone took it, not the time it arrived",
+          r["status_read_at"].startswith("2026-10-20T14:30"), r["status_read_at"])
+
+    # A phone that could read nothing must not erase what it reported before.
+    # Writing the nulls through would take the card from 61% to
+    # 아직 받지 못했어요 for no reason the guardian could see.
+    st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
+                 body={"p_install_id": install})
+    st, rows = device_row(g1, profile_id)
+    kept = active(rows)
+    check("a check-in with no reading leaves the last one standing",
+          kept["battery_percent"] == 61 and kept["ringer_mode"] == "vibrate", kept)
+    check("and it is still a check-in", kept["last_seen_at"] > r["last_seen_at"],
+          (r["last_seen_at"], kept["last_seen_at"]))
+
+    # The column refuses nonsense rather than storing it for the card to draw.
+    st, refused = call("/rest/v1/rpc/touch_senior_device", token=phone,
+                       body={"p_install_id": install, "p_battery_percent": 140})
+    check("a battery over 100 is refused", st >= 400, (st, refused))
+    st, refused = call("/rest/v1/rpc/touch_senior_device", token=phone,
+                       body={"p_install_id": install, "p_ringer_mode": "loud"})
+    check("a ringer mode nobody defined is refused", st >= 400, (st, refused))
+
+    st, rows = device_row(g1, profile_id)
+    check("and neither refusal disturbed the stored reading",
+          active(rows)["battery_percent"] == 61, rows)
+
     # --- one phone may not report for another -------------------------------
     other, _other_install = device()
     st, _ = call("/rest/v1/rpc/touch_senior_device", token=other,
                  body={"p_install_id": install})
     st2, rows2 = device_row(g1, profile_id)
     check("another phone naming this install changes nothing",
-          st2 == 200 and rows2[0]["last_seen_at"] == rows[0]["last_seen_at"],
-          (rows[0]["last_seen_at"], rows2[0]["last_seen_at"]))
+          st2 == 200 and active(rows2)["last_seen_at"] == active(rows)["last_seen_at"],
+          (active(rows)["last_seen_at"], active(rows2)["last_seen_at"]))
 
     # --- a retired phone cannot take the profile back -----------------------
     # The parent replaces the handset. The old one still has the app on it and
@@ -171,20 +215,21 @@ try:
     st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
                  body={"p_install_id": install})
     st, rows = device_row(g1, profile_id)
-    active = [r for r in rows if r["is_active"]]
+    live = [r for r in rows if r["is_active"]]
     check("a report from the retired phone leaves exactly one active phone",
-          st == 200 and len(active) == 1, rows)
+          st == 200 and len(live) == 1, rows)
     check("and it is the new one",
-          active and active[0]["install_id"] == new_install, active)
+          live and live[0]["install_id"] == new_install, live)
+    check("the new phone starts with no reading of its own, not the old one's",
+          live and live[0]["battery_percent"] is None, live)
 
     # --- an unauthenticated caller gets nowhere ------------------------------
     st, _ = call("/rest/v1/rpc/touch_senior_device",
                  body={"p_install_id": new_install})
     st2, rows2 = device_row(g1, profile_id)
-    after = [r for r in rows2 if r["is_active"]][0]["last_seen_at"]
+    after = active(rows2)["last_seen_at"]
     check("a call with no session touches nothing",
-          [r for r in rows if r["is_active"]][0]["last_seen_at"] == after,
-          (st, after))
+          active(rows)["last_seen_at"] == after, (st, after))
 
 finally:
     for pid in created_profiles:

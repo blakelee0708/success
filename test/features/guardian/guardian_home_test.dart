@@ -10,6 +10,7 @@ import 'package:app/data/remote/senior_link_repository.dart';
 import 'package:app/domain/app_category.dart';
 import 'package:app/domain/guardian_account.dart';
 import 'package:app/domain/launcher_app.dart';
+import 'package:app/domain/device_status.dart';
 import 'package:app/domain/senior_device.dart';
 import 'package:app/features/guardian/presentation/guardian_dashboard_screen.dart';
 import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
@@ -30,6 +31,7 @@ final _now = DateTime(2026, 10, 20, 15, 10);
 Future<void> _pumpHome(
   WidgetTester tester, {
   DateTime? lastSeenAt,
+  DeviceStatus? status,
 }) async {
   final auth = InMemoryGuardianAuthRepository()
     ..seedSignedIn(const GuardianSession(userId: 'u1', email: 'g@example.com'));
@@ -45,6 +47,7 @@ Future<void> _pumpHome(
       isActive: true,
       deviceLabel: '갤럭시 A54',
       lastSeenAt: lastSeenAt,
+      status: status,
     );
   }
 
@@ -191,5 +194,69 @@ void main() {
     await tester.tap(find.byKey(GuardianNavKeys.destination('가족')));
     await tester.pumpAndSettle();
     expect(find.byKey(GuardianHomeKeys.hero), findsNothing);
+  });
+
+  testWidgets('the battery and the ringer are shown when the phone sent them', (
+    tester,
+  ) async {
+    await _pumpHome(
+      tester,
+      lastSeenAt: DateTime(2026, 10, 20, 14, 30),
+      status: DeviceStatus(
+        readAt: DateTime(2026, 10, 20, 14, 30),
+        batteryPercent: 61,
+        isCharging: false,
+        ringer: RingerMode.vibrate,
+      ),
+    );
+
+    expect(find.text('61%'), findsOneWidget);
+    expect(find.text('진동'), findsOneWidget);
+    // 준비 중 was the honest answer while nothing was implemented. It stops
+    // being the honest answer the moment something is.
+    expect(find.text('배터리 · 소리 · 인터넷'), findsNothing);
+  });
+
+  testWidgets('a phone that sent no reading says so, and names no number', (
+    tester,
+  ) async {
+    await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 20, 14, 30));
+
+    expect(find.textContaining('아직 받지 못했어요'), findsWidgets);
+    expect(find.textContaining('%'), findsNothing);
+  });
+
+  testWidgets('an old reading is shown with the time it was taken', (
+    tester,
+  ) async {
+    // The numbers are real and worth showing — 사흘 전 12% is the most useful
+    // thing this card can say about a phone that went quiet. What it may not
+    // do is show them as though they were taken this morning.
+    await _pumpHome(
+      tester,
+      lastSeenAt: DateTime(2026, 10, 17, 9, 0),
+      status: DeviceStatus(
+        readAt: DateTime(2026, 10, 17, 9, 0),
+        batteryPercent: 12,
+        ringer: RingerMode.normal,
+      ),
+    );
+
+    expect(find.text('12%'), findsOneWidget);
+    expect(find.text('3일 전'), findsOneWidget);
+  });
+
+  testWidgets('인터넷 is not claimed, because nothing reports it', (
+    tester,
+  ) async {
+    // Saying it would mean ACCESS_NETWORK_STATE for a fact the check-in
+    // already proves. The old 준비 중 row promised all three.
+    await _pumpHome(
+      tester,
+      lastSeenAt: DateTime(2026, 10, 20, 14, 30),
+      status: DeviceStatus(readAt: DateTime(2026, 10, 20, 14, 30), batteryPercent: 61),
+    );
+
+    expect(find.textContaining('인터넷'), findsNothing);
   });
 }
