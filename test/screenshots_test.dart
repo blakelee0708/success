@@ -585,6 +585,51 @@ void main() {
     expect(find.text('긴급 연락'), findsOneWidget);
     await _capture(tester, '20-sos');
 
+    // The same screen once a family is connected. 보호자 was `onTap: null`
+    // under a caption promising it would work after connecting, and
+    // connecting did not enable it — the number lived in a table the parent's
+    // phone had no policy to read. This render is the difference.
+    final links = InMemorySeniorLinkRepository();
+    final pairing = InMemoryPairingRepository(links);
+    await links.ensureGuardianAccount(
+      displayName: '영희',
+      phoneNumber: '01012345678',
+    );
+    final started = await pairing.startSeniorPairing(installId: 'senior-phone');
+    final linked = await pairing.claimSeniorPairingCode(
+      code: started.code,
+      displayName: '어머니',
+    );
+    await pumpApp(
+      tester,
+      overrides: [
+        nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
+        appLauncherProvider.overrideWithValue(
+          FakeAppLauncher(defaultHome: true),
+        ),
+        seniorLinkRepositoryProvider.overrideWithValue(links),
+        pairingRepositoryProvider.overrideWithValue(pairing),
+        seniorLinkStoreProvider.overrideWithValue(
+          InMemorySeniorLinkStore(
+            SeniorLink(installId: 'senior-phone', seniorProfileId: linked.id),
+          ),
+        ),
+      ],
+      prefs: {
+        SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+          const SeniorSettings(
+            screenMode: ScreenMode.detailed,
+            apps: defaultDetailedApps,
+          ).toJson(),
+        ),
+      },
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('긴급 구조 요청'));
+    await tester.pumpAndSettle();
+    expect(find.text('영희'), findsOneWidget);
+    await _capture(tester, '20b-sos-connected');
+
     await openDetailedHome();
     await tester.tap(find.text('설정'));
     await tester.pumpAndSettle();

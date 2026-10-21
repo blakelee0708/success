@@ -121,6 +121,7 @@ class GuardianLink {
     required this.status,
     this.displayName,
     this.email,
+    this.phoneNumber,
   });
 
   final String guardianAccountId;
@@ -135,6 +136,11 @@ class GuardianLink {
   final String? displayName;
   final String? email;
 
+  /// Optional — the field the guardian fills when they connect says
+  /// 비워 두셔도 됩니다. Null is why 긴급 연락's 보호자 button can be connected
+  /// to a family and still have nothing to dial.
+  final String? phoneNumber;
+
   bool get isPrimary => role == 'primary';
   bool get isActive => status == 'active';
 
@@ -145,14 +151,20 @@ class GuardianLink {
     if (guardianAccountId is! String || role is! String || status is! String) {
       return null;
     }
-    // The joined account arrives nested when the query asked for it.
+    // `guardians_for_senior` returns the columns flat; the older embedded
+    // select nested them under the joined table's name.
     final account = row['guardian_accounts'];
+    String? field(String name) => switch (account) {
+      final Map<Object?, Object?> a => a[name] as String?,
+      _ => row[name] as String?,
+    };
     return GuardianLink(
       guardianAccountId: guardianAccountId,
       role: role,
       status: status,
-      displayName: account is Map ? account['display_name'] as String? : null,
-      email: account is Map ? account['email'] as String? : null,
+      displayName: field('display_name'),
+      email: field('email'),
+      phoneNumber: field('phone_number'),
     );
   }
 
@@ -163,9 +175,11 @@ class GuardianLink {
       other.role == role &&
       other.status == status &&
       other.displayName == displayName &&
-      other.email == email;
+      other.email == email &&
+      other.phoneNumber == phoneNumber;
 
   @override
   int get hashCode =>
-      Object.hash(guardianAccountId, role, status, displayName, email);
+      Object.hash(guardianAccountId, role, status, displayName, email,
+          phoneNumber);
 }

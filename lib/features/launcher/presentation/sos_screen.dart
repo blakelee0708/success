@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
+import '../../../domain/pair_link.dart';
+import '../../family/application/senior_pairing_controller.dart';
 import '../data/phone_dialer.dart';
 
 /// SOS — choose 119 / 112 / 보호자. Selecting a number OPENS the dialer with
@@ -22,6 +24,10 @@ class SosScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final guardian = _Guardian.from(
+      ref.watch(seniorGuardiansProvider).value ?? const [],
+    );
+
     return Scaffold(
       backgroundColor: AppColors.seniorBackground,
       appBar: AppBar(
@@ -71,8 +77,12 @@ class SosScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Expanded(
                 child: _SosTile(
+                  key: SosKeys.guardian,
                   label: '보호자',
-                  caption: '가족을 연결하면 사용할 수 있어요',
+                  // Who, when there is a who. 119 and 112 carry their own
+                  // meaning; this one does not, and a senior reaching for it
+                  // should see the name of the person who will answer.
+                  caption: guardian.caption,
                   // Yellow cannot carry white lettering — 2.38:1 — so this one
                   // is written in ink, exactly as the 카카오톡 tile is.
                   light: AppColors.seniorButtonYellowLight,
@@ -80,7 +90,12 @@ class SosScreen extends ConsumerWidget {
                   deep: AppColors.seniorButtonYellowDeep,
                   wall: AppColors.seniorButtonYellowWall,
                   ink: AppColors.seniorInk,
-                  onTap: null,
+                  // Null until there is a number. A tile that looks pressable
+                  // and dials nothing is worse on this screen than one that
+                  // plainly cannot be pressed.
+                  onTap: guardian.number == null
+                      ? null
+                      : () => _dial(ref, guardian.number!),
                 ),
               ),
             ],
@@ -93,6 +108,7 @@ class SosScreen extends ConsumerWidget {
 
 class _SosTile extends StatelessWidget {
   const _SosTile({
+    super.key,
     required this.label,
     required this.caption,
     required this.light,
@@ -182,4 +198,49 @@ class _SosTile extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// Widget keys the tests drive.
+class SosKeys {
+  SosKeys._();
+
+  static const guardian = Key('sos-guardian');
+}
+
+/// Who the 보호자 button calls, and what it says when it cannot call anyone.
+///
+/// Three states, and they are three different sentences on purpose. 가족을
+/// 연결하면 사용할 수 있어요 was shown for all of them, which made it a lie in
+/// the one case it was most load-bearing: a family *was* connected, the button
+/// still did nothing, and the caption told the senior to do the thing they had
+/// already done.
+class _Guardian {
+  const _Guardian({required this.caption, this.number});
+
+  factory _Guardian.from(List<GuardianLink> guardians) {
+    final active = guardians.where((g) => g.isActive).toList(growable: false);
+    if (active.isEmpty) {
+      return const _Guardian(caption: '가족을 연결하면 사용할 수 있어요');
+    }
+    // 대표 보호자 answers for the parent, so they are who this calls. The
+    // server returns them first; this does not depend on that.
+    final primary = active.firstWhere(
+      (g) => g.isPrimary && g.phoneNumber != null,
+      orElse: () => active.firstWhere(
+        (g) => g.phoneNumber != null,
+        orElse: () => active.first,
+      ),
+    );
+    final number = primary.phoneNumber;
+    if (number == null) {
+      return const _Guardian(caption: '자녀분 전화번호가 아직 없어요');
+    }
+    return _Guardian(caption: primary.displayName ?? '가족', number: number);
+  }
+
+  final String caption;
+
+  /// Null means the tile cannot be pressed.
+  final String? number;
 }

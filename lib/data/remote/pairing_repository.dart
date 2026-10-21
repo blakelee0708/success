@@ -166,14 +166,21 @@ class SupabasePairingRepository implements PairingRepository {
 
   @override
   Future<List<GuardianLink>> guardiansFor(String seniorProfileId) async {
+    // Through a function rather than an embedded select. The embed inherits
+    // `guardian_accounts_own` — `auth_user_id = auth.uid()` — so it answered
+    // with the caller's own row and nulls for everyone else: the senior's
+    // phone learned nothing at all about its guardians, and a guardian
+    // learned nothing about a sibling.
     try {
-      final rows = await _client
-          .from('guardian_senior_links')
-          .select('guardian_account_id, role, status, '
-              'guardian_accounts(display_name, email)')
-          .eq('senior_profile_id', seniorProfileId)
-          .neq('status', 'removed');
-      return [for (final row in rows) ?GuardianLink.fromRow(row)];
+      final rows = await _client.rpc(
+        'guardians_for_senior',
+        params: {'p_senior_profile_id': seniorProfileId},
+      );
+      if (rows is! List) return const [];
+      return [
+        for (final row in rows)
+          if (row is Map<String, Object?>) ?GuardianLink.fromRow(row),
+      ];
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);
     }
@@ -390,6 +397,7 @@ class InMemoryPairingRepository implements PairingRepository {
         role: entry.value,
         status: 'active',
         displayName: store.guardianNames[entry.key],
+        phoneNumber: store.guardianPhones[entry.key],
       ),
   ];
 

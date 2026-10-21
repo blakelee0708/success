@@ -770,6 +770,57 @@ one active device per profile would start rejecting the real one.
 `tool/verify_supabase_presence.py` checks that against the live project, along
 with one phone reporting for another and a call with no session.
 
+## The roster was readable by nobody it was about
+
+`guardian_accounts` has exactly one policy — `guardian_accounts_own`,
+`auth_user_id = auth.uid()` — which is right for the table and wrong for
+everything built on it, because `guardiansFor` read the names through an
+**embedded select** and the embed inherits the policy. Probed against the live
+project, a family of one parent and two guardians answered like this:
+
+| caller | primary | family |
+|---|---|---|
+| the parent's phone | `null` | `null` |
+| guardian g1 | `{g1}` | `null` |
+| guardian g2 | `null` | `{g2}` |
+
+Everyone saw their own row and nothing else. Two screens were built on that:
+
+- **긴급 연락's 보호자 button.** `04_SCREEN_SPEC` asks for 119, 112 and 보호자.
+  It was `onTap: null` from the day the screen existed, under a caption
+  reading 가족을 연결하면 사용할 수 있어요 — and connecting a family did not
+  enable it. The number is collected when the guardian connects and stored in
+  `guardian_accounts.phone_number`; the one phone that needs it in an
+  emergency was the one phone with no policy to read it.
+- **연결된 가족** on the guardian's 가족 tab, which listed a sibling as the
+  literal word 보호자, because their name read as null and the UI falls back.
+
+`guardians_for_senior` (`20261021020000_guardian_roster.sql`, applied live) is
+a `security definer` function rather than a widened policy: the table's own
+rule stays as strict as it is, and the function returns exactly the roster.
+**No `flutter test` could have caught either bug** — the in-memory repository
+always returned the names, so both halves passed locally and failed only
+against a real project. `tool/verify_supabase_roster.py` is what covers it,
+including the two refusals and the removed guardian.
+
+What it returns, and why:
+
+- **`phone_number` to the whole family.** They can already rearrange the
+  parent's home screen and read every message; a number they gave each other
+  is less than that, and without it the SOS button cannot exist at all.
+- **`email` only to the account it belongs to.** It identifies an account
+  rather than reaching anyone, and the roster has a name for that.
+- **대표 보호자 first**, because that is who the SOS button calls. The Dart
+  does not rely on the ordering, but the ordering is the reason it is right.
+
+The tile's caption is now three different sentences, and that is the point:
+no family (`가족을 연결하면 사용할 수 있어요`), a family that gave no number
+(`자녀분 전화번호가 아직 없어요` — the field says 비워 두셔도 됩니다, so this is
+a real state), and otherwise the guardian's name. One sentence for all three
+made it a lie in the case it mattered most. It still dials rather than calls,
+exactly as 119 does, and **119 and 112 depend on none of it** — there is a
+test pinning that on a phone with no family at all.
+
 ## 기기 상태 rides on the check-in, not on a schedule
 
 The second capability, and the second that needs **no permission at all**:

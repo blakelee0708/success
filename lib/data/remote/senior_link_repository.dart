@@ -263,6 +263,10 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// its test passed for the wrong reason.
   final Map<String, String> guardianNames = {};
 
+  /// guardian account id -> phone number, the other half of what the real
+  /// `guardians_for_senior` returns. Optional there and optional here.
+  final Map<String, String> guardianPhones = {};
+
   /// Who [resolvePrimaryGuardian] is waiting on, per profile.
   final Map<String, String> pendingPrimaryByProfile = {};
 
@@ -354,6 +358,9 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
       email: _account?.email,
     );
     if (account.displayName case final name?) guardianNames[account.id] = name;
+    if (account.phoneNumber case final number?) {
+      guardianPhones[account.id] = number;
+    }
     return account;
   }
 
