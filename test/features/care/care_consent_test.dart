@@ -191,6 +191,44 @@ void main() {
     expect(find.textContaining('아직 준비 중입니다'), findsOneWidget);
   });
 
+  testWidgets('a feature that works is not listed under 준비 중', (
+    tester,
+  ) async {
+    // The 준비 중 block is honest only about what is below it. 기기 상태 is
+    // built — it rides on the parent's check-in — and leaving it under that
+    // block is the same defect as a working-looking screen over an unbuilt
+    // feature, read the other way round.
+    final h = await _family();
+    await _pumpCareTab(tester, h);
+
+    final notice = tester.getRect(find.textContaining('아직 준비 중입니다'));
+    expect(
+      tester.getRect(find.text('기기 상태 확인')).top,
+      lessThan(notice.top),
+      reason: '기기 상태가 준비 중 안내 아래에 있습니다',
+    );
+    expect(
+      tester.getRect(find.text('위치 확인')).top,
+      greaterThan(notice.bottom),
+    );
+  });
+
+  testWidgets('the care tab does not promise what 기기 상태 does not do', (
+    tester,
+  ) async {
+    // It never reads the network, and it has no 5-minute schedule — the
+    // reading rides on the check-in. Both were in the sketch and neither
+    // shipped.
+    final h = await _family();
+    await _pumpCareTab(tester, h);
+
+    expect(find.textContaining('인터넷'), findsNothing);
+    expect(
+      find.textContaining('배터리 · 소리 · 인터넷을 5분 주기로'),
+      findsNothing,
+    );
+  });
+
   testWidgets('the care tab keeps the wording the policy fixes', (
     tester,
   ) async {

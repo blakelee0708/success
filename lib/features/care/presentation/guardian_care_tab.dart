@@ -41,6 +41,24 @@ class GuardianCareTab extends ConsumerWidget {
   /// to default phone and messaging apps, and this is a launcher — the
   /// permission was unlikely to be granted and the feature would have been
   /// sold before anyone found out.
+  /// What already works, and is free.
+  ///
+  /// 기기 상태 moved up here the day it was built, and the move is the point:
+  /// a 준비 중 block over a feature that works is the same defect as a
+  /// working-looking block over one that does not, read the other way round.
+  /// It is listed without the 5분 주기 the sketch promised, because the
+  /// reading rides on the parent's check-in instead, and without 인터넷,
+  /// which nothing reports.
+  static const working = <(IconData, Color, Color, String, String)>[
+    (
+      Icons.battery_charging_full_rounded,
+      AppColors.guardianTintBlue,
+      AppColors.guardianTintBlueInk,
+      '기기 상태 확인',
+      '부모님이 폰을 쓰실 때마다 배터리와 소리를 확인합니다',
+    ),
+  ];
+
   static const features = <(IconData, Color, Color, String, String)>[
     (
       Icons.place_rounded,
@@ -48,13 +66,6 @@ class GuardianCareTab extends ConsumerWidget {
       AppColors.guardianTintGreenInk,
       '위치 확인',
       '5분 주기로 어디 계신지 확인합니다',
-    ),
-    (
-      Icons.battery_charging_full_rounded,
-      AppColors.guardianTintBlue,
-      AppColors.guardianTintBlueInk,
-      '기기 상태 확인',
-      '배터리 · 소리 · 인터넷을 5분 주기로 확인합니다',
     ),
     (
       Icons.download_rounded,
@@ -267,9 +278,15 @@ class _Features extends StatelessWidget {
             color: AppColors.guardianInk,
           ),
         ),
-        const SizedBox(height: 10),
-        // Said once, plainly, and given enough weight to be read: none of
-        // these is built yet, and a paid screen that looks ready is a
+        const SizedBox(height: 14),
+        for (final feature in GuardianCareTab.working)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: _Feature(feature: feature),
+          ),
+        const SizedBox(height: 2),
+        // Said once, plainly, and given enough weight to be read: nothing
+        // below this is built, and a paid screen that looks ready is a
         // promise. It was a 13px grey line, the least visible thing on the
         // screen it is most important to be honest on.
         Container(
@@ -302,51 +319,67 @@ class _Features extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        for (final (icon, tint, tintInk, title, detail)
-            in GuardianCareTab.features)
+        for (final feature in GuardianCareTab.features)
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: tint,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, size: 19, color: tintInk),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                          color: AppColors.guardianInk,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        detail,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          height: 1.5,
-                          color: AppColors.guardianInkFaint,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            child: _Feature(feature: feature),
           ),
+      ],
+    );
+  }
+}
+
+/// One capability: a tinted mark, a name and what it does.
+///
+/// A mark rather than a number — numbered badges said these were steps, and
+/// nobody does them in order. All four wore the same clock once, which turned
+/// four different things into a wall of identical rows.
+class _Feature extends StatelessWidget {
+  const _Feature({required this.feature});
+
+  final (IconData, Color, Color, String, String) feature;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, tint, tintInk, title, detail) = feature;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: tint,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, size: 19, color: tintInk),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  color: AppColors.guardianInk,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                detail,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  height: 1.5,
+                  color: AppColors.guardianInkFaint,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
