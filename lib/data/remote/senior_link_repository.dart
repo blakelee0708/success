@@ -46,6 +46,14 @@ abstract interface class SeniorLinkRepository {
     String? osVersion,
   });
 
+  /// 안부 신호 — the parent's phone saying it is still in use.
+  ///
+  /// Costs no permission and carries no reading: the launcher came to the
+  /// foreground, which on a phone whose home screen it is means the parent
+  /// unlocked it or came back from another app. Called often and never
+  /// awaited by anything the senior is looking at.
+  Future<void> touchDevice(String installId);
+
   Future<SeniorProfile> fetchProfile(String seniorProfileId);
 
   /// The phone currently carrying this profile, or null when none has
@@ -134,6 +142,17 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
         throw const SeniorLinkException('연결 번호가 맞지 않아요. 다시 확인해 주세요.');
       }
       rethrow;
+    }
+  }
+
+  @override
+  Future<void> touchDevice(String installId) async {
+    try {
+      await _client.rpc('touch_senior_device', params: {
+        'p_install_id': installId,
+      });
+    } on sb.PostgrestException catch (e) {
+      throw SeniorLinkException(e.message);
     }
   }
 
@@ -369,6 +388,30 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     final profile = match.first;
     attachDevice(profile.id, installId, platform: platform);
     return profile;
+  }
+
+  /// How many times this phone has reported in, for the tests.
+  int touchCount = 0;
+
+  /// Makes every call fail, the way a phone with no signal does.
+  bool offline = false;
+
+  @override
+  Future<void> touchDevice(String installId) async {
+    if (offline) throw const SeniorLinkException('연결하지 못했어요.');
+    touchCount++;
+    for (final entry in activeDeviceByProfile.entries) {
+      final device = entry.value;
+      if (device.installId != installId) continue;
+      activeDeviceByProfile[entry.key] = SeniorDevice(
+        id: device.id,
+        installId: device.installId,
+        isActive: device.isActive,
+        deviceLabel: device.deviceLabel,
+        platform: device.platform,
+        lastSeenAt: DateTime.now(),
+      );
+    }
   }
 
   @override

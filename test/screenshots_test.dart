@@ -226,6 +226,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await _capture(tester, '19-dashboard-launcher-linked');
+
+    // The same card for a phone nobody has touched in three days. This is the
+    // state it used to get wrong in silence: `last_seen_at` was written once,
+    // at registration, and read in the present tense — so this render was a
+    // green dot over 폰은 잘 켜져 있어요. It is the one worth looking at.
+    //
+    // Pumped again rather than switched to: the device is read through a
+    // provider that has already resolved, so changing the row underneath it
+    // leaves the screen showing what it read the first time.
+    links.activeDeviceByProfile[profile.id] = SeniorDevice(
+      id: 'device-1',
+      installId: 'install-1',
+      isActive: true,
+      deviceLabel: '갤럭시 A54',
+      lastSeenAt: DateTime(2026, 10, 17, 9, 0),
+    );
+    await pumpApp(
+      tester,
+      overrides: [
+        nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 15, 10)),
+        guardianAuthRepositoryProvider.overrideWithValue(auth),
+        seniorLinkRepositoryProvider.overrideWithValue(links),
+        homeAppsRepositoryProvider.overrideWithValue(homeApps),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('3일째'), findsOneWidget);
+    await _capture(tester, '18b-dashboard-home-quiet');
   });
 
   testWidgets('the guardian dashboard renders every tab', (tester) async {

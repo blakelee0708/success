@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../data/app_launcher.dart';
+import 'senior_presence_reporter.dart';
 import 'senior_settings_controller.dart';
 
 /// Returns the app to its first screen when the Home key is pressed.
@@ -37,6 +38,16 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
     super.initState();
     MethodChannelAppLauncher.channel.setMethodCallHandler(_onCall);
     WidgetsBinding.instance.addObserver(this);
+    // The first report of the run. Not awaited and not shown: see [_report].
+    WidgetsBinding.instance.addPostFrameCallback((_) => _report());
+  }
+
+  /// 안부 신호. Deliberately fire-and-forget — the guardian's dashboard is
+  /// told the phone is in use, and the senior's own launcher waits for
+  /// nothing while that happens.
+  void _report() {
+    if (!mounted) return;
+    ref.read(seniorPresenceReporterProvider).report();
   }
 
   @override
@@ -56,6 +67,10 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
     ref.read(seniorSettingsControllerProvider.notifier).refresh();
+    // The commoner half of 안부 신호 by far. A launcher may go weeks without
+    // being restarted, so start-up alone would report once and then go quiet
+    // while the parent used the phone every day.
+    _report();
   }
 
   Future<void> _onCall(MethodCall call) async {

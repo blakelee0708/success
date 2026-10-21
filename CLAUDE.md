@@ -459,12 +459,13 @@ else.
 
 Two things the home tab will not do:
 
-- **The hero never reassures on no evidence.** It shows the time the parent's
-  phone last checked in, or it says there is none — `아직 / 연결되기 전이에요`.
-  The server knows a phone connected; it does not know the parent is well.
-  This is the most comforting-looking object on the screen, which is why it is
-  the one that must not round a missing check-in up. Same rule that took the
-  mocked `배터리 72%` off this tab. There is a test for the empty case.
+- **The hero never reassures on no evidence.** It shows how long ago the
+  parent's phone was last used, or it says there is none — `아직 / 연결되기
+  전이에요`. The server knows a phone was unlocked; it does not know the parent
+  is well. This is the most comforting-looking object on the screen, which is
+  why it is the one that must not round a missing check-in up — nor an old
+  one, which it did until 안부 신호 existed. Same rule that took the mocked
+  `배터리 72%` off this tab. Every line it says comes from `SeniorPresence`.
 - **Every number on it is read, not written.** The buttons on the action card
   come from the parent's real `home_apps`, the allowance from the real quota,
   `마지막 대화 4일 전` from the real conversation. A card that says the same
@@ -723,6 +724,51 @@ Both are guarded on this phone having a `SeniorLink`, and the guard sits
 **before** the sync is constructed. Without it a guardian's phone pulls a
 senior's settings on every resume — six login tests failed immediately, which
 is how the missing guard was found.
+
+## 안부 신호 — the one reading that costs no permission
+
+`last_seen_at` has existed since Phase 4 and **nothing ever wrote it after the
+phone registered**. `register_senior_device` set it once; no other path touched
+it. The hero card then read that column in the present tense, so a phone set up
+in July and never opened since still lit the green dot and said `폰은 잘 켜져
+있어요`. The column was right and the writer was missing — and *stale* is its
+own kind of fabrication: the card was honest about a **missing** check-in from
+the day it was built and silent about an old one.
+
+`touch_senior_device` (`20261021000000_presence_touch.sql`, applied to the live
+project) is the writer, and `SeniorPresenceReporter` calls it from
+`HomeKeyListener` at start-up and on every resume. Because this app *is* the
+phone's home screen, resume means the parent unlocked it or came back from
+another app, so the signal is real — and it needs **no location, no sensor, no
+background service, nothing Play reviews and nothing extra for the senior to
+agree to.** It is the only one of 안심 케어's readings that can ship today, and
+`06_PERMISSION_AND_POLICY`'s 위치정보 problem does not reach it.
+
+Four things hold it up:
+
+- **`SeniorPresence` owns every word the card says about the phone**, bracketed
+  as never / 방금 / today / 어제 / N일째. A test walks all five brackets for
+  안전, 괜찮, 잘 계, 건강 and 이상 없음, because a check-in says a phone was
+  unlocked and nothing whatever about the person holding it.
+- **The green dot means *now* and nothing looser.** Lit only inside
+  `stillInHand` (10 minutes). An hour-old report means the phone has been face
+  down on a table, and `오늘` is a day wide — a dot for either is the same
+  overclaim in a smaller space.
+- **Days are calendar days, not 24-hour blocks.** 23:50 to 00:10 is twenty
+  minutes and two dates, and 어제 is what a person would say. A clock running
+  fast stamps a check-in in the future; that reads as 방금, never `-1일째`.
+- **The repository is read *after* the link guard, not taken in the
+  constructor.** `HomeKeyListener` wraps the whole router, so this runs on the
+  guardian's phone too. Writing the provider with `ref.watch` instead **hung
+  every guardian login test** — the same trap the settings pull documents one
+  section up, and it was walked straight into again.
+
+`is_active` is deliberately untouched by a report. A phone the parent has
+replaced may still have the app on it and still resume; letting that flip the
+flag back would hand the retired handset the profile, and the unique index on
+one active device per profile would start rejecting the real one.
+`tool/verify_supabase_presence.py` checks that against the live project, along
+with one phone reporting for another and a call with no session.
 
 ## The paid features are interfaces
 

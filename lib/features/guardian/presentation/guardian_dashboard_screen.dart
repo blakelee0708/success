@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/family_message.dart';
 import '../../../domain/senior_profile.dart';
 import '../../../domain/senior_settings.dart';
+import '../application/senior_presence.dart';
 import '../application/guardian_home_apps_controller.dart';
 import '../application/guardian_session_controller.dart';
 import '../../care/presentation/guardian_care_tab.dart';
@@ -205,12 +206,16 @@ class _HomeTab extends ConsumerWidget {
     final apps = ref.watch(guardianHomeAppsProvider).value ?? const [];
     final messages = ref.watch(conversationProvider).value ?? const [];
     final now = ref.watch(nowProvider)();
-    final lastSeen = device?.lastSeenAt;
     final phone = device?.deviceLabel ?? device?.platform;
+    // Every line about the parent's phone comes from here, so the card cannot
+    // speak in the present tense about a check-in from three days ago — which
+    // is what `폰은 잘 켜져 있어요` did for as long as `last_seen_at` was
+    // written only at registration.
+    final presence = SeniorPresence.from(lastSeen: device?.lastSeenAt, now: now);
 
     return _TabScaffold(
       title: profile.displayName,
-      lede: lastSeen == null ? '폰이 아직 연결되기 전이에요' : '폰은 잘 켜져 있어요',
+      lede: presence.lede,
       children: [
         if ((profiles.value?.length ?? 0) > 1)
           _Card(child: _ParentSwitcher(profiles: profiles.value!)),
@@ -219,11 +224,10 @@ class _HomeTab extends ConsumerWidget {
           subject: phone == null
               ? profile.displayName
               : '${profile.displayName} · $phone',
-          online: lastSeen != null,
-          // Says the time, or says there is none. It does not round a missing
-          // check-in up to something comforting.
-          headline: lastSeen == null ? '아직' : koreanTime(lastSeen),
-          caption: lastSeen == null ? '연결되기 전이에요' : '까지 쓰고 계셨어요',
+          // The dot claims *now*, so it is lit for nothing else.
+          online: presence.online,
+          headline: presence.headline,
+          caption: presence.caption,
           metric: quota == null || quota.unlimited
               ? '무제한'
               : '${quota.textLeft}번',

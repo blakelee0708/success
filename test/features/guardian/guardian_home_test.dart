@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/core/clock.dart';
+import 'package:app/core/theme/app_colors.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/home_apps_repository.dart';
@@ -62,6 +63,21 @@ Future<void> _pumpHome(
   await tester.pumpAndSettle();
 }
 
+/// The hero's online dot, counted by its colour — it is the one thing on the
+/// card that claims the present tense.
+int _dots(WidgetTester tester) => tester
+    .widgetList<Container>(
+      find.descendant(
+        of: find.byKey(GuardianHomeKeys.hero),
+        matching: find.byType(Container),
+      ),
+    )
+    .where(
+      (c) =>
+          (c.decoration as BoxDecoration?)?.color == AppColors.guardianOnline,
+    )
+    .length;
+
 void main() {
   testWidgets('the hero says when the phone was last used', (tester) async {
     await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 20, 14, 30));
@@ -82,6 +98,34 @@ void main() {
     expect(find.byKey(GuardianHomeKeys.hero), findsOneWidget);
     expect(find.textContaining('쓰고 계셨어요'), findsNothing);
     expect(find.textContaining('아직'), findsWidgets);
+  });
+
+  testWidgets('a phone last used days ago is not reported as in use', (
+    tester,
+  ) async {
+    // `last_seen_at` used to be written only when the phone registered, so a
+    // phone set up in July and never opened since still lit the green dot and
+    // read 폰은 잘 켜져 있어요. Stale is its own kind of fabrication: the card
+    // was honest about a *missing* check-in and silent about an old one.
+    await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 17, 9, 0));
+
+    expect(find.text('3일째'), findsOneWidget);
+    expect(find.textContaining('쓰고 계셨어요'), findsNothing);
+    expect(find.textContaining('잘 켜져'), findsNothing);
+  });
+
+  testWidgets('the green dot only means right now', (tester) async {
+    await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 17, 9, 0));
+    expect(_dots(tester), 0, reason: 'a 3-day-old check-in lit the dot');
+
+    await _pumpHome(tester, lastSeenAt: _now.subtract(const Duration(minutes: 3)));
+    expect(_dots(tester), 1, reason: 'a check-in from minutes ago lit nothing');
+  });
+
+  testWidgets('yesterday is said as yesterday', (tester) async {
+    await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 19, 20, 0));
+
+    expect(find.text('어제'), findsWidgets);
   });
 
   testWidgets('the hero counts the messages the family has left', (
