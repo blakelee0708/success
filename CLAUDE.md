@@ -802,6 +802,74 @@ one active device per profile would start rejecting the real one.
 `tool/verify_supabase_presence.py` checks that against the live project, along
 with one phone reporting for another and a call with no session.
 
+## 소리 울리기, and the trap that has now appeared three times
+
+The feature is for **`엄마가 전화를 안 받아`** — the phone is on silent, or in
+another room, or not heard. The job is to get the parent to pick it up.
+
+Two ideas were considered and dropped, and the reasons are the design:
+
+- **A recorded voice asking passers-by for help.** Technically fine — the
+  guardian records on their own phone, so the senior's microphone is never
+  used. Dropped because somebody collapsed in public gets helped without an
+  app, and a phone announcing a stranger's health to the street embarrasses
+  the person it was meant to help. The same recording *addressed to the
+  parent* is a different feature with a different justification, and it was
+  not built either.
+- **Splitting 무료 = sound, 유료 = message.** That sells the part that stops
+  the sound being frightening. A phone that starts screaming with no
+  explanation, at someone who cannot tell a message from a fault, is worse
+  than one that stays quiet — so the line is always there, and the whole
+  feature is paid. The line that is actually worth charging for is *being
+  able to reach the phone at all*.
+
+**Anywhere on the screen stops it.** `HitTestBehavior.opaque`, so the gaps
+answer too — without it the senior taps a dead patch while it keeps ringing. A
+pocket could end it early; the guardian can send it again, and that is not in
+the same league as a senior unable to silence their own phone. It also stops
+itself after `maxDuration` (60s), because the phone may be in a bag in another
+room — which is the case this exists for — and a sound with no end is a flat
+battery rather than a found phone.
+
+**The speaker is told, never awaited**, and this is the third time that trap
+has appeared in this codebase — after the onboarding channel and the device
+status read. `MethodChannelEmergencySound` already swallows both channel
+exceptions, but **a channel that never answers throws nothing at all**, so
+catching is not enough. Awaiting it hung `screenshots_test.dart` for seven
+minutes before the timeout. The rule, stated once for all three: *nothing a
+senior is looking at may wait on a platform channel.*
+
+On Android it plays on `STREAM_ALARM`, the one stream a silent or vibrate
+ringer does not mute — that is how alarm clocks work. DND can still mute it
+where the user has turned alarms off inside DND; overriding that needs
+`ACCESS_NOTIFICATION_POLICY` and is not worth demanding. None of that is
+written yet and none of it can be verified here.
+
+**It cannot be triggered yet.** Remote ringing needs FCM, FCM needs a Firebase
+project, and a Firebase project needs an `applicationId` that is not
+`com.example.app`. The screen, the controller, the timeout and the dismissal
+are built and tested; the trigger is the missing half.
+
+### What Play's policy actually bites
+
+Worth recording because it points the other way from where it was expected to.
+The stalkerware rule turns on **collecting and transmitting personal and
+sensitive data** about another person, with an exemption only for parent→child
+and enterprise→employee — and that exemption explicitly does not extend to
+other adults *even with their permission*.
+
+So **소리 울리기 is the safest feature left**: it is remote actuation, nothing
+about the parent leaves their phone, and the screen lights up saying exactly
+what was sent. The ones the rule aims at are **위치 확인** and **앱 설치 알림**,
+both of which collect sensitive data about an adult — and unlike the Korean
+위치기반서비스사업 신고, no paperwork fixes that.
+
+Two honest limits on the above: Google's policy pages **cannot be read from
+this environment** (the proxy 403s `support.google.com`), so this rests on two
+independent search summaries quoting them, and the policy as enforced plainly
+differs from the policy as written — Life360 and its like track adult family
+members and are published. Read the primary pages before acting on this.
+
 ## One list decides what 안심 케어 is, on both screens
 
 `lib/features/care/data/care_capabilities.dart`. The guardian's 돌봄 tab and

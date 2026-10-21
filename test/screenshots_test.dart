@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
@@ -29,6 +30,7 @@ import 'package:app/data/remote/subscription_repository.dart';
 import 'package:app/features/family/presentation/family_link_screen.dart';
 import 'package:app/features/messages/presentation/conversation_view.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
+import 'package:app/features/care/application/senior_ring_controller.dart';
 import 'package:app/features/care/presentation/care_consent_prompt.dart';
 import 'package:app/features/family/presentation/primary_guardian_prompt.dart';
 import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
@@ -578,6 +580,17 @@ void main() {
       );
       await tester.pumpAndSettle();
     }
+
+    // 소리 울리기, as the parent sees it. The whole screen is the button.
+    await openDetailedHome();
+    final ringContext = tester.element(find.byType(Scaffold).first);
+    ProviderScope.containerOf(ringContext)
+        .read(seniorRingControllerProvider.notifier)
+        .ring(const RingRequest(from: '영희', message: '엄마, 전화 좀 줘.'));
+    await tester.pumpAndSettle();
+    await _capture(tester, '26-ring');
+    await tester.tapAt(const Offset(200, 400));
+    await tester.pumpAndSettle();
 
     await openDetailedHome();
     await tester.tap(find.text('긴급 구조 요청'));
