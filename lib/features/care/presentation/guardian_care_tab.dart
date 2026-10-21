@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../data/care_capabilities.dart';
 import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/subscription.dart';
 import '../../guardian/application/guardian_home_apps_controller.dart';
@@ -41,68 +42,6 @@ class GuardianCareTab extends ConsumerWidget {
   /// to default phone and messaging apps, and this is a launcher — the
   /// permission was unlikely to be granted and the feature would have been
   /// sold before anyone found out.
-  /// Free, and already working. The PRD's 무료 list says
-  /// `폰 상태 앱 실행 시 1회 갱신` in as many words, and that is exactly what
-  /// the check-in does — the paid half is the *5분 주기* refresh below, not
-  /// the reading itself.
-  ///
-  /// It is listed without the 인터넷 the sketch promised, because nothing
-  /// reports it.
-  static const free = <(IconData, Color, Color, String, String)>[
-    (
-      Icons.battery_charging_full_rounded,
-      AppColors.guardianTintBlue,
-      AppColors.guardianTintBlueInk,
-      '기기 상태 확인',
-      '부모님이 폰을 쓰실 때마다 배터리와 소리를 확인합니다',
-    ),
-  ];
-
-  /// Paid, and built: the moment a subscription exists and the senior has
-  /// agreed, these fire. They are kept out of the 준비 중 block for the same
-  /// reason 기기 상태 was — a working feature under a sentence saying it does
-  /// not work is the mirror of the defect that block exists to prevent.
-  static const ready = <(IconData, Color, Color, String, String)>[
-    (
-      Icons.battery_alert_rounded,
-      AppColors.guardianTintAmber,
-      AppColors.guardianTintAmberInk,
-      '배터리 부족 알림',
-      '충전 없이 15% 아래로 내려가면 알려드립니다',
-    ),
-    (
-      Icons.bedtime_rounded,
-      AppColors.guardianTintViolet,
-      AppColors.guardianTintVioletInk,
-      '폰 미사용 알림',
-      '이틀 넘게 폰을 켜지 않으시면 알려드립니다',
-    ),
-  ];
-
-  static const features = <(IconData, Color, Color, String, String)>[
-    (
-      Icons.place_rounded,
-      AppColors.guardianTintGreen,
-      AppColors.guardianTintGreenInk,
-      '위치 확인',
-      '5분 주기로 어디 계신지 확인합니다',
-    ),
-    (
-      Icons.sync_rounded,
-      AppColors.guardianTintBlue,
-      AppColors.guardianTintBlueInk,
-      '5분 주기 상태 갱신',
-      '폰을 쓰지 않으셔도 배터리를 계속 확인합니다',
-    ),
-    (
-      Icons.download_rounded,
-      AppColors.guardianTintViolet,
-      AppColors.guardianTintVioletInk,
-      '앱 설치 알림',
-      '새 앱이 깔리면 알려드립니다',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(selectedSeniorProfileProvider);
@@ -306,13 +245,10 @@ class _Features extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        for (final feature in [
-          ...GuardianCareTab.free,
-          ...GuardianCareTab.ready,
-        ])
+        for (final capability in builtCareCapabilities)
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
-            child: _Feature(feature: feature),
+            child: _Feature(capability: capability),
           ),
         const SizedBox(height: 2),
         // Said once, plainly, and given enough weight to be read: nothing
@@ -349,10 +285,10 @@ class _Features extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        for (final feature in GuardianCareTab.features)
+        for (final capability in plannedCareCapabilities)
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
-            child: _Feature(feature: feature),
+            child: _Feature(capability: capability),
           ),
       ],
     );
@@ -365,13 +301,13 @@ class _Features extends StatelessWidget {
 /// nobody does them in order. All four wore the same clock once, which turned
 /// four different things into a wall of identical rows.
 class _Feature extends StatelessWidget {
-  const _Feature({required this.feature});
+  const _Feature({required this.capability});
 
-  final (IconData, Color, Color, String, String) feature;
+  final CareCapability capability;
 
   @override
   Widget build(BuildContext context) {
-    final (icon, tint, tintInk, title, detail) = feature;
+    final CareCapability(:icon, :tint, :tintInk, :title, :detail) = capability;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

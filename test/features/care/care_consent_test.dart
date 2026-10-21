@@ -15,6 +15,7 @@ import 'package:app/domain/guardian_account.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_profile.dart';
 import 'package:app/domain/senior_settings.dart';
+import 'package:app/features/care/data/care_capabilities.dart';
 import 'package:app/features/care/presentation/care_consent_prompt.dart';
 import 'package:app/features/care/presentation/guardian_care_tab.dart';
 
@@ -120,7 +121,53 @@ void main() {
 
     expect(find.textContaining('실시간'), findsNothing);
     expect(find.textContaining('추적'), findsNothing);
-    expect(find.textContaining('5분마다'), findsOneWidget);
+  });
+
+  testWidgets('the senior is not asked about anything unbuilt', (tester) async {
+    // It asked for 5분마다 어디 계신지. Location is not built and will not be
+    // until the 위치기반서비스사업 신고 is through — so a 허락합니다 pressed
+    // today would have been the only thing ever asked before the feature
+    // switched itself on months later. 권한은 필요한 순간에 요청한다.
+    final h = await _family();
+    await h.subs.startCare(h.profileId);
+    await _pumpSeniorHome(tester, h);
+
+    for (final c in plannedCareCapabilities) {
+      expect(
+        find.textContaining(c.title),
+        findsNothing,
+        reason: '${c.key} is not built and must not be consented to',
+      );
+    }
+    expect(find.textContaining('어디 계신지'), findsNothing);
+    expect(find.textContaining('위치'), findsNothing);
+  });
+
+  testWidgets('the senior is not asked about what happens anyway', (
+    tester,
+  ) async {
+    // The battery and ringer reading rides on the free check-in. It said
+    // 배터리와 소리, 인터넷 상태, which told the senior that 아니요 would stop
+    // something 아니요 does not stop — and named 인터넷, which is never read.
+    final h = await _family();
+    await h.subs.startCare(h.profileId);
+    await _pumpSeniorHome(tester, h);
+
+    expect(find.textContaining('인터넷'), findsNothing);
+    expect(find.textContaining('배터리와 소리'), findsNothing);
+  });
+
+  testWidgets('it lists exactly what it will do, from the one list', (
+    tester,
+  ) async {
+    final h = await _family();
+    await h.subs.startCare(h.profileId);
+    await _pumpSeniorHome(tester, h);
+
+    for (final c in consentedCareCapabilities) {
+      expect(find.textContaining(c.seniorLine!), findsOneWidget,
+          reason: c.key);
+    }
   });
 
   testWidgets('refusing is offered as plainly as agreeing', (tester) async {

@@ -770,6 +770,48 @@ one active device per profile would start rejecting the real one.
 `tool/verify_supabase_presence.py` checks that against the live project, along
 with one phone reporting for another and a call with no session.
 
+## One list decides what 안심 케어 is, on both screens
+
+`lib/features/care/data/care_capabilities.dart`. The guardian's 돌봄 tab and
+the senior's consent card are two descriptions of one product, and they had
+already come apart. The card asked the senior to agree to:
+
+- **`5분마다 어디 계신지`** — not built, and not until the 위치기반서비스사업
+  신고 is through. A 허락합니다 pressed today would have been the only thing
+  ever asked before location switched itself on months later. The whole first
+  line of `06_PERMISSION_AND_POLICY` is 권한은 필요한 순간에 요청한다.
+- **`배터리와 소리, 인터넷 상태`** — of which 인터넷 is never read, and the
+  rest is **free** and sent on every check-in regardless. That one is the
+  worse of the two: it told the senior that 아니요 would stop something 아니요
+  does not stop. A consent screen that misdescribes its own refusal is not a
+  consent screen.
+
+Each capability now carries a `CareReadiness` — `free`, `live` or `planned` —
+and a `seniorLine` that exists only for `live`. Both screens read that list,
+so a capability cannot be sold on one and missing from the other, and
+`care_capabilities_test.dart` holds the four rules:
+
+| | |
+|---|---|
+| everything on the consent card is built | a consent nobody gave |
+| everything built and paid is on it | a capability that starts running unnamed |
+| nothing free is on it | implies 아니요 stops it |
+| nothing planned is on it | asked once, switched on much later |
+
+It also counts the glyphs — sixteen at 20px in a 318px card — because that is
+the screen where a wrapped line once left 은 alone.
+
+Which leaves **the two alerts**, and they are worded as *when the guardian is
+told* rather than *what is collected*, since the collection is the free
+check-in either way. `CareReadiness` is named for readiness because `CareStage`
+was already the subscription flow (notBought / waitingOnSenior / refused /
+active) and the two would read as one idea on a screen using both.
+
+**Billing is deliberately still absent** and the buy button still makes a
+subscription with no money. That is the owner's call and it is next; the
+consent half was done first because it is the half with a person on the other
+end of it.
+
 ## 배터리 부족 알림 and 폰 미사용 알림
 
 The `alerts` table and the 돌봄 tab that renders it have existed since Phase 6.

@@ -5,6 +5,7 @@ import '../../../core/supabase/supabase_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/senior_profile.dart';
 import '../../family/application/senior_link_controller.dart';
+import '../data/care_capabilities.dart';
 
 /// Whether the senior has been asked to agree to 안심 케어.
 final careConsentPendingProvider = FutureProvider<SeniorProfile?>((ref) async {
@@ -30,10 +31,23 @@ final careConsentPendingProvider = FutureProvider<SeniorProfile?>((ref) async {
 /// 피보호자가 허락 → 시스템 권한 요청 → 기능 활성화. This is the second step, and
 /// nothing downstream of it runs until it is answered.
 ///
-/// The wording matters as much as the mechanism. Location is described as a
-/// periodic check, never as tracking, because what is described here is what
-/// the senior is agreeing to. And refusing is offered as plainly as agreeing —
-/// a consent screen with a hard-to-find 아니요 is not asking.
+/// The wording matters as much as the mechanism, and so does the *list*. Every
+/// line comes from `careCapabilities`, filtered to what is actually built and
+/// paid, because what is described here is what the senior is agreeing to:
+///
+///  * Nothing unbuilt. A consent collected today for a feature that switches
+///    on in six months is a consent nobody gave — 권한은 필요한 순간에
+///    요청한다. 위치 is the one that matters, and it is absent.
+///  * Nothing free. The battery and ringer reading rides on the check-in and
+///    happens whether or not anyone subscribes; listing it would tell the
+///    senior that 아니요 stops something it does not stop.
+///
+/// Which leaves the two alerts, described as *when the guardian is told*
+/// rather than as *what is collected* — because the collection is the free
+/// check-in either way.
+///
+/// And refusing is offered as plainly as agreeing — a consent screen with a
+/// hard-to-find 아니요 is not asking.
 class CareConsentPrompt extends ConsumerStatefulWidget {
   const CareConsentPrompt({super.key});
 
@@ -90,16 +104,23 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Each line is a thing that will actually happen. 위치 확인 is
-              // 5분 주기 — never described as tracking.
+              // Read from `careCapabilities`, never typed here. This card and
+              // the guardian's 돌봄 tab are two descriptions of one product
+              // and they had already come apart: this one asked the senior to
+              // agree to `5분마다 어디 계신지`, which is not built and will not
+              // be until the 위치기반서비스사업 신고 is through, and to
+              // `배터리와 소리, 인터넷 상태` — of which 인터넷 is never read and
+              // the rest is free and sent regardless, so 아니요 would not have
+              // stopped it.
               //
-              // Every line is short enough to be the whole line. Written long
-              // and left to wrap, 지금 쓰시는 기능은 broke after 기능 and left
-              // 은 alone on a line of its own — on the one screen in the app
-              // where a senior is being asked to agree to something.
+              // Every line is short enough to be the whole line; there is a
+              // test counting glyphs. Written long and left to wrap, 지금
+              // 쓰시는 기능은 broke after 기능 and left 은 alone on a line of
+              // its own — on the one screen in the app where a senior is
+              // being asked to agree to something.
               const Text(
-                '허락하시면 이런 것을\n'
-                '자녀분이 볼 수 있어요.',
+                '허락하시면 이런 때에\n'
+                '자녀분이 알림을 받아요.',
                 style: TextStyle(
                   fontSize: 20,
                   height: 1.55,
@@ -107,10 +128,12 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                '· 5분마다 어디 계신지\n'
-                '· 배터리와 소리, 인터넷 상태',
-                style: TextStyle(
+              Text(
+                [
+                  for (final c in consentedCareCapabilities)
+                    '· ${c.seniorLine}',
+                ].join('\n'),
+                style: const TextStyle(
                   fontSize: 20,
                   height: 1.7,
                   fontWeight: FontWeight.w700,
