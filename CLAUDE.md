@@ -770,6 +770,56 @@ one active device per profile would start rejecting the real one.
 `tool/verify_supabase_presence.py` checks that against the live project, along
 with one phone reporting for another and a call with no session.
 
+## 배터리 부족 알림 and 폰 미사용 알림
+
+The `alerts` table and the 돌봄 tab that renders it have existed since Phase 6.
+Exactly one thing ever wrote a row — the refund — so these are the first
+watchers the product has.
+
+**Both are paid**, and that is the PRD's call, not this file's: 폰 미사용 알림
+and 배터리 부족 알림 are both in the 안심 케어 월 5,900원 list, so both are
+gated on `care_is_active` — a subscription *and* the senior's consent. With no
+Play Billing there is no way to reach either from the app today. The gate is
+therefore the part most worth checking, and it is checked where it can be:
+`tool/verify_supabase_alerts.py` walks unpaid → paid-without-consent → paid-
+and-agreed against the live project, 19 checks.
+
+That same PRD reading settled something else. 무료 includes
+**`폰 상태 앱 실행 시 1회 갱신`** in as many words — which is exactly what the
+check-in does, so 기기 상태 as built is the *free* half and what 안심 케어 adds
+is the **5분 주기** refresh. The 돌봄 tab names that now, instead of selling
+the family back a feature they already have.
+
+The two need opposite machinery, which is the whole interest of them:
+
+- **배터리 부족 fires on an event** and is written on the way through
+  `touch_senior_device`. It carries **hysteresis**: raised at 15% and armed
+  again only at 30% or on the charger. Without it a phone sitting at 12%
+  writes a row on every resume — dozens a day, which is not an alert, it is a
+  reason to stop reading alerts. Charging is never low: it is low being dealt
+  with, the same rule the guardian's amber battery row follows.
+- **폰 미사용 fires on the absence of events**, so nothing the phone does can
+  trigger it. That needs something that runs when nothing happens:
+  **pg_cron**, installed on the project, one job at `7 0 * * *` — 09:07 KST,
+  morning so the guardian reads it when they could act, off the hour because
+  every other job in the world runs at :00.
+
+Two decisions in the dedup, and the second was wrong first:
+
+- **A phone that has never checked in is 연결되기 전, not 미사용.** There is
+  nothing to tell the guardian that their own dashboard does not already say.
+- **`unused_notified_for` stores the check-in the alert was about, not the
+  moment it was written.** `now()` reads as *we have spoken recently*, which
+  is a different claim: a phone picked up and then left again compares its new
+  silence against a mark already past it and stays quiet forever. Storing the
+  check-in means a later one arms the next alert by itself, with no clearing
+  step to miss. The verifier caught this — picking the phone up and letting it
+  go quiet again produced nothing.
+
+Neither helper is callable by a client: `raise_battery_alert` is reached only
+through the check-in, `check_unused_phones` belongs to cron, and both are
+revoked from `authenticated`. There are checks for both refusals.
+
 ## The roster was readable by nobody it was about
 
 `guardian_accounts` has exactly one policy — `guardian_accounts_own`,

@@ -194,22 +194,41 @@ void main() {
   testWidgets('a feature that works is not listed under 준비 중', (
     tester,
   ) async {
-    // The 준비 중 block is honest only about what is below it. 기기 상태 is
-    // built — it rides on the parent's check-in — and leaving it under that
-    // block is the same defect as a working-looking screen over an unbuilt
-    // feature, read the other way round.
+    // The 준비 중 block is honest only about what is below it. Anything built
+    // sits above it, and a working feature under a sentence saying it does
+    // not work is the mirror of the defect the block exists to prevent.
     final h = await _family();
     await _pumpCareTab(tester, h);
 
     final notice = tester.getRect(find.textContaining('아직 준비 중입니다'));
+    for (final built in ['기기 상태 확인', '배터리 부족 알림', '폰 미사용 알림']) {
+      expect(
+        tester.getRect(find.text(built)).top,
+        lessThan(notice.top),
+        reason: '$built 가 준비 중 안내 아래에 있습니다',
+      );
+    }
+    for (final unbuilt in ['위치 확인', '앱 설치 알림']) {
+      expect(
+        tester.getRect(find.text(unbuilt)).top,
+        greaterThan(notice.bottom),
+        reason: '$unbuilt 가 준비 중 안내 위에 있습니다',
+      );
+    }
+  });
+
+  testWidgets('the free half is not sold as part of 안심 케어', (tester) async {
+    // The PRD's 무료 list says 폰 상태 앱 실행 시 1회 갱신 in as many words.
+    // What 안심 케어 adds is the 5분 주기 refresh, so that is what the paid
+    // list has to name — selling back a feature the family already has is
+    // the quietest way to make a paid screen dishonest.
+    final h = await _family();
+    await _pumpCareTab(tester, h);
+
+    expect(find.text('5분 주기 상태 갱신'), findsOneWidget);
     expect(
-      tester.getRect(find.text('기기 상태 확인')).top,
-      lessThan(notice.top),
-      reason: '기기 상태가 준비 중 안내 아래에 있습니다',
-    );
-    expect(
-      tester.getRect(find.text('위치 확인')).top,
-      greaterThan(notice.bottom),
+      find.text('부모님이 폰을 쓰실 때마다 배터리와 소리를 확인합니다'),
+      findsOneWidget,
     );
   });
 

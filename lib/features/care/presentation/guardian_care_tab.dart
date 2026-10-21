@@ -41,21 +41,41 @@ class GuardianCareTab extends ConsumerWidget {
   /// to default phone and messaging apps, and this is a launcher — the
   /// permission was unlikely to be granted and the feature would have been
   /// sold before anyone found out.
-  /// What already works, and is free.
+  /// Free, and already working. The PRD's 무료 list says
+  /// `폰 상태 앱 실행 시 1회 갱신` in as many words, and that is exactly what
+  /// the check-in does — the paid half is the *5분 주기* refresh below, not
+  /// the reading itself.
   ///
-  /// 기기 상태 moved up here the day it was built, and the move is the point:
-  /// a 준비 중 block over a feature that works is the same defect as a
-  /// working-looking block over one that does not, read the other way round.
-  /// It is listed without the 5분 주기 the sketch promised, because the
-  /// reading rides on the parent's check-in instead, and without 인터넷,
-  /// which nothing reports.
-  static const working = <(IconData, Color, Color, String, String)>[
+  /// It is listed without the 인터넷 the sketch promised, because nothing
+  /// reports it.
+  static const free = <(IconData, Color, Color, String, String)>[
     (
       Icons.battery_charging_full_rounded,
       AppColors.guardianTintBlue,
       AppColors.guardianTintBlueInk,
       '기기 상태 확인',
       '부모님이 폰을 쓰실 때마다 배터리와 소리를 확인합니다',
+    ),
+  ];
+
+  /// Paid, and built: the moment a subscription exists and the senior has
+  /// agreed, these fire. They are kept out of the 준비 중 block for the same
+  /// reason 기기 상태 was — a working feature under a sentence saying it does
+  /// not work is the mirror of the defect that block exists to prevent.
+  static const ready = <(IconData, Color, Color, String, String)>[
+    (
+      Icons.battery_alert_rounded,
+      AppColors.guardianTintAmber,
+      AppColors.guardianTintAmberInk,
+      '배터리 부족 알림',
+      '충전 없이 15% 아래로 내려가면 알려드립니다',
+    ),
+    (
+      Icons.bedtime_rounded,
+      AppColors.guardianTintViolet,
+      AppColors.guardianTintVioletInk,
+      '폰 미사용 알림',
+      '이틀 넘게 폰을 켜지 않으시면 알려드립니다',
     ),
   ];
 
@@ -66,6 +86,13 @@ class GuardianCareTab extends ConsumerWidget {
       AppColors.guardianTintGreenInk,
       '위치 확인',
       '5분 주기로 어디 계신지 확인합니다',
+    ),
+    (
+      Icons.sync_rounded,
+      AppColors.guardianTintBlue,
+      AppColors.guardianTintBlueInk,
+      '5분 주기 상태 갱신',
+      '폰을 쓰지 않으셔도 배터리를 계속 확인합니다',
     ),
     (
       Icons.download_rounded,
@@ -279,7 +306,10 @@ class _Features extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        for (final feature in GuardianCareTab.working)
+        for (final feature in [
+          ...GuardianCareTab.free,
+          ...GuardianCareTab.ready,
+        ])
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
             child: _Feature(feature: feature),
