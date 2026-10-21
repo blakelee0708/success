@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/pair_link.dart';
 import '../application/guardian_home_apps_controller.dart';
 import '../application/guardian_pairing_controller.dart';
+import '../application/guardian_session_controller.dart';
 import 'widgets/guardian_surfaces.dart';
 
 /// Widget keys the tests drive.
@@ -23,6 +26,8 @@ class GuardianFamilyKeys {
   static const issuedCode = Key('guardian-family-issued-code');
   static const guardians = Key('guardian-family-guardians');
   static const recovery = Key('guardian-family-recovery');
+  static const signOut = Key('guardian-family-sign-out');
+  static const signOutConfirm = Key('guardian-family-sign-out-confirm');
   static const familyInvite = Key('guardian-family-invite-family');
   static const requestPrimary = Key('guardian-family-request-primary');
 }
@@ -69,7 +74,77 @@ class GuardianFamilyTab extends ConsumerWidget {
             ),
           ),
         ],
+        const SizedBox(height: 8),
+        const _Card(child: _SignOut()),
       ],
+    );
+  }
+}
+
+/// 로그아웃. `04_SCREEN_SPEC` puts it in the guardian's 설정 탭; this app
+/// folded that tab into 가족, and the row went missing in the fold —
+/// `signOut()` has been on the controller since Phase 4 with nothing calling
+/// it, so a guardian signed in on a borrowed phone had no way off it.
+///
+/// Quiet on purpose. It is the last thing on the tab and it is not a filled
+/// button: nobody opens this app in order to leave it.
+class _SignOut extends ConsumerWidget {
+  const _SignOut();
+
+  Future<void> _confirm(BuildContext context, WidgetRef ref) async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: GuardianFamilyKeys.signOutConfirm,
+        title: const Text('로그아웃할까요?'),
+        // What it does *not* do. A guardian who reads 로그아웃 as 연결 끊기
+        // will never press it, and one who presses it expecting that is
+        // worse off still.
+        content: const Text(
+          '부모님 폰은 그대로입니다. 홈 화면도, 연결도 바뀌지 않아요.\n'
+          '다시 로그인하시면 이어서 쓰실 수 있어요.',
+          style: TextStyle(fontSize: 14.5, height: 1.55),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('그만두기'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !context.mounted) return;
+
+    await ref.read(guardianLoginControllerProvider.notifier).signOut();
+    if (!context.mounted) return;
+    // Back to the launch gate rather than staying put. Nothing redirects this
+    // route on its own, so a dashboard built from a session that no longer
+    // exists would go on showing the last parent's name until the app was
+    // restarted.
+    context.go(Routes.firstScreen);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        key: GuardianFamilyKeys.signOut,
+        onPressed: () => _confirm(context, ref),
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.guardianInkSoft,
+          padding: EdgeInsets.zero,
+        ),
+        icon: const Icon(Icons.logout_rounded, size: 18),
+        label: const Text(
+          '로그아웃',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ),
     );
   }
 }

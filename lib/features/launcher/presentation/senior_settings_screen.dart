@@ -22,6 +22,9 @@ class SeniorSettingsScreen extends ConsumerWidget {
   const SeniorSettingsScreen({super.key});
 
   static const homeAppRow = Key('senior-settings-home-app');
+  static const stopUsingRow = Key('senior-settings-stop-using');
+  static const stopUsingConfirm = Key('senior-settings-stop-using-confirm');
+  static const stopUsingManual = Key('senior-settings-stop-using-manual');
 
   /// Shown only when the phone refuses to open its own chooser.
   static const manualKey = Key('senior-settings-home-app-manual');
@@ -78,12 +81,124 @@ class SeniorSettingsScreen extends ConsumerWidget {
     );
   }
 
+  /// Gives the phone back: the senior picks their old home screen again.
+  ///
+  /// Android gives an app **no way to stop being the home app** — there is no
+  /// "clear default" an app may call on itself. The phone's own chooser is
+  /// the only route, and it happens to be the same screen
+  /// 첫 화면으로 정하기 opens, approached from the other side. That works
+  /// without a line of new Kotlin because `openHomeSettings` only asks for
+  /// the HOME *role* when this app does not hold it; holding it, the call
+  /// falls through to `ACTION_HOME_SETTINGS`, which is the picker.
+  ///
+  /// It asks first. This changes what pressing Home does on someone's phone,
+  /// and the senior is the one who has to live with the answer.
+  static Future<void> _stopUsing(BuildContext context, WidgetRef ref) async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: SeniorSettingsScreen.stopUsingConfirm,
+        backgroundColor: AppColors.seniorSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: const Text(
+          '원래 화면으로\n돌아갈까요?',
+          style: TextStyle(
+            fontSize: 25,
+            height: 1.35,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+            color: AppColors.seniorInk,
+          ),
+        ),
+        // Nothing is lost and saying so is the point: the buttons, the text
+        // size and the family connection are all kept, and a senior left to
+        // guess that reads a reversible choice as a final one.
+        content: const Text(
+          '홈 버튼을 누르면 원래 쓰시던\n'
+          '화면이 나옵니다.\n\n'
+          '설정해 두신 것은 그대로 있어요.\n'
+          '언제든 다시 쓰실 수 있어요.',
+          style: TextStyle(
+            fontSize: 19,
+            height: 1.6,
+            color: AppColors.seniorInk,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              '그만두기',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.seniorInkMuted,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              '돌아가기',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.seniorPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !context.mounted) return;
+
+    final opened = await ref.read(appLauncherProvider).openHomeSettings();
+    ref.invalidate(isDefaultHomeProvider);
+    if (opened || !context.mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: SeniorSettingsScreen.stopUsingManual,
+        backgroundColor: AppColors.seniorSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        content: const Text(
+          '이 휴대폰에서는 여기서 바로 바꿀 수 없어요.\n'
+          '휴대폰 설정 → 애플리케이션 → 기본 앱 선택 → 홈 화면 앱\n'
+          '에서 원래 쓰시던 앱을 골라 주세요.',
+          style: TextStyle(
+            fontSize: 19,
+            height: 1.6,
+            color: AppColors.seniorInk,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(
+              '알겠어요',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.seniorPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Shown only where the phone says this app is not its home app, which is
     // the case onboarding's question leaves behind when a senior says 나중에.
-    final offerHomeApp =
-        ref.watch(isDefaultHomeProvider).value == false;
+    final isHome = ref.watch(isDefaultHomeProvider).value;
+    final offerHomeApp = isHome == false;
 
     return Scaffold(
       backgroundColor: AppColors.seniorBackground,
@@ -138,6 +253,22 @@ class SeniorSettingsScreen extends ConsumerWidget {
                 wall: AppColors.seniorSosWall,
                 onTap: () => _setHomeApp(context, ref),
               ),
+            // The other half of the row above, and it belongs beside it
+            // rather than at the bottom of the list: 첫 화면으로 정하기 and
+            // this are one setting seen from two sides, and exactly one of
+            // them applies at a time.
+            if (isHome == true)
+              _Row(
+                key: SeniorSettingsScreen.stopUsingRow,
+                label: '잘보이네 사용하지 않기',
+                detail: '원래 쓰시던 화면으로 돌아갑니다',
+                icon: Icons.logout_rounded,
+                face: AppColors.seniorMore,
+                light: AppColors.seniorMoreLight,
+                deep: AppColors.seniorMoreDeep,
+                wall: AppColors.seniorMoreWall,
+                onTap: () => _stopUsing(context, ref),
+              ),
             const SizedBox(height: 26),
             const _GroupTitle('가족'),
             _Row(
@@ -167,15 +298,6 @@ class SeniorSettingsScreen extends ConsumerWidget {
               label: '진동/벨소리 전환',
               detail: '곧 쓰실 수 있어요',
               icon: Icons.volume_up_rounded,
-              face: AppColors.seniorMore,
-              light: AppColors.seniorMoreLight,
-              deep: AppColors.seniorMoreDeep,
-              wall: AppColors.seniorMoreWall,
-            ),
-            const _Row(
-              label: '잘보이네 사용하지 않기',
-              detail: '곧 쓰실 수 있어요',
-              icon: Icons.logout_rounded,
               face: AppColors.seniorMore,
               light: AppColors.seniorMoreLight,
               deep: AppColors.seniorMoreDeep,

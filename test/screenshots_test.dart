@@ -636,6 +636,39 @@ void main() {
     expect(find.text('글씨 크기 조절하기'), findsOneWidget);
     await _capture(tester, '21-senior-settings');
 
+    // The same screen on a phone this app *is* the home screen of, which is
+    // the phone almost every senior is holding. 첫 화면으로 정하기 is gone
+    // because it is done, and 잘보이네 사용하지 않기 is pressable because
+    // there is now something to undo.
+    await pumpApp(
+      tester,
+      overrides: [
+        nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
+        appLauncherProvider.overrideWithValue(
+          FakeAppLauncher(defaultHome: true),
+        ),
+      ],
+      prefs: {
+        SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+          const SeniorSettings(
+            screenMode: ScreenMode.detailed,
+            apps: defaultDetailedApps,
+          ).toJson(),
+        ),
+      },
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('설정'));
+    await tester.pumpAndSettle();
+    expect(find.text('잘보이네 사용하지 않기'), findsOneWidget);
+    await _capture(tester, '21b-senior-settings-home');
+
+    await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
+    await tester.pumpAndSettle();
+    await _capture(tester, '21c-stop-using');
+    await tester.tap(find.text('그만두기'));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('앱 설정하기'));
     await tester.pumpAndSettle();
     await _capture(tester, '22-app-settings');

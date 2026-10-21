@@ -389,11 +389,30 @@ grouped, because the six are not six of a kind: **이 화면** (앱 설정하기
 크기, and 첫 화면으로 정하기 when it applies), **가족** (메시지, 연결 설정) and
 **아직 준비 중** (진동/벨소리, 사용하지 않기).
 
-The last pair have no `onTap` at all, so they cannot be pressed — the way the
-disabled SOS tile says the same thing. They fade to 0.6 rather than 0.5:
-`Opacity` fades lettering with the face, and `곧 쓰실 수 있어요` is the only
-thing on those rows worth reading. 가족 메시지 is lettered in ink because its
-amber cannot hold white, the same rule as everywhere else.
+**잘보이네 사용하지 않기 left that last group and joined the first.** It sat
+in 아직 준비 중 with no `onTap`, which was honest and useless: a senior who
+wants their old home screen back had no way to say so, on the one app that
+took the home screen over. Android gives an app **no way to unset itself** as
+the home app — there is no "clear default" to call — so the phone's own
+chooser is the only route, and it is the same screen 첫 화면으로 정하기 opens.
+That needed no new Kotlin: `openHomeSettings` asks for the HOME *role* only
+when this app does not hold it, so holding it, the call falls through to
+`ACTION_HOME_SETTINGS`, which is the picker.
+
+The two live side by side in **이 화면** because they are one setting seen
+from two sides, and exactly one of them is ever shown — `isDefaultHome`
+decides which. It asks first, because it changes what pressing Home does on
+someone's phone, and the dialog says **nothing is lost**: the buttons, the
+text size and the family connection all stay, and a senior left to guess that
+reads a reversible choice as a final one. The same manual-path dialog covers
+a phone that refuses to open its chooser.
+
+진동/벨소리 전환 is what is left in 아직 준비 중. It has no `onTap` at all, so
+it cannot be pressed — the way the disabled SOS tile says the same thing. It
+fades to 0.6 rather than 0.5: `Opacity` fades lettering with the face, and
+`곧 쓰실 수 있어요` is the only thing on that row worth reading. 가족 메시지 is
+lettered in ink because its amber cannot hold white, the same rule as
+everywhere else.
 
 ## 긴급 연락 is three colours now, and the sizes go to four
 
@@ -484,6 +503,19 @@ button and said nothing about where a new button would land. In the list it is
 simply the next thing after the last button, and adding one pushes it down.
 Both are tested: the button has to sit below the last row and move when a row
 is added, and the heading has to scroll out of view.
+
+**로그아웃 is on 가족, and it had been missing since Phase 4.**
+`04_SCREEN_SPEC` puts it in the guardian's 설정 탭; this app folded that tab
+into 가족 and the row went missing in the fold, so `signOut()` sat on the
+controller with nothing on any screen calling it — a guardian signed in on a
+borrowed phone had no way off it. It is the last thing on the tab and a text
+button rather than a filled one, because nobody opens this app in order to
+leave it. It asks first, and the dialog says what signing out does **not** do:
+부모님 폰은 그대로입니다 — someone who reads 로그아웃 as 연결 끊기 will never
+press it, and someone who presses it expecting that is worse off still.
+Afterwards it goes to `/` rather than staying put; nothing redirects that
+route on its own, so the dashboard would have gone on showing the last
+parent's name until the app was restarted.
 
 **The sign-in screen may not promise what the app cannot do.** It is the
 first screen a guardian reads and the only one that makes promises, so it is
