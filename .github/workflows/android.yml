@@ -136,12 +136,36 @@ jobs:
           # the intermediates are NOT under android/app/build — which is where
           # this looked the first time, and it found nothing and failed the
           # build for it. Both are searched now.
-          merged="$(find build android -path '*merged*' -name AndroidManifest.xml 2>/dev/null | head -1)"
-          if [ -z "$merged" ]; then
-            echo "::error::no merged manifest found — cannot verify the HOME filter"
+          #
+          # And the *app's* manifest has to be singled out, not merely the
+          # first one found. Every Gradle module writes one, so the moment
+          # firebase_messaging was added `head -1` started reading
+          # build/firebase_messaging/… — a plugin that has no HOME filter and
+          # never should — and failed a build whose APK was perfectly good.
+          # The app module is the one whose package is the application id,
+          # which is read from Gradle rather than written here again.
+          want="$(sed -n 's/.*applicationId *= *"\([^"]*\)".*/\1/p' \
+                    android/app/build.gradle.kts | head -1)"
+          if [ -z "$want" ]; then
+            echo "::error::no applicationId in android/app/build.gradle.kts"
             exit 1
           fi
-          echo "merged manifest: $merged"
+          merged=""
+          while IFS= read -r candidate; do
+            if grep -q "package=\"$want\"" "$candidate"; then
+              merged="$candidate"
+              break
+            fi
+          done < <(find build android -path '*merged*' -name AndroidManifest.xml 2>/dev/null)
+          if [ -z "$merged" ]; then
+            echo "::error::no merged manifest for $want — cannot verify the HOME filter"
+            exit 1
+          fi
+          # Free end-to-end check on the application id while we are here:
+          # `application_id_test.dart` compares the Dart and Gradle copies but
+          # never builds an APK, so this is the only place the id the phone
+          # will actually see is confirmed.
+          echo "merged manifest for $want: $merged"
           for needed in \
             android.intent.category.HOME \
             android.intent.category.DEFAULT \
