@@ -6,7 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
 import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.speech.tts.TextToSpeech
+import java.util.Locale
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
@@ -26,6 +31,8 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     private var channel: MethodChannel? = null
+    private var alarm: MediaPlayer? = null
+    private var tts: TextToSpeech? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -41,6 +48,10 @@ class MainActivity : FlutterActivity() {
                     )
                     "isDefaultHome" -> result.success(isDefaultHome())
                     "deviceStatus" -> result.success(deviceStatus())
+                    "startEmergencySound" -> result.success(startEmergencySound())
+                    "stopEmergencySound" -> result.success(stopEmergencySound())
+                    "speak" -> result.success(speak(call.argument<String>("text")))
+                    "stopSpeaking" -> result.success(stopSpeaking())
                     "openHomeSettings" -> result.success(openHomeSettings())
                     else -> result.notImplemented()
                 }
@@ -185,6 +196,108 @@ class MainActivity : FlutterActivity() {
         return status
     }
 
+    /**
+     * 소리 울리기 — makes this phone loud so its owner finds it.
+     *
+     * Plays on STREAM_ALARM, which a silent or vibrate ringer does not mute:
+     * that is how alarm clocks keep working. Do Not Disturb can still mute it
+     * where the user has turned alarms off inside DND, and overriding that
+     * needs ACCESS_NOTIFICATION_POLICY — not worth demanding of a senior for
+     * a feature whose whole point is to be a courtesy.
+     *
+     * The volume is deliberately left alone. Turning someone's alarm volume to
+     * maximum and not putting it back is the kind of thing that catches them
+     * at six the next morning.
+     */
+    private fun startEmergencySound(): Boolean {
+        stopEmergencySound()
+        val uri = RingtoneManager.getActualDefaultRingtoneUri(
+            this, RingtoneManager.TYPE_ALARM
+        ) ?: RingtoneManager.getActualDefaultRingtoneUri(
+            this, RingtoneManager.TYPE_RINGTONE
+        ) ?: return false
+        return try {
+            alarm = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                setDataSource(this@MainActivity, uri)
+                isLooping = true
+                prepare()
+                start()
+            }
+            true
+        } catch (e: Exception) {
+            // A phone with no alarm tone, or one that refuses the stream.
+            // The Flutter side still shows who is asking and why, which is
+            // the half that cannot be allowed to depend on a speaker.
+            stopEmergencySound()
+            false
+        }
+    }
+
+    private fun stopEmergencySound(): Boolean {
+        alarm?.let {
+            try {
+                if (it.isPlaying) it.stop()
+            } catch (e: IllegalStateException) {
+                // Already torn down.
+            }
+            it.release()
+        }
+        alarm = null
+        return true
+    }
+
+    /**
+     * 읽어드리기 — reads a message out loud.
+     *
+     * Android's TTS is built in: no permission, no download, no account. A
+     * Korean voice is present on effectively every Korean handset, and a
+     * phone without one simply says nothing — the message is still on screen,
+     * which is where it was before this existed.
+     *
+     * QUEUE_FLUSH rather than QUEUE_ADD: pressing a second message means
+     * "read this one", not "read it after the other".
+     */
+    private fun speak(text: String?): Boolean {
+        val say = text?.trim().orEmpty()
+        if (say.isEmpty()) return false
+        val engine = tts
+        if (engine != null) {
+            engine.speak(say, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID)
+            return true
+        }
+        // First use: the engine is not ready until its init callback runs, so
+        // the first press speaks from inside it rather than being dropped.
+        tts = TextToSpeech(this) { status ->
+            if (status != TextToSpeech.SUCCESS) {
+                tts = null
+                return@TextToSpeech
+            }
+            tts?.language = Locale.KOREAN
+            tts?.speak(say, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID)
+        }
+        return true
+    }
+
+    private fun stopSpeaking(): Boolean {
+        tts?.stop()
+        return true
+    }
+
+    /** Nothing may outlive the screen that started it. */
+    override fun onDestroy() {
+        stopEmergencySound()
+        tts?.stop()
+        tts?.shutdown()
+        tts = null
+        super.onDestroy()
+    }
+
     private fun isDefaultHome(): Boolean {
         val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         val resolved = packageManager.resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY)
@@ -231,5 +344,6 @@ class MainActivity : FlutterActivity() {
     private companion object {
         const val CHANNEL = "jalboine/launcher"
         const val REQUEST_HOME_ROLE = 1001
+        const val UTTERANCE_ID = "jalboine-read-aloud"
     }
 }

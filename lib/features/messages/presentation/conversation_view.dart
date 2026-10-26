@@ -5,6 +5,7 @@ import '../../../data/remote/message_repository.dart';
 import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/family_message.dart';
 import '../application/message_controller.dart';
+import '../data/speech_reader.dart';
 
 /// Widget keys the tests drive.
 class ConversationKeys {
@@ -16,6 +17,9 @@ class ConversationKeys {
   static const quota = Key('conversation-quota');
   static const error = Key('conversation-error');
   static const empty = Key('conversation-empty');
+
+  /// The 읽어드리기 target on one received message, on the parent's phone.
+  static Key read(String messageId) => Key('conversation-read-$messageId');
 }
 
 /// 가족 메시지, drawn the same way on both phones.
@@ -79,6 +83,20 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
     }
   }
 
+  /// Told, never awaited — the same rule the ring screen and the check-in
+  /// follow. A platform channel is not obliged to reply, and a senior
+  /// pressing a bubble must not be left holding a frozen screen because no
+  /// Korean voice is installed.
+  void _read(String? body) {
+    final text = body?.trim();
+    if (text == null || text.isEmpty) return;
+    try {
+      ref.read(speechReaderProvider).speak(text);
+    } on Object {
+      // Nothing on screen changes because of a speaker.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final messages = ref.watch(conversationProvider).value ?? const [];
@@ -104,6 +122,12 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                         ? messages[i].isFromSenior
                         : !messages[i].isFromSenior,
                     scale: scale,
+                    // Only on the parent's phone, and only on what came in.
+                    // The guardian can read, and reading someone their own
+                    // message back is noise.
+                    onRead: widget.large && !messages[i].isFromSenior
+                        ? () => _read(messages[i].body)
+                        : null,
                   ),
                 ),
         ),
@@ -252,16 +276,20 @@ class _Bubble extends StatelessWidget {
     required this.message,
     required this.mine,
     required this.scale,
+    this.onRead,
   });
 
   final FamilyMessage message;
   final bool mine;
   final double scale;
 
+  /// Set on the parent's phone, for messages that came in. Null elsewhere.
+  final VoidCallback? onRead;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Align(
+    final bubble = Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         // Keyed by the message rather than by "a bubble": a shared key across
@@ -288,6 +316,31 @@ class _Bubble extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (onRead == null) return bubble;
+
+    // The whole bubble is the button, with a speaker beside it so a senior
+    // knows it can be pressed. A small icon alone would be a target an
+    // ageing hand misses; the bubble is the biggest thing on the row.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+          child: InkWell(
+            key: ConversationKeys.read(message.id),
+            onTap: onRead,
+            borderRadius: BorderRadius.circular(16),
+            child: bubble,
+          ),
+        ),
+        IconButton(
+          onPressed: onRead,
+          iconSize: 28 * scale,
+          color: scheme.primary,
+          tooltip: '읽어드리기',
+          icon: const Icon(Icons.volume_up_rounded),
+        ),
+      ],
     );
   }
 }
