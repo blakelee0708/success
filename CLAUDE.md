@@ -920,10 +920,11 @@ where the user has turned alarms off inside DND; overriding that needs
 `ACCESS_NOTIFICATION_POLICY` and is not worth demanding. None of that is
 written yet and none of it can be verified here.
 
-**It cannot be triggered yet.** Remote ringing needs FCM, FCM needs a Firebase
-project, and a Firebase project needs an `applicationId` that is not
-`com.example.app`. The screen, the controller, the timeout and the dismissal
-are built and tested; the trigger is the missing half.
+**It cannot be triggered yet.** Remote ringing needs FCM, and FCM needs a
+Firebase project registered against the `applicationId` — which is now
+`com.jalboine.app`, so that half of the blocker is gone and the Firebase
+project itself is what is left. The screen, the controller, the timeout and the
+dismissal are built and tested; the trigger is the missing half.
 
 ### What Play's policy actually bites
 
@@ -1237,8 +1238,8 @@ Two things about it:
 - The APK is signed with the **debug** key, because
   `android/app/build.gradle.kts` still points the release build type at
   `signingConfigs.debug`. It sideloads fine and is enough to test on a phone. It
-  is not a store build — a real upload key, and an `applicationId` that is not
-  `com.example.app`, are both still to do.
+  is not a store build — a real upload key is still to do. The `applicationId`
+  is no longer one of the blockers; see `## com.jalboine.app` below.
 
 Neither job fetches a font any more. The app's own faces are committed under
 `assets/fonts/`, and `screenshots_test.dart` reads them from the asset bundle,
@@ -1257,6 +1258,48 @@ a mismatch that fails silently, since a keyless build is a supported
 configuration rather than an error. The `--dart-define` is unrelated to either
 name; it is what `SupabaseConfig.fromEnvironment` reads and it stays
 `SUPABASE_ANON_KEY`.
+
+## com.jalboine.app
+
+Settled 2026-10-26. It was the Flutter template's `com.example.app` until
+then, and that one string was holding up four separate things: Play refuses
+`com.example.*` outright, Firebase registers an app *by* its id, and both the
+Google and the Kakao OAuth redirect URIs are built from it. Picking it unblocks
+all four at once, which is why it was worth doing before any of them.
+
+**It can never be changed again** once a listing exists — Play ties the listing
+to the id for good — so this is the one value in the project with no second
+attempt.
+
+It lives in three places that cannot see each other:
+
+| | |
+|---|---|
+| `android/app/build.gradle.kts` | `namespace` and `applicationId` — what the APK is built with |
+| `android/app/src/main/kotlin/com/jalboine/app/` | the Kotlin package, which has to be the directory it is in |
+| `guardian_pairing_controller.dart` | `const applicationId`, the Play link a guardian texts their parent |
+
+`AndroidManifest.xml` is the exception: it names the activity `.MainActivity`,
+relative to the namespace, so it needed no change.
+
+**A mismatch between the Dart copy and the Gradle copy fails silently and in
+the worst place.** The APK builds, the guardian's message looks right, and the
+parent taps through to a store page for an app that does not exist — on 경로 A,
+the path whose whole point is that nobody has to be standing next to them.
+`flutter analyze` does not read Gradle and `flutter test` does not build the
+APK, so `test/core/application_id_test.dart` reads `build.gradle.kts` off disk
+and compares the two, checks the namespace agrees, and checks `MainActivity.kt`
+is in the directory its package declares. Flipping the Gradle value by one
+character fails it.
+
+`ios/`, `macos/`, `linux/` and `windows/` still carry the template's
+`com.example.app`. None of them is built — this is an Android launcher, and
+iOS does not let an app be the home screen — so they were left alone rather
+than changed to look finished.
+
+What the id does **not** unblock: the upload key, the Play Console account, the
+privacy-policy URL and Play Billing are all still to do, and the Firebase
+project still has to be created against this id by hand.
 
 ## Conventions
 

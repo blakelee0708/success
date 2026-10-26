@@ -206,4 +206,6 @@ Recorded so they are not lost, and deliberately not built here:
      typed by the guardian.
 - Kakao and Google sign-in wiring (Phase 4).
 - Making the app the actual Android launcher.
-- `applicationId` is still `com.example.app`.
+- `applicationId` is still `com.example.app`. *(Settled 2026-10-26: it is
+  `com.jalboine.app`, and `application_id_test.dart` holds Dart and Gradle
+  to the same value.)*

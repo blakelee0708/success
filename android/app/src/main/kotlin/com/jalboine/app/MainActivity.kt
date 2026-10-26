@@ -1,4 +1,4 @@
-package com.example.app
+package com.jalboine.app
 
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException

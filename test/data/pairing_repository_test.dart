@@ -137,7 +137,7 @@ void main() {
 
       final body = link.installMessage(
         seniorName: '아버지',
-        applicationId: 'com.example.app',
+        applicationId: 'com.jalboine.app',
       );
 
       // The token rides in as the Play install referrer, which is what makes

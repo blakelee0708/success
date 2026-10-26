@@ -10,11 +10,12 @@ import 'guardian_session_controller.dart';
 
 /// The application id the install link points at.
 ///
-/// Still the Flutter template's default. It has to change before anything is
-/// published — Play refuses `com.example.*`, and the id can never be changed
-/// once a listing exists — so it lives here rather than being spelled out at
-/// each call site.
-const applicationId = 'com.example.app';
+/// Settled 2026-10-26. It has to match `android/app/build.gradle.kts`, because
+/// this is the id in the Play link a guardian texts their parent and a wrong
+/// one sends them to a store page that does not exist. It lives here rather
+/// than at each call site for that reason, and it can never be changed once a
+/// listing exists.
+const applicationId = 'com.jalboine.app';
 
 /// Everyone looking after the selected parent.
 final guardiansForSelectedProvider = FutureProvider<List<GuardianLink>>((
