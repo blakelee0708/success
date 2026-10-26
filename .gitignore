@@ -49,3 +49,10 @@ app.*.map.json
 # committed under assets/fonts/; this 10 MB original is not, because nothing
 # but a regeneration ever reads it. The script says how to fetch it.
 /test/fonts/
+
+# Firebase service-account keys. `google-services.json` is committed on
+# purpose — it ships inside every APK and is not a secret — but a service
+# account signs FCM sends and must never be in the repository. It lives in
+# Supabase Edge Function secrets as FCM_SERVICE_ACCOUNT.
+*-firebase-adminsdk-*.json
+**/service-account*.json

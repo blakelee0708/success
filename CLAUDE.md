@@ -1360,22 +1360,52 @@ breaks every read until somebody remembers. That is a trap, and the thing it
 would protect is inert: a token sends nothing without the service-account key.
 What is done instead is to not hand it out — `activeDevice` names its columns.
 
-### The two halves that are still missing
+### The gate is SQL; the Edge Function only sends
 
-1. **The sender.** A Supabase Edge Function holding the FCM v1
-   service-account key. The legacy server key is gone, so it is a service
-   account or nothing, and that key goes in Edge Function secrets — never in
-   the repo, never in a `--dart-define`.
+`request_phone_ring` (`20261026030000_request_ring.sql`, applied live) answers
+every question about whether a ring is allowed — guardian of *this* parent,
+link still `active`, `care_is_active` (a subscription **and** the senior's
+consent), which phone, and what the screen will say.
+`supabase/functions/ring-phone/index.ts` mints a Google OAuth token from the
+service account and POSTs to FCM v1. That is all it does.
+
+The split is the point. The gate is then checkable from an environment that
+cannot deploy or run Deno — `tool/verify_supabase_ring.py`, 13 checks against
+the live project — and the subscription rule does not end up living in two
+languages with one copy nobody can test. It also keeps the service key out of
+the authorization path: the function forwards **the caller's own JWT** to the
+gate, because it reads `auth.uid()`, and holds the service key only for
+talking to Google.
+
+Two refusals in it are worth keeping: a **removed** guardian cannot ring a
+phone they no longer look after, which is the single worst thing this feature
+could be used for; and a phone that never checked in returns no row rather
+than a null token, so the sender cannot POST `to: null` and read the rejection
+as a delivery failure.
+
+`google-services.json` is committed and the **service account is not** —
+`.gitignore` carries `*-firebase-adminsdk-*.json` so it cannot be added by
+accident. It lives in Edge Function secrets as `FCM_SERVICE_ACCOUNT`.
+
+### What is still missing
+
+1. **Deploying the function, and its secret.** Both are one command each and
+   neither has been done.
 2. **The background wake-up.** `PushMessaging.messages()` is
-   `FirebaseMessaging.onMessage`, which only delivers **while the app is in the
-   foreground**. A launcher is in the foreground most of the time, but not with
-   the screen off — and a phone in a bag in another room is the case this
-   feature exists for. Closing that needs a background handler and native code
-   to bring the activity forward, which cannot be written or verified here.
+   `FirebaseMessaging.onMessage`, which delivers only **while the app is in
+   the foreground**. A launcher is in the foreground most of the time, but not
+   with the screen off — and a phone in a bag in another room is the case this
+   feature exists for. Closing it needs a background handler plus native code
+   to bring the activity forward, and on Android 14 that route runs into
+   `USE_FULL_SCREEN_INTENT`, which Play grants to calling and alarm apps.
+   Unresolved, and unverifiable here.
+3. **The guardian's button.** Deliberately not built yet. With (2) open it
+   would ring only a phone whose screen is already on, which is the opposite
+   of what the feature is for, and putting it on 돌봄 would be selling that.
 
-So the feature is **plumbed, not working**, and the gap is the opposite of the
-use case. Nothing on either screen claims otherwise: 소리 울리기 is still
-`CareReadiness.planned` and sits in 돌봄's 준비 중 block.
+So the feature is **plumbed and gated, not working**. Nothing on either screen
+claims otherwise: 소리 울리기 is still `CareReadiness.planned` and sits in
+돌봄's 준비 중 block.
 
 ## Conventions
 
