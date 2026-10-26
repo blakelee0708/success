@@ -18,6 +18,14 @@ abstract interface class MessageRepository {
   Future<FamilyMessage> send(String seniorProfileId, {String? body});
 
   Future<MessageQuota> quota(String seniorProfileId);
+
+  /// Marks everything the *other* side sent as read.
+  ///
+  /// Takes no message ids on purpose: the caller marks the conversation, not
+  /// a message, so nothing can claim a read on something it never showed.
+  /// Fails quietly — a receipt that did not land is not worth an error on
+  /// either person's screen.
+  Future<void> markRead(String seniorProfileId);
 }
 
 /// The free allowance is gone for this month.
@@ -78,6 +86,17 @@ class SupabaseMessageRepository implements MessageRepository {
   }
 
   @override
+  Future<void> markRead(String seniorProfileId) async {
+    try {
+      await _client.rpc(
+        'mark_conversation_read',
+        params: {'p_senior_profile_id': seniorProfileId},
+      );
+    } on Object {
+      // A receipt is a courtesy. Nothing on either screen depends on it.
+    }
+  }
+  @override
   Future<MessageQuota> quota(String seniorProfileId) async {
     final result = await _client.rpc(
       'family_message_quota',
@@ -136,6 +155,32 @@ class InMemoryMessageRepository implements MessageRepository {
     );
     (byProfile[seniorProfileId] ??= []).add(message);
     return message;
+  }
+
+  /// Which side this fake is reading as — the mirror of [sendingAsSenior].
+  bool readingAsSenior = false;
+
+  @override
+  Future<void> markRead(String seniorProfileId) async {
+    final now = DateTime(2026, 8, 2);
+    final list = byProfile[seniorProfileId];
+    if (list == null) return;
+    for (var i = 0; i < list.length; i++) {
+      final m = list[i];
+      if (m.readAt != null) continue;
+      // The parent marks what guardians sent; a guardian marks what the
+      // parent sent. Neither marks their own.
+      if (m.isFromSenior == readingAsSenior) continue;
+      list[i] = FamilyMessage(
+        id: m.id,
+        sentAt: m.sentAt,
+        body: m.body,
+        imageUrl: m.imageUrl,
+        senderGuardianId: m.senderGuardianId,
+        senderDeviceId: m.senderDeviceId,
+        readAt: now,
+      );
+    }
   }
 
   @override

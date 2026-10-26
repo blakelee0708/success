@@ -60,6 +60,8 @@ List<Object> _shared(Harness h) => [
 
 /// The parent's own phone, in 가족 메시지.
 Future<void> _pumpSenior(WidgetTester tester, Harness h) async {
+  h.messages.sendingAsSenior = true;
+  h.messages.readingAsSenior = true;
   await pumpApp(
     tester,
     overrides: [

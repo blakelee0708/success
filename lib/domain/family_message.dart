@@ -7,6 +7,7 @@ class FamilyMessage {
     this.imageUrl,
     this.senderGuardianId,
     this.senderDeviceId,
+    this.readAt,
   });
 
   final String id;
@@ -19,8 +20,18 @@ class FamilyMessage {
   final String? senderGuardianId;
   final String? senderDeviceId;
 
+  /// When the other side opened the conversation after this arrived, or null.
+  ///
+  /// Shown to the guardian on their own messages and **never to the parent**.
+  /// A senior watching an unread mark on a message to a busy adult child is
+  /// the unkindest thing this app could put on a screen, and nobody asked
+  /// for it.
+  final DateTime? readAt;
+
   /// True when the parent wrote it.
   bool get isFromSenior => senderDeviceId != null;
+
+  bool get isRead => readAt != null;
 
   static FamilyMessage? fromRow(Map<String, Object?> row) {
     final id = row['id'];
@@ -35,6 +46,10 @@ class FamilyMessage {
       imageUrl: row['image_url'] as String?,
       senderGuardianId: row['sender_guardian_id'] as String?,
       senderDeviceId: row['sender_device_id'] as String?,
+      readAt: switch (row['read_at']) {
+        final String value => DateTime.tryParse(value),
+        _ => null,
+      },
     );
   }
 
@@ -46,11 +61,13 @@ class FamilyMessage {
       other.body == body &&
       other.imageUrl == imageUrl &&
       other.senderGuardianId == senderGuardianId &&
-      other.senderDeviceId == senderDeviceId;
+      other.senderDeviceId == senderDeviceId &&
+      other.readAt == readAt;
 
   @override
   int get hashCode =>
-      Object.hash(id, sentAt, body, imageUrl, senderGuardianId, senderDeviceId);
+      Object.hash(id, sentAt, body, imageUrl, senderGuardianId, senderDeviceId,
+          readAt);
 }
 
 /// What is left of this month's free allowance.

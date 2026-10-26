@@ -54,6 +54,19 @@ class MessageController extends Notifier<void> {
     ref.invalidate(conversationProvider);
     ref.invalidate(messageQuotaProvider);
   }
+
+  /// Marks what the other side sent as read, because this screen is open.
+  ///
+  /// Not awaited by anything drawn, and the repository swallows its own
+  /// failures: a receipt is a courtesy and must not hold up a conversation.
+  /// The conversation is **not** invalidated afterwards — the reader has no
+  /// use for their own receipt, and refreshing the list under them would
+  /// scroll the message they are in the middle of reading.
+  Future<void> markRead() async {
+    final profileId = await ref.read(conversationProfileIdProvider.future);
+    if (profileId == null) return;
+    await ref.read(messageRepositoryProvider).markRead(profileId);
+  }
 }
 
 final messageControllerProvider = NotifierProvider<MessageController, void>(

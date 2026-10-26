@@ -20,6 +20,12 @@ class ConversationKeys {
 
   /// The 읽어드리기 target on one received message, on the parent's phone.
   static Key read(String messageId) => Key('conversation-read-$messageId');
+
+  /// One of the parent's preset replies.
+  static Key quickReply(String text) => Key('conversation-quick-$text');
+
+  /// The 읽음 mark under one of the guardian's own messages.
+  static Key readMark(String messageId) => Key('conversation-seen-$messageId');
 }
 
 /// 가족 메시지, drawn the same way on both phones.
@@ -42,6 +48,18 @@ class ConversationView extends ConsumerStatefulWidget {
   final String title;
   final bool large;
 
+  /// The three things a senior most often wants to say, as buttons.
+  ///
+  /// The first is the one this exists for. A parent who does not want to be a
+  /// bother will not compose a message and will not ring — but they will
+  /// press 전화 좀 줘, because it costs them nothing and explains itself. Play
+  /// has nothing to say about it and neither does the policy doc: it is a
+  /// message, sent by the person it is about.
+  ///
+  /// Typing is the part that defeats them. Everything else on this screen
+  /// assumes a keyboard.
+  static const quickReplies = ['전화 좀 줘', '잘 있다', '고맙다'];
+
   /// The allowance is the guardian's to manage. Showing a senior a counter of
   /// how many times their family may write to them would be unkind and useless
   /// — their own replies are never counted anyway.
@@ -62,8 +80,8 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
     super.dispose();
   }
 
-  Future<void> _send() async {
-    final text = _controller.text.trim();
+  Future<void> _send([String? preset]) async {
+    final text = (preset ?? _controller.text).trim();
     if (text.isEmpty || _busy) return;
     setState(() {
       _busy = true;
@@ -71,7 +89,7 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
     });
     try {
       await ref.read(messageControllerProvider.notifier).send(text);
-      _controller.clear();
+      if (preset == null) _controller.clear();
     } on MessageQuotaExceeded catch (e) {
       if (mounted) setState(() => _error = e.message);
     } on SeniorLinkException catch (e) {
@@ -87,6 +105,17 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
   /// follow. A platform channel is not obliged to reply, and a senior
   /// pressing a bubble must not be left holding a frozen screen because no
   /// Korean voice is installed.
+  @override
+  void initState() {
+    super.initState();
+    // Opening the conversation is what reading it means. Done once, on the
+    // frame after the first build, so it never runs during a build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(messageControllerProvider.notifier).markRead();
+    });
+  }
+
   void _read(String? body) {
     final text = body?.trim();
     if (text == null || text.isEmpty) return;
@@ -128,6 +157,11 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                     onRead: widget.large && !messages[i].isFromSenior
                         ? () => _read(messages[i].body)
                         : null,
+                    // The guardian, on their own messages, once the parent
+                    // has opened them. Never the other way round.
+                    showRead: !widget.large &&
+                        !messages[i].isFromSenior &&
+                        messages[i].isRead,
                   ),
                 ),
         ),
@@ -142,6 +176,37 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                 height: 1.4,
                 color: Theme.of(context).colorScheme.error,
               ),
+            ),
+          ),
+        // Only on the parent's phone. The guardian has a keyboard and uses
+        // it; these would be three ways to say less than they mean.
+        if (widget.large)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final preset in ConversationView.quickReplies)
+                  OutlinedButton(
+                    key: ConversationKeys.quickReply(preset),
+                    onPressed: _busy ? null : () => _send(preset),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 54),
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    child: Text(
+                      preset,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         SafeArea(
@@ -277,6 +342,7 @@ class _Bubble extends StatelessWidget {
     required this.mine,
     required this.scale,
     this.onRead,
+    this.showRead = false,
   });
 
   final FamilyMessage message;
@@ -285,6 +351,9 @@ class _Bubble extends StatelessWidget {
 
   /// Set on the parent's phone, for messages that came in. Null elsewhere.
   final VoidCallback? onRead;
+
+  /// Whether to draw the 읽음 mark. The guardian's own messages only.
+  final bool showRead;
 
   @override
   Widget build(BuildContext context) {
@@ -307,13 +376,37 @@ class _Bubble extends StatelessWidget {
           color: mine ? scheme.primary : scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Text(
-          message.body ?? '',
-          style: TextStyle(
-            fontSize: 16 * scale,
-            height: 1.4,
-            color: mine ? scheme.onPrimary : scheme.onSurface,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message.body ?? '',
+              style: TextStyle(
+                fontSize: 16 * scale,
+                height: 1.4,
+                color: mine ? scheme.onPrimary : scheme.onSurface,
+              ),
+            ),
+            // Only `읽음`, and only on the guardian's own messages. There is
+            // deliberately no 안 읽음: a mark counting how long a busy adult
+            // has left their parent waiting would teach a senior to feel
+            // ignored, and a guardian to nag. What is worth saying is that
+            // it arrived.
+            if (showRead)
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Text(
+                  '읽음',
+                  key: ConversationKeys.readMark(message.id),
+                  style: TextStyle(
+                    fontSize: 11.5 * scale,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onPrimary.withValues(alpha: 0.75),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
