@@ -130,6 +130,7 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
   Future<void> addApp({
     required String label,
     required AppCategory category,
+    String? phoneNumber,
   }) async {
     final current = state.value ?? const SeniorSettings();
     await _write(
@@ -140,11 +141,25 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
             id: _freshId(current.apps),
             label: label,
             category: category,
+            phoneNumber: phoneNumber,
           ),
         ],
       ),
     );
   }
+
+  /// Both halves of a person button at once. Renaming and renumbering are one
+  /// edit: a number that can only be set at creation means a typo is fixed by
+  /// deleting the button and starting over.
+  Future<void> editContact(
+    String id, {
+    required String label,
+    required String phoneNumber,
+  }) => _mapApps(
+    (app) => app.id == id
+        ? app.copyWith(label: label, phoneNumber: phoneNumber)
+        : app,
+  );
 
   Future<void> _mapApps(LauncherApp Function(LauncherApp) transform) async {
     final current = state.value ?? const SeniorSettings();

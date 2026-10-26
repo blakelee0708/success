@@ -7,7 +7,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
+import '../../../domain/app_category.dart';
 import '../data/app_launcher.dart';
+import '../data/phone_dialer.dart';
 import 'widgets/app_tile.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import 'widgets/home_body.dart';
@@ -47,6 +49,18 @@ class DetailedHomeScreen extends ConsumerWidget {
     WidgetRef ref,
     LauncherApp app,
   ) async {
+    // A person is dialled, not opened. `tel:` resolves to ACTION_DIAL, so the
+    // keypad appears with the number in it and the senior presses call —
+    // exactly as 119 does, and for the same reason.
+    if (app.opensDialer) {
+      await ref.read(phoneDialerProvider).openDialer(app.phoneNumber!);
+      return;
+    }
+    // A contact the guardian has not finished — a name with no number — has
+    // nothing to dial. Opening the dialer blank looks broken rather than
+    // unfinished, so it does nothing at all.
+    if (app.category.isContact) return;
+
     final opened = await ref
         .read(appLauncherProvider)
         .open(launchRequestFor(app.category));

@@ -55,6 +55,10 @@ LaunchRequest launchRequestFor(AppCategory category) => switch (category) {
   AppCategory.camera => const LaunchRequest(intent: LaunchIntent.camera),
   AppCategory.gallery => const LaunchRequest(intent: LaunchIntent.gallery),
   AppCategory.kakao => const LaunchRequest(packageName: 'com.kakao.talk'),
+  // A contact never reaches here — the home screen sends it to the dialer
+  // instead — but the switch has to be total, and `dial` is the honest
+  // answer for a contact whose number went missing.
+  AppCategory.contact => const LaunchRequest(intent: LaunchIntent.dial),
   AppCategory.youtube => const LaunchRequest(
     packageName: 'com.google.android.youtube',
     intent: LaunchIntent.browser,

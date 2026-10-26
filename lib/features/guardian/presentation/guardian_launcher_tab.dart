@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../../launcher/presentation/widgets/category_picker.dart';
+import '../../launcher/presentation/widgets/contact_dialog.dart';
 import '../application/guardian_home_apps_controller.dart';
 import 'widgets/guardian_surfaces.dart';
 
@@ -150,6 +151,26 @@ class _Editor extends ConsumerWidget {
     WidgetRef ref,
     LauncherApp app,
   ) async {
+    if (app.category.isContact) {
+      final draft = await askForContact(
+        context,
+        title: '고치기',
+        initialName: app.label,
+        initialNumber: app.phoneNumber ?? '',
+      );
+      if (draft == null || !context.mounted) return;
+      await _run(
+        context,
+        ref,
+        (c) => c.editContact(
+          app.id,
+          label: draft.name,
+          phoneNumber: draft.number,
+        ),
+      );
+      return;
+    }
+
     final name = await _askForName(
       context,
       title: '이름 바꾸기',
@@ -167,6 +188,25 @@ class _Editor extends ConsumerWidget {
   Future<void> _add(BuildContext context, WidgetRef ref) async {
     final category = await askForCategory(context);
     if (category == null || !context.mounted) return;
+
+    // A person needs a number as well as a name. This is the screen it is
+    // meant to be typed on: the guardian knows the number, the parent does
+    // not have to, and their phone never reads an address book.
+    if (category.isContact) {
+      final draft = await askForContact(context);
+      if (draft == null || !context.mounted) return;
+      await _run(
+        context,
+        ref,
+        (c) => c.add(
+          label: draft.name,
+          category: category,
+          phoneNumber: draft.number,
+        ),
+      );
+      return;
+    }
+
     final name = await _askForName(
       context,
       title: '버튼 추가하기',

@@ -29,6 +29,7 @@ class LauncherApp {
     required this.label,
     required this.category,
     this.color,
+    this.phoneNumber,
   });
 
   final String id;
@@ -40,26 +41,51 @@ class LauncherApp {
   /// Set once the senior (or their guardian) picks a colour by hand.
   final ButtonColor? color;
 
+  /// The number a `contact` button dials. Supplied by the guardian, so the
+  /// parent's phone never needs a contacts permission to have their
+  /// daughter on the home screen.
+  ///
+  /// Null on every other kind, and null on a contact the guardian has not
+  /// finished setting up — [opensDialer] is what the home screen asks.
+  final String? phoneNumber;
+
+  /// Whether tapping this opens the dialer rather than an app. Both halves
+  /// matter: a contact with no number has nothing to dial, and a number on
+  /// any other kind would be ignored.
+  bool get opensDialer =>
+      category.isContact && (phoneNumber?.trim().isNotEmpty ?? false);
+
   /// The colour actually drawn.
   Color get baseColor => color?.color ?? category.baseColor;
 
-  LauncherApp copyWith({String? label, AppCategory? category}) => LauncherApp(
+  LauncherApp copyWith({
+    String? label,
+    AppCategory? category,
+    String? phoneNumber,
+  }) => LauncherApp(
     id: id,
     label: label ?? this.label,
     category: category ?? this.category,
     color: color,
+    phoneNumber: phoneNumber ?? this.phoneNumber,
   );
 
   /// Separate from [copyWith] because clearing a colour is a real edit —
   /// `copyWith(color: null)` could not tell "leave it" from "reset it".
-  LauncherApp withColor(ButtonColor? value) =>
-      LauncherApp(id: id, label: label, category: category, color: value);
+  LauncherApp withColor(ButtonColor? value) => LauncherApp(
+    id: id,
+    label: label,
+    category: category,
+    color: value,
+    phoneNumber: phoneNumber,
+  );
 
   Map<String, Object?> toJson() => {
     'id': id,
     'label': label,
     'category': category.name,
     'color': color?.name,
+    'phoneNumber': phoneNumber,
   };
 
   /// Returns null for a row that cannot be read, so one bad button does not
@@ -74,6 +100,7 @@ class LauncherApp {
       label: label,
       category: category,
       color: _byName(ButtonColor.values, json['color']),
+      phoneNumber: json['phoneNumber'] as String?,
     );
   }
 

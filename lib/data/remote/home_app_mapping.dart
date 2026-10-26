@@ -21,10 +21,14 @@ List<Map<String, Object?>> homeAppsPayload(List<LauncherApp> apps) => [
   for (var i = 0; i < apps.length; i++)
     {
       'client_id': apps[i].id,
-      'app_type': 'system_app',
+      // `family_contact` was in the table's check constraint from Phase 4 —
+      // `05_DATA_MODEL` anticipated people on the home screen long before
+      // anything wrote one.
+      'app_type': apps[i].category.isContact ? 'family_contact' : 'system_app',
       'label': apps[i].label,
       'icon_key': apps[i].category.name,
       'button_color': apps[i].color?.name,
+      'phone_number': apps[i].phoneNumber,
       'sort_order': i,
       'is_default': _defaultIds.contains(apps[i].id),
     },
@@ -56,6 +60,10 @@ LauncherApp? _toApp(Map<String, Object?> row) {
     label: label,
     category: category,
     color: _byName(ButtonColor.values, row['button_color']),
+    phoneNumber: switch (row['phone_number']) {
+      final String value when value.trim().isNotEmpty => value,
+      _ => null,
+    },
   );
 }
 

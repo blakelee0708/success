@@ -76,13 +76,36 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
   Future<bool> remove(String id) =>
       _write((apps) => [for (final app in apps) if (app.id != id) app]);
 
-  Future<bool> add({required String label, required AppCategory category}) =>
-      _write(
-        (apps) => [
-          ...apps,
-          LauncherApp(id: _freshId(apps), label: label, category: category),
-        ],
-      );
+  Future<bool> add({
+    required String label,
+    required AppCategory category,
+    String? phoneNumber,
+  }) => _write(
+    (apps) => [
+      ...apps,
+      LauncherApp(
+        id: _freshId(apps),
+        label: label,
+        category: category,
+        phoneNumber: phoneNumber,
+      ),
+    ],
+  );
+
+  /// Both halves of a person button at once — see the senior-side twin.
+  Future<bool> editContact(
+    String id, {
+    required String label,
+    required String phoneNumber,
+  }) => _write(
+    (apps) => [
+      for (final app in apps)
+        if (app.id == id)
+          app.copyWith(label: label, phoneNumber: phoneNumber)
+        else
+          app,
+    ],
+  );
 
   /// Indices follow `ReorderableListView`: [newIndex] is read against the list
   /// as it still stands, before the dragged button is lifted out.

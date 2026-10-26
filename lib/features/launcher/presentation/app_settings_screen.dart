@@ -6,6 +6,7 @@ import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
 import 'widgets/category_picker.dart';
+import 'widgets/contact_dialog.dart';
 
 /// 앱 설정하기 — the senior's own view of their home buttons: reorder, rename,
 /// recolour, remove, add.
@@ -71,6 +72,22 @@ class AppSettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     LauncherApp app,
   ) async {
+    // Editing a person edits both halves. A number that can only be set once
+    // means a typo is fixed by deleting the button and starting again.
+    if (app.category.isContact) {
+      final draft = await askForContact(
+        context,
+        title: '고치기',
+        initialName: app.label,
+        initialNumber: app.phoneNumber ?? '',
+      );
+      if (draft == null) return;
+      await ref
+          .read(seniorSettingsControllerProvider.notifier)
+          .editContact(app.id, label: draft.name, phoneNumber: draft.number);
+      return;
+    }
+
     final name = await _askForName(context, title: '이름 바꾸기', initial: app.label);
     if (name == null) return;
     await ref
@@ -86,6 +103,22 @@ class AppSettingsScreen extends ConsumerWidget {
   Future<void> _add(BuildContext context, WidgetRef ref) async {
     final category = await askForCategory(context);
     if (category == null || !context.mounted) return;
+
+    // A person needs a number as well as a name, and there is no sensible
+    // default for either.
+    if (category.isContact) {
+      final draft = await askForContact(context);
+      if (draft == null) return;
+      await ref
+          .read(seniorSettingsControllerProvider.notifier)
+          .addApp(
+            label: draft.name,
+            category: category,
+            phoneNumber: draft.number,
+          );
+      return;
+    }
+
     final name = await _askForName(
       context,
       title: '버튼 추가하기',
