@@ -920,11 +920,11 @@ where the user has turned alarms off inside DND; overriding that needs
 `ACCESS_NOTIFICATION_POLICY` and is not worth demanding. None of that is
 written yet and none of it can be verified here.
 
-**It cannot be triggered yet.** Remote ringing needs FCM, and FCM needs a
-Firebase project registered against the `applicationId` — which is now
-`com.jalboine.app`, so that half of the blocker is gone and the Firebase
-project itself is what is left. The screen, the controller, the timeout and the
-dismissal are built and tested; the trigger is the missing half.
+**It still cannot be triggered, but the receiving half now exists.** The
+Firebase project is registered and the parent's phone reports an FCM token on
+every check-in; a `{"type":"ring"}` data message arriving in the foreground
+raises `SeniorRingLayer`. Two halves are left and both are outside what can be
+built here — see `## Firebase` below.
 
 ### What Play's policy actually bites
 
@@ -1300,6 +1300,82 @@ than changed to look finished.
 What the id does **not** unblock: the upload key, the Play Console account, the
 privacy-policy URL and Play Billing are all still to do, and the Firebase
 project still has to be created against this id by hand.
+
+## Firebase
+
+Registered 2026-10-26, project `jalboine-7db89` under `blakelee0708@gmail.com`,
+Spark plan. It exists for **소리 울리기 and nothing else** — the one thing in
+the app that is triggered remotely. Everything else the guardian changes is
+read by the parent's phone the next time it asks, which is fine because none of
+it is urgent; a phone nobody is holding cannot wait for the next resume.
+
+**Google Analytics is deliberately off.** Half this app's users are seniors
+who did not install it, cannot be asked about anything on a screen, and whose
+*home screen* this is. Adding telemetry to that is the thing the whole 위치
+decision was about, and it would have put IP-derived 대략적 위치 into an app
+whose privacy policy is about to say it collects no location. It can be turned
+on later from the console if that is ever argued for; it cannot be un-collected.
+
+**No notification permission is needed.** The payload is a **data message**,
+not a notification — Android 13's `POST_NOTIFICATIONS` is for notifications,
+and a status-bar entry is the one place a senior who cannot find their contacts
+app will not look. What arrives is drawn as `SeniorRingLayer`, full screen,
+saying who is asking before it says anything else.
+
+`google-services.json` **is committed**, which is correct and not an oversight:
+it ships inside every APK, so it is not a secret, and leaving it out means CI
+cannot build. The thing that *is* secret is the service-account key the sender
+needs, and that has no business in a repository.
+
+### The token rides on the check-in
+
+`senior_devices.push_token` (`20261026020000_push_token.sql`, applied live),
+written by `touch_senior_device` with the same `coalesce` as the battery.
+
+It is not a call of its own because **a token rotates** — reinstall, restore to
+a new handset, and occasionally for Firebase's own reasons — and the check-in
+is the one thing that already runs at start-up and on every resume. Registering
+once at pairing would have gone stale silently, which is how 소리 울리기 fails
+on the day it matters.
+
+Two things in `SeniorPresenceReporter` are load-bearing:
+
+- **The token read and the battery read are started separately.** Chained, the
+  token sat behind a platform channel that is not obliged to answer — and
+  `flutter test` is such a phone, so it was never read at all. The test caught
+  it. A battery percentage must not be able to cost a family their ring.
+- **A new token gets a call of its own**, where the battery waits for the next
+  resume. One resume of staleness costs a percentage nobody is watching; here
+  it costs *the address the ring is sent to*, and the window it leaves open is
+  the one right after a phone is set up, which is exactly when the family is
+  trying things out.
+
+**A guardian in the family can read the token column, and that is accepted.**
+RLS is row-level and their policy already selects their parent's device row; a
+column cannot be carved out of the table-level SELECT grant `authenticated`
+holds, so `revoke select (push_token)` is a no-op — tried, checked, and written
+into the migration so nobody tries it twice. Enforcing it means revoking the
+table grant and re-granting column by column, after which every new column
+breaks every read until somebody remembers. That is a trap, and the thing it
+would protect is inert: a token sends nothing without the service-account key.
+What is done instead is to not hand it out — `activeDevice` names its columns.
+
+### The two halves that are still missing
+
+1. **The sender.** A Supabase Edge Function holding the FCM v1
+   service-account key. The legacy server key is gone, so it is a service
+   account or nothing, and that key goes in Edge Function secrets — never in
+   the repo, never in a `--dart-define`.
+2. **The background wake-up.** `PushMessaging.messages()` is
+   `FirebaseMessaging.onMessage`, which only delivers **while the app is in the
+   foreground**. A launcher is in the foreground most of the time, but not with
+   the screen off — and a phone in a bag in another room is the case this
+   feature exists for. Closing that needs a background handler and native code
+   to bring the activity forward, which cannot be written or verified here.
+
+So the feature is **plumbed, not working**, and the gap is the opposite of the
+use case. Nothing on either screen claims otherwise: 소리 울리기 is still
+`CareReadiness.planned` and sits in 돌봄's 준비 중 block.
 
 ## Conventions
 

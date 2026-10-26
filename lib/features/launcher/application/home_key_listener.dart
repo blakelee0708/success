@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
+import '../../care/application/push_ring_listener.dart';
 import '../data/app_launcher.dart';
 import 'senior_presence_reporter.dart';
 import 'senior_settings_controller.dart';
@@ -39,7 +42,13 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
     MethodChannelAppLauncher.channel.setMethodCallHandler(_onCall);
     WidgetsBinding.instance.addObserver(this);
     // The first report of the run. Not awaited and not shown: see [_report].
-    WidgetsBinding.instance.addPostFrameCallback((_) => _report());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _report();
+      // 소리 울리기's receiving half. It starts here rather than on a screen
+      // because the ring has to be able to cover whichever one is on top,
+      // and it guards on this being a parent's phone itself.
+      unawaited(ref.read(pushRingListenerProvider).start());
+    });
   }
 
   /// 안부 신호. Deliberately fire-and-forget — the guardian's dashboard is

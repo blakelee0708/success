@@ -39,6 +39,11 @@ dependencies:
   shared_preferences: ^2.5.5
   url_launcher: ^6.3.2
   supabase_flutter: ^2.16.0
+  # 소리 울리기 is the only thing that needs a push: the guardian presses a
+  # button on their phone and the parent's has to make a noise. Nothing else
+  # in the app is remotely triggered.
+  firebase_core: ^4.3.0
+  firebase_messaging: ^16.0.3
 
 dev_dependencies:
   flutter_test:

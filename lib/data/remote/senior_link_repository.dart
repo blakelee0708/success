@@ -58,7 +58,11 @@ abstract interface class SeniorLinkRepository {
   /// reading is worth having exactly when the parent used the phone, and a
   /// second trip would be a second thing to fail. Null when this phone could
   /// read nothing, which leaves whatever was last reported standing.
-  Future<void> touchDevice(String installId, {DeviceStatus? status});
+  Future<void> touchDevice(
+    String installId, {
+    DeviceStatus? status,
+    String? pushToken,
+  });
 
   Future<SeniorProfile> fetchProfile(String seniorProfileId);
 
@@ -152,7 +156,11 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
   }
 
   @override
-  Future<void> touchDevice(String installId, {DeviceStatus? status}) async {
+  Future<void> touchDevice(
+    String installId, {
+    DeviceStatus? status,
+    String? pushToken,
+  }) async {
     try {
       await _client.rpc('touch_senior_device', params: {
         'p_install_id': installId,
@@ -160,6 +168,9 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
         'p_is_charging': status?.isCharging,
         'p_ringer_mode': status?.ringer?.name,
         'p_status_read_at': status?.readAt.toUtc().toIso8601String(),
+        // Coalesced server-side like the rest: a resume that could not read
+        // a token leaves the last good one in place.
+        'p_push_token': pushToken,
       });
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);
@@ -188,7 +199,13 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
     try {
       final row = await _client
           .from('senior_devices')
-          .select()
+          // Named rather than `*`, because `push_token` is revoked from
+          // `authenticated` and a `select *` would be refused outright. See
+          // `20261026020000_push_token.sql`.
+          .select(
+            'id, install_id, is_active, device_label, platform, last_seen_at, '
+            'battery_percent, is_charging, ringer_mode, status_read_at',
+          )
           .eq('senior_profile_id', seniorProfileId)
           .eq('is_active', true)
           .maybeSingle();
@@ -410,13 +427,22 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// How many times this phone has reported in, for the tests.
   int touchCount = 0;
 
+  /// The FCM address each phone last reported, keyed by install id — the
+  /// in-memory stand-in for `senior_devices.push_token`.
+  final Map<String, String> pushTokenByInstallId = {};
+
   /// Makes every call fail, the way a phone with no signal does.
   bool offline = false;
 
   @override
-  Future<void> touchDevice(String installId, {DeviceStatus? status}) async {
+  Future<void> touchDevice(
+    String installId, {
+    DeviceStatus? status,
+    String? pushToken,
+  }) async {
     if (offline) throw const SeniorLinkException('연결하지 못했어요.');
     touchCount++;
+    if (pushToken != null) pushTokenByInstallId[installId] = pushToken;
     for (final entry in activeDeviceByProfile.entries) {
       final device = entry.value;
       if (device.installId != installId) continue;

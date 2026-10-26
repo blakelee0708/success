@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -20,5 +21,24 @@ Future<void> main() async {
     await Supabase.initialize(url: config.url, publishableKey: config.anonKey);
   }
 
+  await _initFirebase();
+
   runApp(const ProviderScope(child: App()));
+}
+
+/// Firebase is for 소리 울리기 and nothing else, so a build without it is a
+/// build missing one paid feature rather than a build that cannot start.
+///
+/// It is caught rather than asked about, because unlike Supabase there is no
+/// `--dart-define` to consult: whether this works depends on whether
+/// `android/app/google-services.json` was present when the APK was built, and
+/// on a desktop or test binding there is no platform to ask at all.
+/// `pushMessagingProvider` reads `Firebase.apps` afterwards and falls back to
+/// silence.
+Future<void> _initFirebase() async {
+  try {
+    await Firebase.initializeApp();
+  } on Object {
+    // Nothing downstream requires a push. The launcher opens either way.
+  }
 }

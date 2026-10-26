@@ -112,7 +112,7 @@ def device_row(token, profile_id):
     st, rows = call(
         f"/rest/v1/senior_devices?senior_profile_id=eq.{profile_id}"
         "&select=install_id,last_seen_at,is_active,battery_percent,is_charging,"
-        "ringer_mode,status_read_at",
+        "ringer_mode,status_read_at,push_token",
         token=token, method="GET")
     return st, rows
 
@@ -189,11 +189,39 @@ try:
     check("and neither refusal disturbed the stored reading",
           active(rows)["battery_percent"] == 61, rows)
 
+    # --- 소리 울리기's address ------------------------------------------------
+    # The token rides on the check-in because it rotates: reinstall, restore
+    # to a new handset, and occasionally for Firebase's own reasons.
+    st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
+                 body={"p_install_id": install, "p_push_token": "fcm-token-1"})
+    check("the check-in carries the push token", st in (200, 204), st)
+
+    st, rows = device_row(g1, profile_id)
+    check("the token is stored against the phone",
+          active(rows)["push_token"] == "fcm-token-1", active(rows))
+
+    # Same coalesce as the battery, and it matters more: clearing a good token
+    # because the network was down for a second would leave the phone
+    # unreachable until Firebase next rotated it.
+    st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
+                 body={"p_install_id": install})
+    st, rows = device_row(g1, profile_id)
+    check("a check-in with no token leaves the last one standing",
+          active(rows)["push_token"] == "fcm-token-1", active(rows))
+
+    st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
+                 body={"p_install_id": install, "p_push_token": "fcm-token-2"})
+    st, rows = device_row(g1, profile_id)
+    check("a rotated token replaces the old one",
+          active(rows)["push_token"] == "fcm-token-2", active(rows))
+
     # --- one phone may not report for another -------------------------------
     other, _other_install = device()
     st, _ = call("/rest/v1/rpc/touch_senior_device", token=other,
-                 body={"p_install_id": install})
+                 body={"p_install_id": install, "p_push_token": "stolen"})
     st2, rows2 = device_row(g1, profile_id)
+    check("and it cannot redirect the ring to itself",
+          active(rows2)["push_token"] == "fcm-token-2", active(rows2))
     check("another phone naming this install changes nothing",
           st2 == 200 and active(rows2)["last_seen_at"] == active(rows)["last_seen_at"],
           (active(rows)["last_seen_at"], active(rows2)["last_seen_at"]))
@@ -220,6 +248,8 @@ try:
           st == 200 and len(live) == 1, rows)
     check("and it is the new one",
           live and live[0]["install_id"] == new_install, live)
+    check("the new phone starts with no token of its own, not the old one's",
+          active(rows)["push_token"] is None, active(rows))
     check("the new phone starts with no reading of its own, not the old one's",
           live and live[0]["battery_percent"] is None, live)
 
