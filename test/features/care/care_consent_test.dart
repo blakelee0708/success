@@ -248,14 +248,14 @@ void main() {
     await _pumpCareTab(tester, h);
 
     final notice = tester.getRect(find.textContaining('아직 준비 중입니다'));
-    for (final built in ['기기 상태 확인', '배터리 부족 알림', '폰 미사용 알림']) {
+    for (final built in ['기기 상태 확인', '배터리 부족 알림', '폰 미사용 알림', '읽음 확인']) {
       expect(
         tester.getRect(find.text(built)).top,
         lessThan(notice.top),
         reason: '$built 가 준비 중 안내 아래에 있습니다',
       );
     }
-    for (final unbuilt in ['위치 확인', '앱 설치 알림']) {
+    for (final unbuilt in ['소리 울리기', '5분 주기 상태 갱신']) {
       expect(
         tester.getRect(find.text(unbuilt)).top,
         greaterThan(notice.bottom),
@@ -302,7 +302,14 @@ void main() {
     await _pumpCareTab(tester, h);
 
     expect(find.textContaining('실시간'), findsNothing);
-    expect(find.text('위치 확인'), findsOneWidget);
+    // 위치 확인 is gone from the product entirely (2026-10-26): the police and
+    // 119 route is better and free, Play's stalkerware rule aims at exactly
+    // this, and the 위치기반서비스사업 신고 applies however it is collected.
+    expect(find.textContaining('위치'), findsNothing);
+    expect(find.textContaining('어디 계신지'), findsNothing);
+    // 앱 설치 감지 went with it — an adult's installed-app list is sensitive
+    // data about them.
+    expect(find.textContaining('앱 설치'), findsNothing);
     // 모르는 번호 통화 알림 is gone, and so is the 보이스피싱 framing the PRD
     // never allowed: Play grants READ_CALL_LOG to default phone and messaging
     // apps, and this is a launcher.

@@ -802,6 +802,81 @@ one active device per profile would start rejecting the real one.
 `tool/verify_supabase_presence.py` checks that against the live project, along
 with one phone reporting for another and a call with no session.
 
+## 위치 is out of the product, and four things took its place
+
+Settled 2026-10-26 and written into `01_PRODUCT_PRD` (`## 위치 기능을 뺀 이유`),
+`02_MVP_SCOPE`, `04_SCREEN_SPEC` and `06_PERMISSION_AND_POLICY` — this is a PRD
+change, not a code one, and the docs are where it lives. Three things stacked
+up and none is solved by money or time:
+
+1. **119 and the police are better and free.** 위치정보법 gives 긴급구조기관 a
+   route to ask a carrier directly: no app, no permission, carrier-grade. In a
+   real emergency ours is an inferior copy. 치매 배회 has the same problem —
+   치매안심센터 hands out 배회감지기 for nothing.
+2. **Play's stalkerware rule aims at exactly this.** Collecting sensitive data
+   about another person is barred outside parent→child and enterprise→employee,
+   and the carve-out explicitly does not reach other adults **even with their
+   permission**. Unlike the Korean 신고, no paperwork fixes that. (Google's own
+   pages cannot be read from this environment — the proxy 403s
+   `support.google.com` — so confirm before shipping.)
+3. **위치기반서비스사업 신고 applies however it is collected.** Device GPS,
+   carrier API, on the check-in, on demand — the only exemption is location
+   that never leaves the handset, and the whole point is to show it to the
+   child.
+
+**Two technical dead ends worth recording** so nobody re-derives them.
+`developer.android.com`, read directly: a location foreground service **cannot
+be created while the app is in the background** without
+`ACCESS_BACKGROUND_LOCATION`, and the FCM high-priority exemption that covers
+every other foreground-service type **does not cover location**. So "wake the
+phone with a push and take one reading" is not a way around the hard
+permission; there isn't one. And the carrier API is strictly worse here — it
+removes no obligation, it is hundreds of metres coarse, and we are the
+launcher, which is the best position an Android app can have for reading GPS.
+
+What the paid tier is now: **배터리 부족 알림, 폰 미사용 알림, 읽음 확인,
+소리 울리기, 5분 주기 갱신, 가족 메시지 무제한.** The character moved from
+watching to connecting, which also removes every stalkerware question and the
+신고 entirely.
+
+### The four that replaced it
+
+- **사람 버튼** (`AppCategory.contact`). Free. Seniors fail at finding *people*
+  far more than at finding apps — 연락처 and scrolling is where they give up.
+  The guardian types the number from their own phone, so the parent's launcher
+  never needs a contacts permission. `home_apps.app_type` had
+  `'family_contact'` in its check constraint from Phase 4; `05_DATA_MODEL`
+  anticipated this and nothing had ever written one. It shares **가족's
+  amber** rather than taking a colour of its own: the warm band is already at
+  13°, 32°, 36° and 37°, and anything fitted between them is
+  indistinguishable at arm's length. Ink lettering, same rule as 카카오톡.
+  The dialog **reads the number back** before it will save — the parent cannot
+  check it and will not learn of a wrong digit until a stranger answers — and
+  refuses under nine digits.
+- **읽어드리기.** Free, and it has to be: bigger text has a floor, and past it
+  the only thing left is sound. Charging someone to hear their own daughter
+  because their eyes went is the mistake the message allowance already
+  refuses. Android's TTS is built in — no permission, no download, nothing for
+  Play. The whole bubble is the button, with a speaker beside it; a small icon
+  alone is a target an ageing hand misses. Received messages only, senior's
+  phone only.
+- **빠른 답장** — 「전화 좀 줘」「잘 있다」「고맙다」. Free. The first is why it
+  exists: a parent who does not want to be a bother will not compose and will
+  not ring, but will press a button that costs nothing and explains itself.
+  Sent as ordinary messages rather than a new alert channel, so it is useful
+  **without FCM** and shows up in the band the guardian already reads. The
+  composer's half-written text is left alone.
+- **읽음 확인.** This is what is left of the reassurance 위치 was going to
+  sell, and the better half: `어머니가 두 시에 읽으셨다` is decent evidence a
+  parent is all right, and unlike a location it is something **they did**.
+  **One direction only** — the parent is never shown whether their child read
+  *them*. A senior watching an unread mark on a message to a busy adult is the
+  unkindest thing this app could put on a screen. And there is no 안 읽음 at
+  all: a mark counting how long someone has been left waiting teaches a
+  guardian to nag. `mark_conversation_read` takes no message ids — the caller
+  marks the conversation, so nothing can claim a read on what it never showed,
+  and neither side can mark its own.
+
 ## 소리 울리기, and the trap that has now appeared three times
 
 The feature is for **`엄마가 전화를 안 받아`** — the phone is on silent, or in

@@ -87,15 +87,17 @@ void main() {
     expect(find.textContaining('보이스피싱'), findsNothing);
   });
 
-  testWidgets('the care tab does not promise real-time tracking', (
-    tester,
-  ) async {
+  testWidgets('the care tab sells no location at all', (tester) async {
     await _gotoDashboard(tester);
     await _openTab(tester, '돌봄');
 
-    // 06_PERMISSION_AND_POLICY: 실시간 추적이라고 표현하지 않는다.
+    // The rule used to be 실시간 추적이라고 표현하지 않는다, and it still
+    // holds — but location left the product entirely on 2026-10-26, so the
+    // tighter check is that the word appears nowhere. See
+    // `01_PRODUCT_PRD`'s `## 위치 기능을 뺀 이유`.
     expect(find.textContaining('실시간'), findsNothing);
-    expect(find.textContaining('위치'), findsWidgets);
+    expect(find.textContaining('추적'), findsNothing);
+    expect(find.textContaining('위치'), findsNothing);
   });
 
   testWidgets('both ways of connecting a parent are offered', (tester) async {
