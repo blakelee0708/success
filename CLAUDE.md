@@ -1387,11 +1387,25 @@ as a delivery failure.
 `.gitignore` carries `*-firebase-adminsdk-*.json` so it cannot be added by
 accident. It lives in Edge Function secrets as `FCM_SERVICE_ACCOUNT`.
 
+The sending chain is **deployed and proven**, as of 2026-10-27:
+`ring-phone` is ACTIVE with `verify_jwt`, the secret is set, and
+`tool/verify_ring_function.py` walks it end to end against the live project.
+It sends to a deliberately fake device token and reads the reply, because the
+one thing the SQL gate cannot tell you is whether the sender works.
+
+That is why the two failure modes carry different `reason` codes, and the
+distinction is load-bearing rather than convenience: a service account that
+cannot mint a token means *every ring for every family is failing*, while a
+device token FCM rejects means *that one phone is unreachable*, which is
+ordinary. Collapsed into one 502 — which is how it was first written — a
+misconfigured sender looks exactly like a parent whose phone is off, forever,
+and nobody goes looking. The verifier reads `sender_unconfigured` as a failure
+and `INVALID_ARGUMENT` as success, which is the only way to tell them apart
+from outside. `error` stays the one line a guardian reads.
+
 ### What is still missing
 
-1. **Deploying the function, and its secret.** Both are one command each and
-   neither has been done.
-2. **The background wake-up.** `PushMessaging.messages()` is
+1. **The background wake-up.** `PushMessaging.messages()` is
    `FirebaseMessaging.onMessage`, which delivers only **while the app is in
    the foreground**. A launcher is in the foreground most of the time, but not
    with the screen off — and a phone in a bag in another room is the case this
@@ -1399,7 +1413,7 @@ accident. It lives in Edge Function secrets as `FCM_SERVICE_ACCOUNT`.
    to bring the activity forward, and on Android 14 that route runs into
    `USE_FULL_SCREEN_INTENT`, which Play grants to calling and alarm apps.
    Unresolved, and unverifiable here.
-3. **The guardian's button.** Deliberately not built yet. With (2) open it
+2. **The guardian's button.** Deliberately not built yet. With (2) open it
    would ring only a phone whose screen is already on, which is the opposite
    of what the feature is for, and putting it on 돌봄 would be selling that.
 
