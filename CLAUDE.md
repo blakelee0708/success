@@ -781,25 +781,92 @@ so the account is never created rather than created-and-unconfirmed. A
 guardian who is not in the Supabase org cannot sign up at all, and that is
 every guardian but the owner.
 
-**Custom SMTP is now attached** (2026-10-27): `jalboine.com` bought at 가비아,
-verified in Resend with DKIM + two CNAMEs + DMARC, and
-`smtp.resend.com:465` / user `resend` / sender `noreply@jalboine.com` saved on
-the project. `rate_limit_email_sent` went from 2 to 30. Mail to any recipient
-now works.
-
-Two settings are still the owner's, and **no agent can make them** — every
-`PATCH` to `/config/auth` from here is refused, the autoconfirm one as a
-security relaxation and the allow-list one by the classifier outright:
+**Mail works end to end as of 2026-10-27**, and it was proven rather than
+assumed: a reset mail was sent to the owner's own inbox, the link was
+followed, a new password was set on the page, and `auth.users.updated_at`
+moved. Sign-up was proven the same way — an account created through the
+public API returned a session and then signed in.
 
 | | |
 |---|---|
-| `Confirm email` | off, by decision — address verification is not wanted before launch, so sign-up returns a session straight away |
-| `uri_allow_list` | must contain `https://jdnnetwork.github.io/success/reset.html`, or a reset lands on `site_url` instead |
+| domain | `jalboine.com`, 가비아, 네임서버는 가비아 기본 |
+| sender | Resend, DKIM + `rsend`/`send` CNAMEs + DMARC on `jalboine.com` |
+| SMTP | `smtp.resend.com:465`, user literally `resend`, pass = Resend API key |
+| from | `잘보이네 <noreply@jalboine.com>` |
+| rate | 30/hour, up from the built-in 2 |
 
-`site_url` can stay `http://localhost:3000` **only while `Confirm email` is
-off**, because nothing then redirects through it. Turning confirmation back
-on before launch means fixing it in the same breath; `site/index.html` is
-the page it should point at.
+**No MX record is involved.** Resend's current setup is CNAME-based and puts
+its return path on `send.jalboine.com`, so the apex is untouched and
+receiving mail at `support@jalboine.com` later will not collide. That was
+checked before the domain was added, because the apex-vs-subdomain choice
+cannot be undone cheaply once mail is flowing.
+
+**`Confirm email` is off, by decision.** Address verification is not wanted
+before launch, so sign-up returns a session straight away and no mail is
+sent. The cost is accepted and stated: a mistyped address still gets an
+account, and that person cannot be reached later. It is one toggle to
+reverse.
+
+**A reset mail cannot be turned off the same way**, which is why the domain
+and the SMTP are not wasted by that decision: it is the only thing that can
+tell the right person from anybody else.
+
+Three settings live in the dashboard and **no agent can set them** — every
+`PATCH` to `/config/auth` touching them is refused here, the autoconfirm one
+as a security relaxation and the allow-list one by the classifier outright.
+Mail templates are *not* refused and were set from here.
+
+| | |
+|---|---|
+| `Confirm email` | off |
+| `uri_allow_list` | holds `https://jdnnetwork.github.io/success/reset.html` |
+| `site_url` | still `http://localhost:3000`, and that is **only safe while confirmation is off** — nothing redirects through it. Turning confirmation back on means pointing it at `site/index.html` in the same breath |
+
+The templates are Korean now (`mailer_subjects_recovery`,
+`mailer_templates_recovery_content`, and the confirmation pair for when it is
+switched back on). Two flags decide whether a stored template is used at all
+— `mailer_subjects_custom_contents` and `mailer_templates_custom_contents`,
+keyed per template — and a Korean body sitting behind a `false` flag sends
+the English default with no sign anything is wrong. Both were checked after
+writing.
+
+### site/, and the two pages it holds
+
+Published by `.github/workflows/pages.yml` to
+`https://jdnnetwork.github.io/success/`. **`site/`, never `web/`** — that one
+is Flutter's web template.
+
+GitHub's `github-pages` environment allows **only the default branch** by
+default, so the first two deploys were rejected before a single step ran:
+no logs, no error on any step, a two-second failure. `claude/*` was added to
+the environment's allowed branches to get the page up before this branch
+merges. Merging it makes that rule unnecessary.
+
+- `index.html` — where a confirmation link lands. It has no button on
+  purpose: the app cannot be reopened from a web page without a deep link,
+  and a button that does nothing is worse than a sentence that tells the
+  truth.
+- `reset.html` — where a reset link lands, and the one page with work to do.
+
+**`reset.html` depends on nothing it has to fetch.** The first version
+imported the Supabase JS client from a CDN, and on a real phone that module
+did not load: the click handler was never registered, the button fell back to
+its form's default GET, the page reloaded unchanged, and it read as *the
+button does nothing*. The failure did not look like a failure. It is plain
+`fetch` to `PUT /auth/v1/user` now, the button is `type="button"` so no
+submit can reload anything, and whatever the server says is printed rather
+than replaced with a friendlier line.
+
+It also carries a visible `v2` in the footer. Two rounds were lost to a
+phone holding a cached copy while the server was already correct — nothing
+on screen could tell the two apart, so each fix looked like no fix. A
+version marker is the cheapest way to tell *stale* from *broken*.
+
+The publishable key is in that page's source on purpose: it is the key every
+APK ships with, it names the project and nothing else, and RLS is what
+guards the data. The fragment carrying the access token is read into a
+variable and **stripped from the address bar immediately** — a screenshot of
+that URL is the account.
 
 ### 비밀번호를 잊으셨나요
 
