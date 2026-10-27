@@ -99,9 +99,23 @@ the conversation.
 
 ## The paid features are interfaces` below.
 
-All six numbered phases are now done. What is left is not a phase: a real
-`applicationId`, an upload key, Play Billing, the native side of the four
-watchers, 더 보기, the 메시지 탭, and a run on a real phone.
+All six numbered phases are now done, and what is left is not a phase. This
+list was stale — it still named the `applicationId`, 더 보기, the 메시지 탭
+and a run on a real phone, all four of which have since happened. As of
+2026-10-27:
+
+- **Play 출시**: an upload key (the APK is still debug-signed), a Play Console
+  account, a privacy-policy URL, and Play Billing. Until Billing exists the
+  buy button makes a subscription with no money.
+- **Guardian sign-in**: Google and Kakao OAuth clients, and the project's mail
+  settings — see `### Email sign-up cannot work` below. Both are console work
+  only the owner can do.
+- **소리 울리기**: the background wake-up and the guardian's button. Both are
+  blocked on things outside this environment; see `## Firebase`.
+- **메시지**: image sending, which needs a picker and file storage.
+- **설정**: 진동/벨소리 전환, the one row still in 아직 준비 중.
+- **The paid watchers**: 5분 주기 갱신 and anything else `CareReadiness
+  .planned` still covers.
 
 Route `/` is a launch gate, not a screen: a senior with a saved screen mode
 lands on their home instead of the splash, because this app becomes the phone's
