@@ -101,6 +101,12 @@ class MessageQuota {
   int get textLeft => (textLimit - textUsed).clamp(0, textLimit);
   bool get canSendText => unlimited || textLeft > 0;
 
+  /// Photos have their own allowance - 월 50회 / 이미지 10개 in the PRD - and
+  /// the server counts them in a separate column. Running out of one does not
+  /// stop the other, which is the whole reason they are counted apart.
+  int get imageLeft => (imageLimit - imageUsed).clamp(0, imageLimit);
+  bool get canSendImage => unlimited || imageLeft > 0;
+
   /// Shown before the guardian runs out rather than after: a message they
   /// cannot send is worse than a number they saw coming.
   bool get isRunningLow => !unlimited && textLeft <= 5;

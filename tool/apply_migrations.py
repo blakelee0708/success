@@ -1,7 +1,7 @@
 """Puts `supabase/migrations/` on a project, in order, and then counts what landed.
 
 Written so the Seoul move is one command rather than a shell loop pasted out
-of a chat log. There are thirteen files and the order is the file name order;
+of a chat log. There are fourteen files and the order is the file name order;
 getting it wrong does not fail cleanly, because a later migration alters what
 an earlier one created.
 
@@ -52,7 +52,13 @@ MIGRATIONS = pathlib.Path("supabase/migrations")
 # Read off the project being replaced on 2026-10-27, by query rather than from
 # memory. Only `pg_cron` of the six extensions is created by a migration; the
 # rest come with a fresh Supabase project.
-EXPECTED = {"tables": 9, "functions": 37, "policies": 14, "extensions": 6, "cron_jobs": 1}
+#
+# 38 rather than that day's 37: `20261027000000_message_images.sql` adds
+# `message_image_profile`, which the photo bucket's storage policies read the
+# senior's profile id out of a file path with. The 14 policies are `public`
+# only - the two on `storage.objects` are counted by that migration's own
+# verifier, not here.
+EXPECTED = {"tables": 9, "functions": 38, "policies": 14, "extensions": 6, "cron_jobs": 1}
 
 # The function count asks about *our* schema, so it leaves out the event-trigger
 # helpers the platform installs into `public` itself. A newer project ships

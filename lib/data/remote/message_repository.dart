@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../../domain/family_message.dart';
@@ -15,7 +17,27 @@ abstract interface class MessageRepository {
 
   /// Throws [MessageQuotaExceeded] when the family's free allowance is spent —
   /// which can only happen to a guardian.
-  Future<FamilyMessage> send(String seniorProfileId, {String? body});
+  Future<FamilyMessage> send(
+    String seniorProfileId, {
+    String? body,
+    String? imagePath,
+  });
+
+  /// Puts a photo in the family's folder and returns the path it went to.
+  ///
+  /// The path, not a URL. The bucket is private, so what is stored on the
+  /// message row has to be something that can be turned into a fresh signed
+  /// link each time somebody looks - a URL saved today would be a dead link
+  /// by the time the parent scrolls back to it.
+  Future<String> uploadImage(
+    String seniorProfileId,
+    Uint8List bytes, {
+    required String contentType,
+  });
+
+  /// A link to [imagePath] that works for a while, or null if it cannot be
+  /// made. Null is *we could not fetch it*, never *there is no photo*.
+  Future<String?> imageUrl(String imagePath);
 
   Future<MessageQuota> quota(String seniorProfileId);
 
@@ -43,6 +65,51 @@ class SupabaseMessageRepository implements MessageRepository {
 
   final sb.SupabaseClient _client;
 
+  /// The private bucket the photos live in. Its policies read the senior's
+  /// profile id out of the first path segment, so the layout is not cosmetic.
+  static const bucket = 'message-images';
+
+  @override
+  Future<String> uploadImage(
+    String seniorProfileId,
+    Uint8List bytes, {
+    required String contentType,
+  }) async {
+    final ext = switch (contentType) {
+      'image/png' => 'png',
+      'image/webp' => 'webp',
+      'image/heic' => 'heic',
+      _ => 'jpg',
+    };
+    final path =
+        '$seniorProfileId/${DateTime.now().microsecondsSinceEpoch}.$ext';
+    try {
+      await _client.storage
+          .from(bucket)
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: sb.FileOptions(contentType: contentType),
+          );
+      return path;
+    } on sb.StorageException catch (e) {
+      throw SeniorLinkException(e.message);
+    }
+  }
+
+  @override
+  Future<String?> imageUrl(String imagePath) async {
+    try {
+      // An hour is long enough to read a conversation and short enough that
+      // a link copied out of the app stops working the same afternoon.
+      return await _client.storage
+          .from(bucket)
+          .createSignedUrl(imagePath, 3600);
+    } on sb.StorageException {
+      return null;
+    }
+  }
+
   @override
   Future<List<FamilyMessage>> conversation(String seniorProfileId) async {
     try {
@@ -59,11 +126,19 @@ class SupabaseMessageRepository implements MessageRepository {
   }
 
   @override
-  Future<FamilyMessage> send(String seniorProfileId, {String? body}) async {
+  Future<FamilyMessage> send(
+    String seniorProfileId, {
+    String? body,
+    String? imagePath,
+  }) async {
     try {
       final row = await _client.rpc(
         'send_family_message',
-        params: {'p_senior_profile_id': seniorProfileId, 'p_body': body},
+        params: {
+          'p_senior_profile_id': seniorProfileId,
+          'p_body': body,
+          'p_image_url': imagePath,
+        },
       );
       final message = row is Map<String, Object?>
           ? FamilyMessage.fromRow(row)
@@ -132,14 +207,23 @@ class InMemoryMessageRepository implements MessageRepository {
       List.unmodifiable(byProfile[seniorProfileId] ?? const []);
 
   @override
-  Future<FamilyMessage> send(String seniorProfileId, {String? body}) async {
+  Future<FamilyMessage> send(
+    String seniorProfileId, {
+    String? body,
+    String? imagePath,
+  }) async {
     final text = body?.trim() ?? '';
-    if (text.isEmpty) {
+    if (text.isEmpty && imagePath == null) {
       throw const SeniorLinkException('보낼 내용이 없어요.');
     }
     if (!sendingAsSenior) {
       final current = await quota(seniorProfileId);
-      if (!current.canSendText) {
+      // A photo is counted against the image allowance, not the text one -
+      // the server counts them in separate columns and so does this.
+      final allowed = imagePath != null
+          ? current.canSendImage
+          : current.canSendText;
+      if (!allowed) {
         throw const MessageQuotaExceeded(
           '이번 달 무료 메시지를 다 쓰셨어요. 안심 케어를 시작하시면 제한 없이 보낼 수 있어요.',
         );
@@ -149,13 +233,33 @@ class InMemoryMessageRepository implements MessageRepository {
     final message = FamilyMessage(
       id: 'message-$_seq',
       sentAt: DateTime(2026, 8, 1).add(Duration(minutes: _seq)),
-      body: text,
+      body: text.isEmpty ? null : text,
+      imageUrl: imagePath,
       senderGuardianId: sendingAsSenior ? null : sendingGuardianId,
       senderDeviceId: sendingAsSenior ? 'device-1' : null,
     );
     (byProfile[seniorProfileId] ??= []).add(message);
     return message;
   }
+
+  /// Photos the fake was handed, newest last. The bytes are not kept - what
+  /// the tests care about is that one went up and what path came back.
+  final uploaded = <String>[];
+
+  @override
+  Future<String> uploadImage(
+    String seniorProfileId,
+    Uint8List bytes, {
+    required String contentType,
+  }) async {
+    final path = '$seniorProfileId/${uploaded.length + 1}.jpg';
+    uploaded.add(path);
+    return path;
+  }
+
+  @override
+  Future<String?> imageUrl(String imagePath) async =>
+      'https://example.test/$imagePath';
 
   /// Which guardian this fake is sending as.
   ///

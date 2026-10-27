@@ -6,6 +6,7 @@ import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/family_message.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import '../application/message_controller.dart';
+import '../data/photo_picker.dart';
 import '../data/speech_reader.dart';
 
 /// Widget keys the tests drive.
@@ -23,6 +24,10 @@ class ConversationKeys {
   static Key read(String messageId) => Key('conversation-read-$messageId');
 
   static Key sender(String messageId) => Key('conversation-from-$messageId');
+
+  static const photo = Key('conversation-photo');
+
+  static Key image(String messageId) => Key('conversation-image-$messageId');
 
   /// One of the parent's preset replies.
   static Key quickReply(String text) => Key('conversation-quick-$text');
@@ -81,6 +86,36 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Pick a photo and send it.
+  ///
+  /// The picker is a platform channel, and on the senior's phone it is the
+  /// system gallery — so the usual rule applies in reverse here: this *is*
+  /// awaited, because the senior is looking at the gallery, not at us. What
+  /// must not happen is the screen coming back without saying anything, so
+  /// every failure below sets an error line rather than returning quietly.
+  Future<void> _sendPhoto() async {
+    if (_busy) return;
+    final picked = await ref.read(photoPickerProvider).pick();
+    if (picked == null || !mounted) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(messageControllerProvider.notifier)
+          .sendPhoto(picked.bytes, contentType: picked.contentType);
+    } on MessageQuotaExceeded catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } on SeniorLinkException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } on Object {
+      if (mounted) setState(() => _error = '사진을 보내지 못했어요. 인터넷 연결을 확인해 주세요.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _send([String? preset]) async {
@@ -228,6 +263,16 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                // Left of the field rather than inside it: a senior's hand
+                // misses a small glyph tucked into a text box, and this one
+                // is the same size as 보내기.
+                IconButton(
+                  key: ConversationKeys.photo,
+                  onPressed: _busy ? null : _sendPhoto,
+                  iconSize: 26 * scale,
+                  tooltip: '사진 보내기',
+                  icon: const Icon(Icons.photo_camera_rounded),
+                ),
                 Expanded(
                   child: TextField(
                     key: ConversationKeys.field,
@@ -405,6 +450,18 @@ class _Bubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (message.imageUrl case final path?)
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: (message.body?.isNotEmpty ?? false) ? 8 : 0,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: _Photo(key: ConversationKeys.image(message.id),
+                      path: path, scale: scale),
+                ),
+              ),
+            if (message.body?.isNotEmpty ?? false)
             Text(
               message.body ?? '',
               style: TextStyle(
@@ -511,4 +568,57 @@ class _Empty extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// A photo in a bubble.
+///
+/// The bucket is private, so the row stores a path and the link has to be
+/// minted each time. A URL written into the message when it was sent would
+/// be a dead link by the time the parent scrolled back to it.
+class _Photo extends ConsumerWidget {
+  const _Photo({super.key, required this.path, required this.scale});
+
+  final String path;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final link = ref.watch(messageImageProvider(path));
+    final side = 200.0 * scale;
+    return SizedBox(
+      width: side,
+      height: side,
+      child: switch (link) {
+        AsyncData(:final value?) => Image.network(
+          value,
+          fit: BoxFit.cover,
+          // A photo that will not load says so. The alternative is a grey
+          // square the parent presses and presses.
+          errorBuilder: (_, _, _) => const _PhotoFailed(),
+        ),
+        AsyncError() => const _PhotoFailed(),
+        _ => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      },
+    );
+  }
+}
+
+class _PhotoFailed extends StatelessWidget {
+  const _PhotoFailed();
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+    child: Center(
+      child: Text(
+        '사진을 불러오지 못했어요',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 14,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    ),
+  );
 }

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/supabase/supabase_providers.dart';
@@ -55,6 +56,27 @@ class MessageController extends Notifier<void> {
     ref.invalidate(messageQuotaProvider);
   }
 
+  /// Uploads the photo, then sends a message pointing at it.
+  ///
+  /// Two steps and not one, because the file and the row live in different
+  /// places. If the upload works and the send fails, an orphan sits in the
+  /// bucket and nobody is told about a photo that was never announced - which
+  /// is the harmless way round. The other order would put a message on the
+  /// parent's screen pointing at a file that is not there.
+  Future<void> sendPhoto(Uint8List bytes, {required String contentType}) async {
+    final profileId = await ref.read(conversationProfileIdProvider.future);
+    if (profileId == null) return;
+    final repo = ref.read(messageRepositoryProvider);
+    final path = await repo.uploadImage(
+      profileId,
+      bytes,
+      contentType: contentType,
+    );
+    await repo.send(profileId, imagePath: path);
+    ref.invalidate(conversationProvider);
+    ref.invalidate(messageQuotaProvider);
+  }
+
   /// Marks what the other side sent as read, because this screen is open.
   ///
   /// Not awaited by anything drawn, and the repository swallows its own
@@ -71,4 +93,12 @@ class MessageController extends Notifier<void> {
 
 final messageControllerProvider = NotifierProvider<MessageController, void>(
   MessageController.new,
+);
+
+/// A link that will load [path] for a while.
+///
+/// Per path rather than per conversation, so scrolling back through a year of
+/// photos does not mint a hundred links for the ones nobody is looking at.
+final messageImageProvider = FutureProvider.family<String?, String>(
+  (ref, path) => ref.watch(messageRepositoryProvider).imageUrl(path),
 );
