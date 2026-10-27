@@ -220,4 +220,12 @@ class AppColors {
   static const guardianBorder = Color(0xFFE3E4E6); // --c-line
   static const guardianAccent = Color(0xFFE8B500); // --c-accent (golden)
   static const guardianDanger = Color(0xFFC8102E); // --c-danger
+
+  /// The unread count on the 메시지 tab.
+  ///
+  /// Not [guardianDanger]. An unread message from a parent is news, not an
+  /// emergency, and the red this half already uses for 위험 has to keep
+  /// meaning that. This is the app's own accent, which is also the colour of
+  /// the one filled button on the half.
+  static const guardianBadge = Color(0xFFE2563A);
 }

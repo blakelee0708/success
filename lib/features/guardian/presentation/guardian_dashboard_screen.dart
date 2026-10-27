@@ -13,6 +13,7 @@ import '../application/senior_presence.dart';
 import '../application/guardian_home_apps_controller.dart';
 import '../application/guardian_session_controller.dart';
 import '../../care/presentation/guardian_care_tab.dart';
+import '../../messages/application/unread_notice.dart';
 import '../../messages/application/message_controller.dart';
 import '../../messages/presentation/guardian_message_tab.dart';
 import 'guardian_family_tab.dart';
@@ -29,15 +30,16 @@ import 'widgets/guardian_surfaces.dart';
 /// excluded outright, `06_PERMISSION_AND_POLICY` forbids describing location
 /// as real-time tracking, and inviting other guardians is a free feature
 /// rather than part of 안심 케어.
-class GuardianDashboardScreen extends StatefulWidget {
+class GuardianDashboardScreen extends ConsumerStatefulWidget {
   const GuardianDashboardScreen({super.key});
 
   @override
-  State<GuardianDashboardScreen> createState() =>
+  ConsumerState<GuardianDashboardScreen> createState() =>
       _GuardianDashboardScreenState();
 }
 
-class _GuardianDashboardScreenState extends State<GuardianDashboardScreen> {
+class _GuardianDashboardScreenState
+    extends ConsumerState<GuardianDashboardScreen> {
   int _index = 0;
 
   @override
@@ -71,7 +73,7 @@ class _GuardianDashboardScreenState extends State<GuardianDashboardScreen> {
       bottomNavigationBar: GuardianNavBar(
         selectedIndex: _index,
         onSelected: (i) => setState(() => _index = i),
-        destinations: const [
+        destinations: [
           GuardianDestination(
             label: '홈',
             icon: Icons.home_outlined,
@@ -86,6 +88,12 @@ class _GuardianDashboardScreenState extends State<GuardianDashboardScreen> {
             label: '메시지',
             icon: Icons.chat_bubble_outline,
             activeIcon: Icons.chat_bubble_rounded,
+            // The guardian gets a count, not a card. They are an adult with
+            // an ordinary phone and this is one app on it, so a card that
+            // could only appear once they had already opened the app would
+            // be both late and redundant. What reaches them when it matters
+            // is a push notification, which is not built yet.
+            badge: ref.watch(unreadFromSeniorProvider),
           ),
           GuardianDestination(
             label: '돌봄',

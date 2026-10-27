@@ -39,3 +39,23 @@ class DismissedNotice extends Notifier<String?> {
 
 final dismissedNoticeProvider =
     NotifierProvider<DismissedNotice, String?>(DismissedNotice.new);
+
+/// How many things the parent said that the guardian has not opened yet.
+///
+/// The mirror of [unreadFromFamilyProvider], and it is drawn differently on
+/// purpose. The senior gets a card over their launcher because they do not go
+/// looking and that launcher *is* their phone. The guardian is an adult with
+/// an ordinary phone on which this is one app among many, so a card that can
+/// only appear once they have already opened it would be both late and
+/// redundant. What reaches them when it matters is an ordinary push
+/// notification, which does not exist yet; until it does, a count on the tab
+/// is what the app can honestly offer.
+///
+/// This is the opposite of the rule FCM follows for the senior, and for the
+/// same reason: a status-bar entry is the one place a senior who cannot find
+/// their contacts app will not look, and it is the first place their child
+/// will.
+final unreadFromSeniorProvider = Provider<int>((ref) {
+  final all = ref.watch(conversationProvider).value ?? const <FamilyMessage>[];
+  return all.where((m) => m.isFromSenior && !m.isRead).length;
+});

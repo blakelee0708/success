@@ -9,6 +9,8 @@ class GuardianNavKeys {
   static const bar = Key('guardian-nav');
 
   static Key destination(String label) => Key('guardian-nav-$label');
+
+  static Key badge(String label) => Key('guardian-nav-badge-$label');
 }
 
 /// One destination of [GuardianNavBar].
@@ -17,11 +19,18 @@ class GuardianDestination {
     required this.label,
     required this.icon,
     required this.activeIcon,
+    this.badge = 0,
   });
 
   final String label;
   final IconData icon;
   final IconData activeIcon;
+
+  /// Unread things waiting behind this tab, or zero.
+  ///
+  /// A number rather than a dot, because 1 and 9 are different news to
+  /// somebody deciding whether to open it now or after the meeting.
+  final int badge;
 }
 
 /// The bar across the bottom of the guardian app.
@@ -99,10 +108,42 @@ class _Destination extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              selected ? destination.activeIcon : destination.icon,
-              size: 22,
-              color: color,
+            // The badge rides on the icon rather than taking a row of its
+            // own: the bar is 60px and the label already scales down to fit.
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  selected ? destination.activeIcon : destination.icon,
+                  size: 22,
+                  color: color,
+                ),
+                if (destination.badge > 0)
+                  Positioned(
+                    top: -5,
+                    right: -9,
+                    child: Container(
+                      key: GuardianNavKeys.badge(destination.label),
+                      constraints: const BoxConstraints(minWidth: 17),
+                      height: 17,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.guardianBadge,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        destination.badge > 99 ? '99+' : '${destination.badge}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 3),
             // Scales down rather than wrapping: 홈 화면 is the longest label
