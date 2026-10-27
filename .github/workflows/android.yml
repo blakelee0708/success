@@ -68,19 +68,49 @@ jobs:
             echo "::error::could not read SUPABASE_URL / PUBLISHABLE out of site/reset.html"
             exit 1
           fi
-          if [ -z "$WANT_URL" ]; then
+          if [ -z "${WANT_URL//[[:space:]]/}" ]; then
             echo "no SUPABASE_URL secret — keyless build, nothing to compare"
             exit 0
           fi
-          # Trailing slashes only; neither value is printed, because the
-          # publishable key is public but a CI log is not the place to put it.
-          if [ "${page_url%/}" != "${WANT_URL%/}" ]; then
+          # Trim surrounding whitespace before comparing, then one trailing
+          # slash. A secret pasted with a trailing newline or space is the
+          # likeliest way these two disagree while naming the same project,
+          # and it used to fail here forever with nothing in the log to say so.
+          trim() { printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
+          page_url="$(trim "$page_url")"; page_url="${page_url%/}"
+          page_key="$(trim "$page_key")"
+          want_url="$(trim "$WANT_URL")"; want_url="${want_url%/}"
+          want_key="$(trim "$WANT_KEY")"
+          # On a mismatch the secret itself is never printed - GitHub would
+          # mask it anyway. What is printed is the page's own value, which is
+          # public and committed, plus the shape of the secret: a length and
+          # two yes/no answers. That is enough to tell a stale project from a
+          # value that is not a project URL at all, and it leaks nothing.
+          if [ "$page_url" != "$want_url" ]; then
             echo "::error::site/reset.html points at a different Supabase project than this APK. Password reset would land on a project that has never seen the account."
+            echo "  site/reset.html says: $page_url (${#page_url} chars)"
+            echo "  the SUPABASE_URL secret is ${#want_url} chars after trimming"
+            case "$want_url" in
+              https://*) echo "  it does start with https://" ;;
+              *)         echo "  it does NOT start with https:// - that alone would fail this check" ;;
+            esac
+            case "$want_url" in
+              *.supabase.co) echo "  it does end with .supabase.co" ;;
+              *)             echo "  it does NOT end with .supabase.co" ;;
+            esac
+            echo "  expected form: https://<project-ref>.supabase.co with no path and no trailing space"
             exit 1
           fi
           echo "ok: reset.html and the APK name the same project"
-          if [ -n "$WANT_KEY" ] && [ "$page_key" != "$WANT_KEY" ]; then
+          if [ -n "$want_key" ] && [ "$page_key" != "$want_key" ]; then
             echo "::error::site/reset.html carries a different publishable key than the APK. The URL and the key have to move together."
+            echo "  site/reset.html carries a ${#page_key}-char key starting ${page_key%%_*}_"
+            echo "  the secret is ${#want_key} chars after trimming"
+            case "$want_key" in
+              sb_publishable_*) echo "  the secret is a publishable key, so this is the wrong project's" ;;
+              eyJ*)             echo "  the secret is a legacy anon JWT, not the sb_publishable_ key this page uses" ;;
+              *)                echo "  the secret is neither an sb_publishable_ key nor a legacy anon JWT" ;;
+            esac
             exit 1
           fi
           echo "ok: reset.html carries the matching publishable key"
