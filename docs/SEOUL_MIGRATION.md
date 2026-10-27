@@ -381,7 +381,29 @@ API 설정에서 읽어야 한다. 그 키가 손에 들어오는 세션에서 �
 어차피 서버에 닿지 않으므로) 검사를 건너뛴다. 네 경로를 모두 손으로
 돌려 확인했다: 일치, 프로젝트 불일치, 키만 불일치, 시크릿 없음.
 
-## 4. GitHub Pages 다시 세우기
+## 4. GitHub Pages - 거의 끝났다
+
+2026-10-27 기준으로 **Source, 브랜치 규칙, 커스텀 도메인 세 가지가 모두
+되어 있다.** 아래 목록은 그 전에 쓴 것이다.
+
+확인하는 방법은 Pages 설정 화면이 아니라 **배포 로그**다. 에이전트는 Pages
+API에 손이 닿지 않지만, `pages.yml`이 `steps.deployment.outputs.page_url`을
+출력하므로 GitHub이 스스로 계산한 주소를 읽을 수 있다. 워크플로를
+`workflow_dispatch`로 한 번 돌리면 나온다.
+
+| 로그에 나온 값 | 뜻 |
+|---|---|
+| `https://app.jalboine.com/` | 전부 끝났다 |
+| `http://app.jalboine.com/` | 도메인은 붙었고 **Enforce HTTPS가 꺼져 있다** |
+| `https://blakelee0708.github.io/success/` | 커스텀 도메인이 안 붙었다 |
+
+**남은 것은 Enforce HTTPS 하나다.** 19:05 배포가 `http://`로 보고했다.
+`passwordResetRedirect`가 `https://app.jalboine.com/reset.html`이므로,
+인증서가 없으면 보호자가 그 링크에서 TLS 오류를 본다. 잊은 계정으로 돌아갈
+유일한 길이다. 체크박스가 회색이면 인증서 발급이 아직 끝나지 않은 것이고,
+켤 수 있게 되면 켠다.
+
+## 4-1. 그 전에 적어 둔 목록
 
 저장소가 `jdnnetwork/success`에서 `blakelee0708/success`로 옮겨졌고 설정이
 따라오지 않았다. **에이전트는 Pages API에 손이 닿지 않는다** - 프록시가
