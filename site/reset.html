@@ -80,7 +80,7 @@
     <h1>새 비밀번호를 정해 주세요</h1>
     <p class="lede">앞으로 이 비밀번호로 로그인하시게 됩니다.</p>
 
-    <form id="form">
+    <div id="form">
       <label for="pw">새 비밀번호</label>
       <input id="pw" type="password" autocomplete="new-password" minlength="6">
       <p class="hint">6자 이상</p>
@@ -89,81 +89,101 @@
       <input id="pw2" type="password" autocomplete="new-password" minlength="6">
       <p class="hint">같은 비밀번호를 다시 적어 주세요.</p>
 
-      <button id="go" type="submit">비밀번호 바꾸기</button>
-    </form>
+      <button id="go" type="button">비밀번호 바꾸기</button>
+    </div>
 
     <div class="note" id="note"></div>
     <div class="wordmark">잘보이네</div>
   </main>
 
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0'
+<script>
+// **Nothing is fetched to make this page work.** The first version pulled
+// the Supabase JS client from a CDN, and when that module did not load the
+// click handler was never registered — so the button fell back to the
+// form's default GET, the page reloaded unchanged, and on the phone it read
+// as "the button does nothing". A page whose whole job is one HTTP call has
+// no business depending on a module to make it.
+//
+// It also removes a race: the client's own URL detection reads the fragment
+// asynchronously, and the fragment was being stripped synchronously right
+// after the client was built. Here the fragment is read first, into a
+// variable, and stripped after.
+var SUPABASE_URL = 'https://jnmvhdmxzonngqyicelx.supabase.co'
+var PUBLISHABLE  = 'sb_publishable_V5jbiZW_PCJJt0EMHalyqw_BUJVfL72'
 
-const SUPABASE_URL = 'https://jnmvhdmxzonngqyicelx.supabase.co'
-const PUBLISHABLE  = 'sb_publishable_V5jbiZW_PCJJt0EMHalyqw_BUJVfL72'
+var card = document.getElementById('card')
+var form = document.getElementById('form')
+var note = document.getElementById('note')
+var go   = document.getElementById('go')
 
-const card = document.getElementById('card')
-const form = document.getElementById('form')
-const note = document.getElementById('note')
-const go   = document.getElementById('go')
-
-const say = (text, kind) => {
+function say(text, kind) {
   note.textContent = text
-  note.className = `note show ${kind}`
+  note.className = text ? 'note show ' + kind : 'note'
+}
 
+// Read the fragment before anything touches it, then take it out of the
+// address bar: it carries a live access token, this page may sit open on a
+// phone, and a screenshot of that URL is the account.
+var hash = window.location.hash || ''
+var params = new URLSearchParams(hash.replace(/^#/, ''))
+var token = params.get('access_token')
+var linkError = params.get('error_description') || params.get('error')
+if (hash) history.replaceState(null, '', window.location.pathname)
 
-const client = createClient(SUPABASE_URL, PUBLISHABLE, {
-  auth: { detectSessionInUrl: true, flowType: 'implicit' },
-})
-
-// Supabase puts the session in the fragment. Read it, then take it out of
-// the address bar: this page may sit open on a phone, and a screenshot of a
-// URL carrying a live access token is the account.
-const hadToken = window.location.hash.includes('access_token')
-if (window.location.hash) {
-  history.replaceState(null, '', window.location.pathname)
-
-
-const { data: { session } } = await client.auth.getSession()
-
-if (!session) {
-  // An expired link, a reused one, or someone who opened this page directly.
-  // Saying which would be guessing; saying what to do is not.
+if (!token) {
   form.style.display = 'none'
   say(
-    hadToken
-      ? '이 링크는 만료되었어요. 앱에서 비밀번호 찾기를 다시 눌러 주세요.'
+    linkError
+      ? '이 링크는 더 이상 쓸 수 없어요. 앱에서 비밀번호 찾기를 다시 눌러 주세요.'
       : '앱에서 「비밀번호를 잊으셨나요?」를 누르시면 메일이 갑니다.',
-    'bad',
+    'bad'
   )
+}
 
+go.addEventListener('click', function () {
+  var pw  = document.getElementById('pw').value
+  var pw2 = document.getElementById('pw2').value
 
-form.addEventListener('submit', async (event) => {
-  event.preventDefault()
-  const pw  = document.getElementById('pw').value
-  const pw2 = document.getElementById('pw2').value
-
-  if (pw.length < 6)  return say('비밀번호는 6자 이상이어야 해요.', 'bad')
-  if (pw !== pw2)     return say('두 비밀번호가 서로 달라요.', 'bad')
+  if (pw.length < 6) { say('비밀번호는 6자 이상이어야 해요.', 'bad'); return }
+  if (pw !== pw2)    { say('두 비밀번호가 서로 달라요.', 'bad'); return }
 
   go.disabled = true
   go.textContent = '바꾸는 중…'
-  const { error } = await client.auth.updateUser({ password: pw })
+  say('', '')
 
-  if (error) {
-    go.disabled = false
-    go.textContent = '비밀번호 바꾸기'
-    return say(error.message, 'bad')
-  }
-
-  // Spent. Sign the session out so the tab is not left holding one, and say
-  // the one thing left to do — this page cannot reopen the app.
-  await client.auth.signOut()
-  card.classList.add('done')
-  card.innerHTML = `
-    <h1>비밀번호를 바꿨어요</h1>
-    <p class="lede">잘보이네 앱으로 돌아가<br>새 비밀번호로 로그인해 주세요.</p>
-    <div class="wordmark">잘보이네</div>`
+  fetch(SUPABASE_URL + '/auth/v1/user', {
+    method: 'PUT',
+    headers: {
+      'apikey': PUBLISHABLE,
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ password: pw })
+  })
+    .then(function (res) {
+      return res.json().then(function (body) { return { ok: res.ok, body: body } })
+    })
+    .then(function (r) {
+      if (!r.ok) {
+        go.disabled = false
+        go.textContent = '비밀번호 바꾸기'
+        // Whatever the server said. A friendly stand-in here would hide the
+        // one thing that explains a failure nobody can otherwise see.
+        say(r.body.msg || r.body.error_description || r.body.message ||
+            '바꾸지 못했어요. 앱에서 비밀번호 찾기를 다시 눌러 주세요.', 'bad')
+        return
+      }
+      card.className = 'card done'
+      card.innerHTML =
+        '<h1>비밀번호를 바꿨어요</h1>' +
+        '<p class="lede">잘보이네 앱으로 돌아가<br>새 비밀번호로 로그인해 주세요.</p>' +
+        '<div class="wordmark">잘보이네</div>'
+    })
+    .catch(function () {
+      go.disabled = false
+      go.textContent = '비밀번호 바꾸기'
+      say('인터넷 연결을 확인해 주세요.', 'bad')
+    })
 })
 </script>
 </body>
