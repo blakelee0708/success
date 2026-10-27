@@ -145,8 +145,25 @@ Deno.serve(async (req) => {
   // guardian's dashboard already says in its own words.
   if (!target) return reply(200, { delivered: false, reason: 'no_device' });
 
-  const sa = serviceAccount();
-  const token = await accessToken(sa);
+  // Two failures live under this one call and they are **not** the same
+  // thing, which is why they do not share a reply. A service account that
+  // cannot mint a token means *this server is misconfigured* and every ring
+  // for every family is failing; a device token FCM rejects means *that one
+  // phone is unreachable*, which is ordinary. Collapsed into one 502 — which
+  // is how this was first written — a misconfigured sender looks exactly
+  // like a parent whose phone is off, forever, and nobody goes looking.
+  let sa: ServiceAccount;
+  let token: string;
+  try {
+    sa = serviceAccount();
+    token = await accessToken(sa);
+  } catch (e) {
+    console.error('the sender could not authenticate to FCM', e);
+    return reply(500, {
+      error: '지금은 보낼 수 없어요. 잠시 후 다시 시도해 주세요.',
+      reason: 'sender_unconfigured',
+    });
+  }
 
   // A **data** message, not a notification. A notification is drawn by
   // Android in the status bar, which is the one place a senior who cannot
@@ -195,7 +212,12 @@ Deno.serve(async (req) => {
     if (status === 'UNREGISTERED' || status === 'NOT_FOUND') {
       return reply(200, { delivered: false, reason: 'stale_token' });
     }
-    return reply(502, { error: '부모님 폰에 보내지 못했어요.' });
+    // `reason` is for the logs and for whoever is debugging this; `error` is
+    // the only part a guardian should ever read.
+    return reply(502, {
+      error: '부모님 폰에 보내지 못했어요.',
+      reason: status ?? 'fcm_rejected',
+    });
   }
 
   return reply(200, { delivered: true });
