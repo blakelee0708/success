@@ -287,13 +287,57 @@ SMTP가 들어가면 한글 템플릿은 에이전트가 API로 넣을 수 있�
 아무 신호도 없다. 싱가포르에서는 `RECOVERY`와 `CONFIRMATION` 두 쌍이 모두
 `true`다.
 
+## CI 의 reset.html 검사는 한 번도 통과한 적이 없다
+
+2026-10-27에 확인했다. 이 검사가 들어온 커밋 이후 run 80, 81, 82, 83, 84가
+전부 같은 줄에서 실패했다. 그 사이 `site/reset.html`은 싱가포르였다가
+서울로 바뀌었고 **양쪽 다 실패했다.** 즉 `SUPABASE_URL` 시크릿이 두
+프로젝트 어느 쪽도 아니다.
+
+진단 출력을 붙인 뒤 시크릿에 대해 알게 된 것은 이것이 전부다.
+
+| | |
+|---|---|
+| 길이 | 다듬은 뒤 40자 |
+| 모양 | `https://`로 시작하고 `.supabase.co`로 끝난다 |
+| 값 | 서울도 싱가포르도 아니다 |
+
+**길이로는 더 좁힐 수 없다.** Supabase ref는 모두 20자이므로 모든 프로젝트
+주소가 정확히 40자다. 그래서 남는 가능성은 두 가지이고, 고치는 방법은
+같다. 다른 프로젝트를 가리키고 있거나, ref 한 글자가 잘못 적혔거나다.
+20자 ref의 오타도 40자이고 모양도 멀쩡해 보인다.
+
+이 환경의 토큰은 `projects_read`가 없어서 프로젝트 목록을 볼 수 없다.
+그래서 어느 프로젝트인지는 밖에서 알아낼 수 없고, 알아낼 필요도 없다.
+오너가 저장소 시크릿에 아래 값을 **다시 입력하면** 된다.
+
+```
+SUPABASE_URL                https://handkezisjufyyumpuma.supabase.co
+SUPABASE_PUBLISHABLE_KEY    site/reset.html 의 sb_publishable_ 값과 같은 것
+```
+
+https://github.com/blakelee0708/success/settings/secrets/actions
+
+키는 `anon`이라고 적힌 긴 JWT가 아니라 짧은 `sb_publishable_` 쪽이다. 한
+프로젝트에 두 형식이 다 있으니 틀리기 쉽고, 검사가 그 둘을 구분해서
+말해 준다.
+
+### 검사가 이제 스스로 이유를 말한다
+
+예전에는 값을 하나도 출력하지 않았다. 키에 대해서는 맞는 판단이지만 URL
+까지 가리면 영구히 빨간 검사가 되고 원인을 볼 방법이 없다. 지금은 비교
+전에 앞뒤 공백과 개행을 떼어 내고(붙여넣기할 때 끝에 개행이 붙는 것이 같은
+프로젝트를 가리키면서 어긋나는 가장 흔한 경로다), 실패할 때 페이지 자신의
+값과 시크릿의 모양을 출력한다. 시크릿 자체는 출력하지 않는다. 여덟 경로를
+손으로 돌려 확인했다.
+
 ## 3. 주소와 키 교체
 
 | 어디 | 무엇 | 상태 |
 |---|---|---|
 | `lib/data/remote/guardian_auth_repository.dart` | `passwordResetRedirect` | **완료** - `https://app.jalboine.com/reset.html` |
-| `site/reset.html` | `SUPABASE_URL`과 `PUBLISHABLE` | 남음 (publishable 키 필요) |
-| CI 저장소 시크릿 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | 남음 (오너) |
+| `site/reset.html` | `SUPABASE_URL`과 `PUBLISHABLE` | **완료** - 서울, 키는 Management API 에서 읽었다. 표시도 v3 |
+| CI 저장소 시크릿 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | 남음 (오너). 위의 '한 번도 통과한 적이 없다' |
 | 카카오 콘솔 | Redirect URI를 새 Supabase 주소로 | 남음 (오너) |
 | Edge Function | `ring-phone` 재배포 + `FCM_SERVICE_ACCOUNT` 시크릿 | 남음 |
 | 한글 메일 템플릿 | `tool/apply_auth_templates.py` | **저장소에 들어왔음**, 새 프로젝트에 실행만 |
