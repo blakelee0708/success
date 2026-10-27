@@ -52,6 +52,12 @@ abstract interface class GuardianAuthRepository {
     required String password,
   });
 
+  /// Opens the provider's own sign-in, and returns as soon as the browser
+  /// has it. **A guardian is not signed in when this completes** — the
+  /// session arrives later, through [oauthRedirect], and the screen must not
+  /// move on as though it had.
+  Future<void> signInWithOAuth(GuardianOAuthProvider provider);
+
   /// Emails a link that lets the holder choose a new password.
   ///
   /// **Never reports whether the address has an account.** Answering that
@@ -65,6 +71,32 @@ abstract interface class GuardianAuthRepository {
 
   Future<void> signOut();
 }
+
+/// The social providers the start screen offers.
+///
+/// An enum rather than a string because one handler serves both buttons, and
+/// passing the wrong provider is the kind of mistake that looks right on the
+/// screen and signs somebody in to the other account.
+enum GuardianOAuthProvider {
+  kakao,
+  google;
+
+  /// What the sheet calls it when the project has not set it up yet.
+  String get label => switch (this) {
+    GuardianOAuthProvider.kakao => '카카오',
+    GuardianOAuthProvider.google => '구글',
+  };
+}
+
+/// Where the provider sends the guardian back to.
+///
+/// A custom scheme built from the application id, which is the convention
+/// and is already unique to this app. It has to be registered in **three**
+/// places that cannot see each other: the Android manifest's intent-filter,
+/// the project's `uri_allow_list`, and here. Miss the allow list and
+/// Supabase refuses the redirect; miss the manifest and the browser finishes
+/// the sign-in and then has nowhere to hand it back to.
+const oauthRedirect = 'com.jalboine.app://login-callback';
 
 /// Where the emailed reset link lands.
 ///
@@ -134,6 +166,26 @@ class SupabaseGuardianAuthRepository implements GuardianAuthRepository {
   }
 
   @override
+  Future<void> signInWithOAuth(GuardianOAuthProvider provider) async {
+    try {
+      await _client.auth.signInWithOAuth(
+        switch (provider) {
+          GuardianOAuthProvider.kakao => sb.OAuthProvider.kakao,
+          GuardianOAuthProvider.google => sb.OAuthProvider.google,
+        },
+        redirectTo: oauthRedirect,
+        // The phone's own browser, not a web view inside the app. Kakao
+        // signs people in through the session their browser already holds,
+        // and an in-app view starts from nobody — which turns one tap into
+        // typing a password the guardian probably does not remember.
+        authScreenLaunchMode: sb.LaunchMode.externalApplication,
+      );
+    } on sb.AuthException catch (e) {
+      throw GuardianAuthException(_readable(e));
+    }
+  }
+
+  @override
   Future<void> sendPasswordReset({required String email}) async {
     try {
       await _client.auth.resetPasswordForEmail(
@@ -170,6 +222,14 @@ class SupabaseGuardianAuthRepository implements GuardianAuthRepository {
     }
     if (code == 'weak_password') {
       return '비밀번호가 너무 짧아요. 6자 이상으로 정해 주세요.';
+    }
+    // Said by the project until the owner finishes that provider's console
+    // work. Worth translating because it is the one failure here that is
+    // nobody's mistake and fixes itself the day the setup lands.
+    if (code == 'validation_failed' ||
+        e.message.contains('provider is not enabled') ||
+        e.message.contains('Unsupported provider')) {
+      return '아직 준비 중이에요. 이메일로 시작해 주세요.';
     }
     if (code == 'over_email_send_rate_limit') {
       return '메일을 너무 자주 보냈어요. 잠시 후 다시 시도해 주세요.';
@@ -240,6 +300,23 @@ class InMemoryGuardianAuthRepository implements GuardianAuthRepository {
       session: _emit(GuardianSession(userId: 'user-$key', email: key)),
       needsConfirmation: false,
     );
+  }
+
+  /// Every provider a sign-in was asked of, in order.
+  final oauthAttempts = <GuardianOAuthProvider>[];
+
+  /// Set to make the next provider sign-in fail with this message, the way a
+  /// project that has not set the provider up answers.
+  String? oauthFailure;
+
+  @override
+  Future<void> signInWithOAuth(GuardianOAuthProvider provider) async {
+    oauthAttempts.add(provider);
+    final failure = oauthFailure;
+    if (failure != null) throw GuardianAuthException(failure);
+    // Deliberately emits no session. The real one opens a browser and comes
+    // back through a deep link much later, so a test that signed in here
+    // would be testing something the app never does.
   }
 
   /// Every address a reset was asked for, in order — including ones with no

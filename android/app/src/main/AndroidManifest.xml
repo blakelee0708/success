@@ -37,6 +37,31 @@
                 <category android:name="android.intent.category.HOME"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
+            <!-- Where a social sign-in hands the session back.
+
+                 The guardian leaves for the phone's browser, signs in with
+                 Kakao or Google there, and the provider redirects to this
+                 scheme; supabase_flutter is listening and turns the link
+                 into a session. Without this filter the browser finishes the
+                 sign-in and then has nowhere to hand it to — the guardian is
+                 left looking at a browser tab, signed in to nothing.
+
+                 It must agree with `oauthRedirect` in
+                 `guardian_auth_repository.dart` and with the project's
+                 `uri_allow_list`. Three copies that cannot see each other;
+                 `oauth_redirect_test.dart` compares this file against the
+                 Dart one, the way `application_id_test` does for Gradle.
+
+                 This arrives through `onNewIntent` like the home key does,
+                 but `MainActivity` only forwards intents carrying
+                 CATEGORY_HOME, so a callback is never mistaken for Home. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="com.jalboine.app"
+                      android:host="login-callback"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

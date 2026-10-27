@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/supabase/supabase_providers.dart';
+import '../../../data/remote/guardian_auth_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import 'widgets/guardian_surfaces.dart';
 
@@ -112,6 +113,7 @@ class GuardianStartScreen extends StatelessWidget {
                       // "which account was mine".
                       _ProviderButton(
                         buttonKey: GuardianStartKeys.kakao,
+                        provider: GuardianOAuthProvider.kakao,
                         label: '카카오로 시작하기',
                         background: AppColors.kakaoYellow,
                         foreground: AppColors.kakaoInk,
@@ -120,6 +122,7 @@ class GuardianStartScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       _ProviderButton(
                         buttonKey: GuardianStartKeys.google,
+                        provider: GuardianOAuthProvider.google,
                         label: '구글로 시작하기',
                         background: Colors.white,
                         foreground: AppColors.guardianInk,
@@ -343,23 +346,43 @@ class _BenefitCardState extends State<_BenefitCard>
 
 /// What a provider button does once a Supabase project is attached.
 ///
-/// Kakao and Google are still the intended entry — this screen argues for them
-/// deliberately — but neither has an OAuth client configured on the project, so
-/// tapping one cannot complete a sign-in. Rather than fail on tap, it says so
-/// and offers the route that does work.
+/// It **asks the project** and reports the answer. The previous version
+/// opened a sheet whose text was written here — `카카오 로그인은 준비 중이에요`
+/// — on the standing assumption that no OAuth client existed. That sentence
+/// would have gone on claiming so for as long as nobody remembered to delete
+/// it, including the day after Kakao started working. Nothing on a screen
+/// should assert a server fact it never asked about.
 ///
-/// With no project attached the old behaviour stands and the button opens the
-/// dashboard, which is what keeps Phase 3 navigable with no backend.
+/// With no project attached the Phase 3 behaviour stands and the button opens
+/// the dashboard, which is what keeps a keyless build navigable.
 Future<void> _start(
   BuildContext context,
-  String label, {
+  WidgetRef ref,
+  GuardianOAuthProvider provider, {
   required bool supabaseConfigured,
 }) async {
   if (!supabaseConfigured) {
     context.go(Routes.guardianDashboard);
     return;
   }
-  final provider = label.split('로 시작하기').first;
+
+  try {
+    await ref.read(guardianAuthRepositoryProvider).signInWithOAuth(provider);
+    // The browser has it now. **Nothing happens here on success** — the
+    // session arrives through the deep link, and moving the screen on would
+    // claim a sign-in that has not happened.
+    return;
+  } on GuardianAuthException catch (e) {
+    if (!context.mounted) return;
+    await _offerEmail(context, '${provider.label} 로그인은 ${e.message}');
+  } on Object {
+    if (!context.mounted) return;
+    await _offerEmail(context, '${provider.label} 로그인을 열지 못했어요.');
+  }
+}
+
+/// Says why, and offers the one route that is known to work.
+Future<void> _offerEmail(BuildContext context, String reason) async {
   final useEmail = await showModalBottomSheet<bool>(
     context: context,
     builder: (sheetContext) => SafeArea(
@@ -370,22 +393,12 @@ Future<void> _start(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '$provider 로그인은 준비 중이에요',
+              reason,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: AppColors.guardianInk,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              '지금은 이메일로 시작하실 수 있어요.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.6,
-                color: AppColors.guardianInkFaint,
               ),
             ),
             const SizedBox(height: 22),
@@ -414,6 +427,7 @@ class _ProviderButton extends ConsumerWidget {
     required this.icon,
     this.borderColor,
     this.destination,
+    this.provider,
   });
 
   final Key buttonKey;
@@ -425,8 +439,11 @@ class _ProviderButton extends ConsumerWidget {
 
   /// Where this button goes directly, for a way in that needs no OAuth
   /// client and so has nothing to apologise for. Null means the provider
-  /// route: the dashboard with no project, the 준비 중 sheet with one.
+  /// route, and then [provider] says which one.
   final String? destination;
+
+  /// Which provider to ask. Null for the email button, which asks nobody.
+  final GuardianOAuthProvider? provider;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -448,7 +465,7 @@ class _ProviderButton extends ConsumerWidget {
           ),
         ),
         onPressed: () => destination == null
-            ? _start(context, label, supabaseConfigured: configured)
+            ? _start(context, ref, provider!, supabaseConfigured: configured)
             : context.go(destination!),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
