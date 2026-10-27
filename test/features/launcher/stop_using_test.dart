@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -108,7 +109,7 @@ void main() {
 
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('네, 돌아갈래요'));
+    await tester.tap(find.text('네, 바꿀래요'));
     await tester.pumpAndSettle();
 
     expect(launcher.homeSettingsOpened, 1);
@@ -124,7 +125,7 @@ void main() {
 
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('네, 돌아갈래요'));
+    await tester.tap(find.text('네, 바꿀래요'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(SeniorSettingsScreen.stopUsingManual), findsOneWidget);
@@ -159,6 +160,49 @@ void main() {
     expect(find.text('아니요'), findsOneWidget);
     expect(find.text('그만두기'), findsNothing);
     // And the confirm repeats the question's own verb, after 네.
-    expect(find.text('네, 돌아갈래요'), findsOneWidget);
+    expect(find.text('네, 바꿀래요'), findsOneWidget);
+  });
+
+  testWidgets('it names what is kept, rather than calling it 설정', (
+    tester,
+  ) async {
+    // This card exists to say that nothing is lost, and `설정해 두신 것은
+    // 그대로 있어요` is the abstraction: a senior does not think of
+    // themselves as having configured anything. They think of their buttons,
+    // their big letters and their daughter. Left to guess, a reversible
+    // choice reads as a final one and nobody presses it.
+    await _openSettings(tester, isHome: true);
+    await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
+    await tester.pumpAndSettle();
+
+    final said = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data ?? '')
+        .join(' ');
+    for (final kept in ['버튼', '글씨 크기', '가족 연결']) {
+      expect(said, contains(kept), reason: '$kept is one of the things kept');
+    }
+    expect(said, isNot(contains('설정해 두신')));
+  });
+
+  testWidgets('the way back uses the same verb as the way out', (
+    tester,
+  ) async {
+    // 바꾸다 both ways. The same word pointing in both directions is what
+    // shows this can be undone, without a sentence claiming it.
+    await _openSettings(tester, isHome: true);
+    await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
+    await tester.pumpAndSettle();
+
+    final said = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data ?? '')
+        .join(' ');
+    expect(said, contains('바꿀까요'));
+    expect(said, contains('다시 잘보이네로'));
+    expect(said, contains('바꾸실 수 있어요'));
+    // One word for a screen, not two. The app already calls its own home
+    // 첫 화면, and 원래 화면 does not say which of the two it means.
+    expect(said, isNot(contains('원래 화면')));
   });
 }

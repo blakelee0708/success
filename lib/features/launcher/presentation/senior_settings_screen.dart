@@ -148,8 +148,16 @@ class SeniorSettingsScreen extends ConsumerWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
         ),
+        // **전에 쓰시던 화면**, not 원래 화면. The app already calls its own
+        // home 첫 화면 (`첫 화면에서 사라집니다`), so a second word for a
+        // screen is a second thing to work out — and 원래 does not say which
+        // of the two it means.
+        //
+        // The verb is 바꾸다 both here and in the last line of the body, on
+        // purpose. The same word pointing both ways is what shows this can
+        // be undone, without having to claim it in a sentence nobody reads.
         title: const Text(
-          '원래 화면으로\n돌아갈까요?',
+          '전에 쓰시던 화면으로\n바꿀까요?',
           style: TextStyle(
             fontSize: 25,
             height: 1.35,
@@ -165,11 +173,20 @@ class SeniorSettingsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Nothing is lost, and **the things are named**. `설정해 두신
+            // 것은 그대로 있어요` is the abstraction, and a senior does not
+            // think of themselves as having configured anything — they think
+            // of their buttons, their big letters and their daughter. Saying
+            // so is the whole job of this card: left to guess, a reversible
+            // choice reads as a final one and nobody presses it.
             Text(
-              '홈 버튼을 누르면 원래 쓰시던\n'
-              '화면이 나옵니다.\n\n'
-              '설정해 두신 것은 그대로 있어요.\n'
-              '언제든 다시 쓰실 수 있어요.',
+              '홈 버튼을 누르면\n'
+              '그 화면이 나옵니다.\n\n'
+              '버튼과 글씨 크기,\n'
+              '가족 연결 모두\n'
+              '그대로 있어요.\n\n'
+              '언제든 다시 잘보이네로\n'
+              '바꾸실 수 있어요.',
               style: TextStyle(
                 fontSize: 19,
                 height: 1.6,
@@ -209,7 +226,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text(
-              '네, 돌아갈래요',
+              '네, 바꿀래요',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
