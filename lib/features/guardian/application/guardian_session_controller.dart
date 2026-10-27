@@ -64,6 +64,21 @@ class GuardianLoginAwaitingConfirmation extends GuardianLoginState {
   final String email;
 }
 
+/// A reset link was sent, or would have been. Its own state because it is
+/// neither a failure nor a session, and because the screen says the same
+/// thing whether or not the address has an account.
+class GuardianLoginResetSent extends GuardianLoginState {
+  const GuardianLoginResetSent(this.email);
+
+  final String email;
+}
+
+/// The address box was empty when 비밀번호를 잊으셨나요 was pressed. Not a
+/// [GuardianLoginFailed]: nothing failed, the form is just not ready.
+class GuardianLoginNeedsEmail extends GuardianLoginState {
+  const GuardianLoginNeedsEmail();
+}
+
 class GuardianLoginController extends Notifier<GuardianLoginState> {
   @override
   GuardianLoginState build() => const GuardianLoginIdle();
@@ -109,6 +124,31 @@ class GuardianLoginController extends Notifier<GuardianLoginState> {
     } on Object {
       state = const GuardianLoginFailed('연결에 실패했어요. 잠시 후 다시 시도해 주세요.');
       return false;
+    }
+  }
+
+  /// Asks for the reset mail. Returns nothing a caller can branch on,
+  /// because there is nothing a caller should branch on — an address with no
+  /// account must look exactly like one that has.
+  Future<void> sendPasswordReset({required String email}) async {
+    final address = email.trim();
+    if (address.isEmpty || !address.contains('@')) {
+      state = const GuardianLoginNeedsEmail();
+      return;
+    }
+    state = const GuardianLoginBusy();
+    try {
+      await ref
+          .read(guardianAuthRepositoryProvider)
+          .sendPasswordReset(email: address);
+      state = GuardianLoginResetSent(address);
+    } on GuardianAuthException catch (e) {
+      // The rate limit is the one refusal worth passing on: pressing again
+      // is exactly what a guardian does when no mail arrives, and 30 an hour
+      // is a real ceiling.
+      state = GuardianLoginFailed(e.message);
+    } on Object {
+      state = const GuardianLoginFailed('연결에 실패했어요. 잠시 후 다시 시도해 주세요.');
     }
   }
 

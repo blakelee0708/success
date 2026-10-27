@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>새 비밀번호 정하기 · 잘보이네</title>
+<meta name="robots" content="noindex">
+<!--
+  Where a guardian's password-reset link lands.
+
+  Unlike index.html this page has work to do. Supabase verifies the emailed
+  token and redirects here with a session in the URL fragment; the form below
+  spends that session on exactly one call, `updateUser({password})`.
+
+  **The publishable key below is meant to be public.** It is the same key an
+  APK ships with, it identifies the project and nothing else, and every
+  table on the project is behind row-level security. The secret key is not
+  here and must never be.
+
+  **The fragment is never shown, logged or sent anywhere.** It carries a live
+  access token; the only thing done with it is handing it to the Supabase
+  client, and it is stripped from the address bar as soon as it is read so a
+  shared screenshot of this page cannot hand somebody the account.
+-->
+<style>
+  :root {
+    --ground-top:#EEF2FF; --ground-mid:#F7F9FF; --ground-end:#FFFFFF;
+    --card-top:#FFFFFF; --card-end:#F4F7FE;
+    --ink:#191F28; --ink-soft:#4E5968; --ink-faint:#5F6B7A;
+    --primary:#0B5FD9; --hero-start:#0B4FC4; --hero-end:#2E6FE8;
+    --rule:#EEF1F7; --error:#C0392B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:24px 16px;
+    background:linear-gradient(170deg,var(--ground-top),var(--ground-mid) 55%,var(--ground-end));
+    font-family:"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,-apple-system,sans-serif;
+    color:var(--ink); -webkit-text-size-adjust:100%;
+  }
+  .card{
+    width:100%; max-width:380px; padding:34px 26px 28px; border-radius:24px;
+    background:linear-gradient(160deg,var(--card-top),var(--card-end));
+    box-shadow:0 18px 44px rgba(16,36,94,.14);
+  }
+  h1{margin:0 0 8px;font-size:22px;font-weight:800;letter-spacing:-.5px}
+  .lede{margin:0 0 22px;font-size:14.5px;line-height:1.65;color:var(--ink-soft)}
+  label{display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:7px}
+  input[type=password]{
+    width:100%; padding:14px 15px; margin-bottom:6px; border:0; border-radius:12px;
+    background:#F1F4FA; font-size:16px; color:var(--ink); font-family:inherit;
+  }
+  input:focus{outline:2px solid var(--primary);outline-offset:1px}
+  .hint{margin:0 0 18px;font-size:12.5px;color:var(--ink-faint)}
+  button{
+    width:100%; padding:16px; border:0; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,var(--hero-start),var(--hero-end));
+    color:#fff; font-size:16px; font-weight:800; font-family:inherit;
+    letter-spacing:-.3px;
+  }
+  button[disabled]{opacity:.55;cursor:default}
+  .note{
+    margin-top:16px; padding:13px 14px; border-radius:11px; font-size:13.5px;
+    line-height:1.6; display:none;
+  }
+  .note.show{display:block}
+  .note.bad{background:rgba(192,57,43,.08);color:var(--error)}
+  .note.good{background:rgba(11,95,217,.08);color:var(--primary)}
+  .wordmark{
+    margin-top:22px; padding-top:16px; border-top:1px solid var(--rule);
+    text-align:center; font-size:13px; font-weight:700; color:var(--primary);
+  }
+  .done h1{text-align:center}
+  .done .lede{text-align:center;margin-bottom:0}
+</style>
+</head>
+<body>
+  <main class="card" id="card">
+    <h1>새 비밀번호를 정해 주세요</h1>
+    <p class="lede">앞으로 이 비밀번호로 로그인하시게 됩니다.</p>
+
+    <form id="form">
+      <label for="pw">새 비밀번호</label>
+      <input id="pw" type="password" autocomplete="new-password" minlength="6">
+      <p class="hint">6자 이상</p>
+
+      <label for="pw2">한 번 더</label>
+      <input id="pw2" type="password" autocomplete="new-password" minlength="6">
+      <p class="hint">같은 비밀번호를 다시 적어 주세요.</p>
+
+      <button id="go" type="submit">비밀번호 바꾸기</button>
+    </form>
+
+    <div class="note" id="note"></div>
+    <div class="wordmark">잘보이네</div>
+  </main>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0'
+
+const SUPABASE_URL = 'https://jnmvhdmxzonngqyicelx.supabase.co'
+const PUBLISHABLE  = 'sb_publishable_V5jbiZW_PCJJt0EMHalyqw_BUJVfL72'
+
+const card = document.getElementById('card')
+const form = document.getElementById('form')
+const note = document.getElementById('note')
+const go   = document.getElementById('go')
+
+const say = (text, kind) => {
+  note.textContent = text
+  note.className = `note show ${kind}`
+
+
+const client = createClient(SUPABASE_URL, PUBLISHABLE, {
+  auth: { detectSessionInUrl: true, flowType: 'implicit' },
+})
+
+// Supabase puts the session in the fragment. Read it, then take it out of
+// the address bar: this page may sit open on a phone, and a screenshot of a
+// URL carrying a live access token is the account.
+const hadToken = window.location.hash.includes('access_token')
+if (window.location.hash) {
+  history.replaceState(null, '', window.location.pathname)
+
+
+const { data: { session } } = await client.auth.getSession()
+
+if (!session) {
+  // An expired link, a reused one, or someone who opened this page directly.
+  // Saying which would be guessing; saying what to do is not.
+  form.style.display = 'none'
+  say(
+    hadToken
+      ? '이 링크는 만료되었어요. 앱에서 비밀번호 찾기를 다시 눌러 주세요.'
+      : '앱에서 「비밀번호를 잊으셨나요?」를 누르시면 메일이 갑니다.',
+    'bad',
+  )
+
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault()
+  const pw  = document.getElementById('pw').value
+  const pw2 = document.getElementById('pw2').value
+
+  if (pw.length < 6)  return say('비밀번호는 6자 이상이어야 해요.', 'bad')
+  if (pw !== pw2)     return say('두 비밀번호가 서로 달라요.', 'bad')
+
+  go.disabled = true
+  go.textContent = '바꾸는 중…'
+  const { error } = await client.auth.updateUser({ password: pw })
+
+  if (error) {
+    go.disabled = false
+    go.textContent = '비밀번호 바꾸기'
+    return say(error.message, 'bad')
+  }
+
+  // Spent. Sign the session out so the tab is not left holding one, and say
+  // the one thing left to do — this page cannot reopen the app.
+  await client.auth.signOut()
+  card.classList.add('done')
+  card.innerHTML = `
+    <h1>비밀번호를 바꿨어요</h1>
+    <p class="lede">잘보이네 앱으로 돌아가<br>새 비밀번호로 로그인해 주세요.</p>
+    <div class="wordmark">잘보이네</div>`
+})
+</script>
+</body>
+</html>

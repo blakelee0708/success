@@ -781,18 +781,59 @@ so the account is never created rather than created-and-unconfirmed. A
 guardian who is not in the Supabase org cannot sign up at all, and that is
 every guardian but the owner.
 
-Two ways out, and they are not equivalent:
+**Custom SMTP is now attached** (2026-10-27): `jalboine.com` bought at 가비아,
+verified in Resend with DKIM + two CNAMEs + DMARC, and
+`smtp.resend.com:465` / user `resend` / sender `noreply@jalboine.com` saved on
+the project. `rate_limit_email_sent` went from 2 to 30. Mail to any recipient
+now works.
 
-- **`mailer_autoconfirm = true`** unblocks testing today — sign-up returns a
-  session, no mail involved. It is the ordinary pre-launch setting and it is
-  one flag. It also means nobody's address is ever verified, so it is not
-  what ships.
-- **Custom SMTP** is the real fix: it lifts the recipient restriction and the
-  2/hour cap together. It needs credentials nobody in this repository has.
+Two settings are still the owner's, and **no agent can make them** — every
+`PATCH` to `/config/auth` from here is refused, the autoconfirm one as a
+security relaxation and the allow-list one by the classifier outright:
 
-Neither can be done from here — the first was attempted and refused as a
-security relaxation, which is the correct call for an agent to be refused.
-Both are console settings and the owner's to make.
+| | |
+|---|---|
+| `Confirm email` | off, by decision — address verification is not wanted before launch, so sign-up returns a session straight away |
+| `uri_allow_list` | must contain `https://jdnnetwork.github.io/success/reset.html`, or a reset lands on `site_url` instead |
+
+`site_url` can stay `http://localhost:3000` **only while `Confirm email` is
+off**, because nothing then redirects through it. Turning confirmation back
+on before launch means fixing it in the same breath; `site/index.html` is
+the page it should point at.
+
+### 비밀번호를 잊으셨나요
+
+Added 2026-10-27, and it had been missing since Phase 4: the login screen
+held an email box, a password box and 가입하기, so a guardian who forgot
+their password was locked out **permanently**. There is no other identifier
+on the account and no support desk.
+
+**This is the one auth mail that cannot be switched off.** Confirming an
+address at sign-up is optional and is now off; a reset has to reach the
+person's inbox or it is not a reset. That is what the domain and the SMTP
+are for, and why neither was wasted by the decision above.
+
+Three parts:
+
+- `GuardianAuthRepository.sendPasswordReset` returns nothing a caller can
+  branch on, and the screen says the same sentence for an address with no
+  account as for one that has. Branching would turn the login form into a
+  way of asking the server which addresses are registered.
+- The row sends to **whatever is in the address box** — no dialog, no second
+  screen. The field is already there, and somebody locked out is not helped
+  by being asked to retype it elsewhere. An empty box is `GuardianLogin
+  NeedsEmail`, which is not a failure: nothing failed, the form is not ready.
+  It is hidden in 가입 mode, where nobody has a password to recover.
+- `site/reset.html` is where the link lands, and unlike `index.html` it has
+  work to do: Supabase redirects there with a session in the URL fragment
+  and the form spends it on one `updateUser({password})`. The fragment is
+  **stripped from the address bar as soon as it is read** — it carries a live
+  access token, and a screenshot of that URL is the account. The page signs
+  the session out once the password is changed.
+
+The publishable key is in that page's source on purpose: it is the same key
+every APK ships with, it names the project and nothing else, and RLS is what
+actually guards the data. The secret key is not there and must not be.
 
 ## 가족 메시지 and its allowance
 

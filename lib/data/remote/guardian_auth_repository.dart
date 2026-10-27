@@ -52,8 +52,32 @@ abstract interface class GuardianAuthRepository {
     required String password,
   });
 
+  /// Emails a link that lets the holder choose a new password.
+  ///
+  /// **Never reports whether the address has an account.** Answering that
+  /// turns the login form into a way of asking the server which addresses
+  /// are registered; Supabase declines to answer and so does this.
+  ///
+  /// The link lands on [passwordResetRedirect] rather than on `site_url`,
+  /// because a reset has to arrive at a form that takes a new password — the
+  /// confirmation page only says a thing already happened.
+  Future<void> sendPasswordReset({required String email});
+
   Future<void> signOut();
 }
+
+/// Where the emailed reset link lands.
+///
+/// Published from `site/` by `.github/workflows/pages.yml`. It is a constant
+/// rather than a `--dart-define` because it is not a secret and a build that
+/// silently had no value would send guardians to nowhere.
+///
+/// **It must also be in the project's `uri_allow_list`.** Supabase refuses a
+/// `redirectTo` it does not recognise and falls back to `site_url`, which
+/// would land a password reset on the page that says 확인이 끝났어요 — a
+/// screen with no password field, reached by someone who came to set one.
+const passwordResetRedirect =
+    'https://jdnnetwork.github.io/success/reset.html';
 
 class SupabaseGuardianAuthRepository implements GuardianAuthRepository {
   SupabaseGuardianAuthRepository(this._client);
@@ -103,6 +127,18 @@ class SupabaseGuardianAuthRepository implements GuardianAuthRepository {
       return GuardianSignUpResult(
         session: session,
         needsConfirmation: session == null,
+      );
+    } on sb.AuthException catch (e) {
+      throw GuardianAuthException(_readable(e));
+    }
+  }
+
+  @override
+  Future<void> sendPasswordReset({required String email}) async {
+    try {
+      await _client.auth.resetPasswordForEmail(
+        email.trim(),
+        redirectTo: passwordResetRedirect,
       );
     } on sb.AuthException catch (e) {
       throw GuardianAuthException(_readable(e));
@@ -204,6 +240,15 @@ class InMemoryGuardianAuthRepository implements GuardianAuthRepository {
       session: _emit(GuardianSession(userId: 'user-$key', email: key)),
       needsConfirmation: false,
     );
+  }
+
+  /// Every address a reset was asked for, in order — including ones with no
+  /// account, because the real repository cannot tell the difference either.
+  final resetRequests = <String>[];
+
+  @override
+  Future<void> sendPasswordReset({required String email}) async {
+    resetRequests.add(email.trim());
   }
 
   @override

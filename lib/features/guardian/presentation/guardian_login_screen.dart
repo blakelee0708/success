@@ -16,6 +16,7 @@ class GuardianLoginKeys {
   static const password = Key('guardian-login-password');
   static const submit = Key('guardian-login-submit');
   static const toggleMode = Key('guardian-login-toggle-mode');
+  static const forgot = Key('guardian-login-forgot');
   static const message = Key('guardian-login-message');
 }
 
@@ -123,6 +124,24 @@ class _GuardianLoginScreenState extends ConsumerState<GuardianLoginScreen> {
                     label: busy ? '잠시만요' : (_creatingAccount ? '가입하기' : '로그인'),
                   ),
                   const SizedBox(height: 10),
+                  // **Only while signing in.** Nobody creating an account has
+                  // a password to recover, and on the screen where they are
+                  // inventing one it is one more thing to read.
+                  //
+                  // It sends to whatever is in the address box rather than
+                  // opening a dialog or a second screen: the field is already
+                  // here, and a guardian who is locked out is not helped by
+                  // being asked to type the same address somewhere else.
+                  if (!_creatingAccount)
+                    TextButton(
+                      key: GuardianLoginKeys.forgot,
+                      onPressed: busy
+                          ? null
+                          : () => ref
+                                .read(guardianLoginControllerProvider.notifier)
+                                .sendPasswordReset(email: _email.text),
+                      child: const Text('비밀번호를 잊으셨나요?'),
+                    ),
                   TextButton(
                     key: GuardianLoginKeys.toggleMode,
                     onPressed: busy
@@ -147,6 +166,12 @@ class _GuardianLoginScreenState extends ConsumerState<GuardianLoginScreen> {
     GuardianLoginFailed(:final message) => message,
     GuardianLoginAwaitingConfirmation(:final email) =>
       '$email 으로 인증 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요.',
+    // Said the same way for an address with no account, because the
+    // alternative is a form that tells anyone which addresses are
+    // registered.
+    GuardianLoginResetSent(:final email) =>
+      '$email 으로 메일을 보냈어요. 메일의 링크에서 새 비밀번호를 정해 주세요.',
+    GuardianLoginNeedsEmail() => '가입하실 때 쓰신 이메일을 위에 적어 주세요.',
     _ => null,
   };
 }
