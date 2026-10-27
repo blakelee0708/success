@@ -17,6 +17,8 @@ import 'package:app/domain/family_message.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/messages/presentation/conversation_view.dart';
 
+import 'package:app/features/messages/presentation/family_message_prompt.dart';
+
 import '../../support/pump_app.dart';
 
 /// 읽음 확인 — what is left of the reassurance 위치 확인 was going to sell,
@@ -69,10 +71,18 @@ Future<void> _pumpSenior(WidgetTester tester, Harness h) async {
     },
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('설정'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('가족 메시지'));
-  await tester.pumpAndSettle();
+  // An unread message covers the home, so that card is the way in whenever
+  // there is one — which is what it is for. 설정 → 가족 메시지 is still there
+  // underneath for a conversation with nothing waiting in it.
+  if (find.byKey(FamilyMessagePrompt.openKey).evaluate().isNotEmpty) {
+    await tester.tap(find.byKey(FamilyMessagePrompt.openKey));
+    await tester.pumpAndSettle();
+  } else {
+    await tester.tap(find.text('설정'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('가족 메시지'));
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> _pumpGuardian(WidgetTester tester, Harness h) async {

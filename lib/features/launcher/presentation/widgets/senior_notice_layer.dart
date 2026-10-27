@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../care/presentation/care_consent_prompt.dart';
 import '../../../family/presentation/primary_guardian_prompt.dart';
+import '../../../messages/application/unread_notice.dart';
+import '../../../messages/presentation/family_message_prompt.dart';
 
 /// The two things only the senior can answer, drawn over their whole home
 /// screen rather than squeezed above the tiles.
@@ -18,6 +20,13 @@ import '../../../family/presentation/primary_guardian_prompt.dart';
 /// Covering the home instead costs a senior the tiles until they answer, and
 /// both cards are answered by pressing one of two buttons. A grid they cannot
 /// read costs them the tiles anyway.
+///
+/// A third thing is drawn here now, and it is not a question: an unread
+/// message from the family. It covers the home for a different reason -
+/// a senior does not go looking, and a quiet mark beside a button is read
+/// only by somebody who already knows to look for it. It is **last**, because
+/// the two above it can only be answered by this person and money is held
+/// against one of them, and because unlike them it can be put off.
 class SeniorNoticeLayer extends ConsumerWidget {
   const SeniorNoticeLayer({super.key});
 
@@ -28,7 +37,10 @@ class SeniorNoticeLayer extends ConsumerWidget {
     final careWaiting = ref.watch(careConsentPendingProvider).value != null;
     final handoverWaiting =
         ref.watch(pendingPrimaryGuardianProvider).value != null;
-    if (!careWaiting && !handoverWaiting) return const SizedBox.shrink();
+    final unread = ref.watch(unreadFromFamilyProvider);
+    if (!careWaiting && !handoverWaiting && unread == null) {
+      return const SizedBox.shrink();
+    }
 
     // One at a time. Two consent screens stacked is not a question, it is an
     // interrogation; the care one goes first because money is already held
@@ -44,7 +56,9 @@ class SeniorNoticeLayer extends ConsumerWidget {
               child: SingleChildScrollView(
                 child: careWaiting
                     ? const CareConsentPrompt()
-                    : const PrimaryGuardianPrompt(),
+                    : handoverWaiting
+                    ? const PrimaryGuardianPrompt()
+                    : FamilyMessagePrompt(message: unread!),
               ),
             ),
           ),

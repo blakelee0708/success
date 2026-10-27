@@ -36,6 +36,7 @@ import 'package:app/features/family/presentation/primary_guardian_prompt.dart';
 import 'package:app/features/launcher/presentation/app_settings_screen.dart';
 import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
 import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
+import 'package:app/features/messages/presentation/family_message_prompt.dart';
 import 'package:app/features/launcher/presentation/widgets/home_utility_row.dart';
 import 'package:app/features/guardian/presentation/guardian_login_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_dashboard_screen.dart';
@@ -463,6 +464,52 @@ void main() {
     expect(find.byKey(HomeUtilityRow.internetKey), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _capture(tester, '16-easy-home');
+  });
+
+  testWidgets('a message from the family, over the home', (tester) async {
+    final store = InMemorySeniorLinkRepository();
+    final pairing = InMemoryPairingRepository(store);
+    final subs = InMemorySubscriptionRepository(store);
+    final messages = InMemoryMessageRepository(store, subscriptions: subs);
+    await store.ensureGuardianAccount(displayName: '영희');
+    final started = await pairing.startSeniorPairing(installId: 'senior-phone');
+    final profile = await pairing.claimSeniorPairingCode(
+      code: started.code,
+      displayName: '어머니',
+    );
+    await messages.send(profile.id, body: '엄마, 점심 드셨어요? 이따 저녁에 들를게요.');
+    messages.readingAsSenior = true;
+
+    await pumpApp(
+      tester,
+      overrides: [
+        nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
+        appLauncherProvider.overrideWithValue(
+          FakeAppLauncher(defaultHome: true),
+        ),
+        seniorLinkRepositoryProvider.overrideWithValue(store),
+        messageRepositoryProvider.overrideWithValue(messages),
+        pairingRepositoryProvider.overrideWithValue(pairing),
+        subscriptionRepositoryProvider.overrideWithValue(subs),
+        seniorLinkStoreProvider.overrideWithValue(
+          InMemorySeniorLinkStore(
+            SeniorLink(installId: 'senior-phone', seniorProfileId: profile.id),
+          ),
+        ),
+      ],
+      prefs: {
+        SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+          const SeniorSettings(
+            screenMode: ScreenMode.easy,
+            apps: defaultEasyApps,
+          ).toJson(),
+        ),
+      },
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FamilyMessagePrompt), findsOneWidget);
+    await _capture(tester, '19-family-message-over-home');
   });
 
   testWidgets('자세한 화면 at rest, for comparison with the easy one', (
