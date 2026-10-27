@@ -82,7 +82,7 @@ class HomeStrip extends ConsumerWidget {
                   Text(
                     koreanDate(now),
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 19,
                       height: 1.3,
                       fontWeight: FontWeight.w500,
                       color: AppColors.seniorInkMuted,
@@ -92,20 +92,20 @@ class HomeStrip extends ConsumerWidget {
                   Text(
                     koreanTime(now),
                     style: const TextStyle(
-                      fontSize: 50,
+                      fontSize: 54,
                       height: 1.05,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1.5,
                       color: AppColors.seniorInk,
                     ),
                   ),
-                  const SizedBox(height: 13),
+                  const SizedBox(height: 11),
                   const Divider(
                     height: 1,
                     thickness: 1,
                     color: AppColors.seniorHairline,
                   ),
-                  const SizedBox(height: 13),
+                  const SizedBox(height: 11),
                   if (connected)
                     _Family(name: guardians.first.displayName ?? '가족')
                   else
@@ -134,7 +134,7 @@ class _Connect extends StatelessWidget {
           child: Text(
             '가족을 연결해 보세요',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
               color: AppColors.seniorInk,
             ),
@@ -171,7 +171,7 @@ class _Family extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: AppColors.seniorInk,
                 ),
@@ -182,7 +182,7 @@ class _Family extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.w500,
                   color: Color(0xFF5E5A54),
                 ),
@@ -216,14 +216,14 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 54,
-      height: 54,
+      width: 50,
+      height: 50,
       child: ClayPad(
         light: AppColors.seniorMoreLight,
         face: AppColors.seniorMore,
         deep: AppColors.seniorMoreDeep,
         wall: AppColors.seniorMoreWall,
-        radius: 27,
+        radius: 25,
         wallHeight: 5,
         child: initial == null
             ? const Icon(Icons.group_outlined, size: 26, color: Colors.white)

@@ -37,7 +37,15 @@ class HomeBody extends StatelessWidget {
   /// is wrapped in a `FittedBox`, so giving it less than this does not
   /// overflow or throw: it scales the whole band down, clock and all. At the
   /// 110px floor below, the clock comes out at 29px instead of 50.
-  static const preferredStrip = 192.0;
+  /// Raised from 192 on 2026-10-27, after the band was read on a real phone
+  /// and called too small.
+  ///
+  /// The sizes inside it could not simply go up: the content already stood at
+  /// 158px against a 160px budget, and the `FittedBox` answers anything
+  /// larger by scaling the whole band back down — so every increase cancelled
+  /// itself and the band looked unchanged. That is the same silence this
+  /// wrapper has produced twice before. The height had to move with the type.
+  static const preferredStrip = 212.0;
 
   /// The band yields down to this, but only when the rows could not otherwise
   /// hold an icon and a label.

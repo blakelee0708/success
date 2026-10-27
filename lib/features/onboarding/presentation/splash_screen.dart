@@ -397,14 +397,25 @@ class _IdleState extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        const Text(
-          '눌러보세요',
-          style: TextStyle(
-            fontSize: 38,
-            height: 1.1,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1.6,
-            color: AppColors.splashAccent,
+        // One line, always. At 38px this is about 182px of Korean, and the
+        // phone drawn around it is narrower than that on a Fold's cover
+        // screen — where it broke after 눌러보세 and left 요 on a line of its
+        // own, on the one control the splash has. Every tile on the home
+        // screens is already wrapped this way; this label was the one that
+        // was missed.
+        const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '눌러보세요',
+            maxLines: 1,
+            softWrap: false,
+            style: TextStyle(
+              fontSize: 38,
+              height: 1.1,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1.6,
+              color: AppColors.splashAccent,
+            ),
           ),
         ),
         const SizedBox(height: 14),

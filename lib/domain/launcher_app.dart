@@ -1,22 +1,95 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_colors.dart';
 import 'app_category.dart';
 
-/// The warm palette a button can be recoloured to.
+/// A colour a senior, or their guardian, can put on a button by hand.
 ///
-/// Only warm tones: `04_SCREEN_SPEC` puts the senior app on a 난색 팔레트, and
-/// letting a button turn pale or cool would cost the contrast the whole screen
-/// depends on.
+/// **Fourteen, round the whole circle.** It was five, all warm — which is the
+/// terracotta family at three brightnesses rather than a choice — and the
+/// point of letting someone recolour a button is that they can tell it apart
+/// from the one beside it.
+///
+/// `04_SCREEN_SPEC` asks for a 난색 **기반** 팔레트, and that is what this
+/// still is: the ground, the ink and the headings are warm, and the five
+/// originals are kept. The tiles were never monochrome — 문자 is blue,
+/// 사진찍기 purple, 사진 보기 pink, 전화 green — so a palette that reaches
+/// those is describing what the screen already looks like.
+///
+/// The ban on blue and teal in `CLAUDE.md` is about colours *this app*
+/// chooses for things like 가족 and 더 보기, where an ageing eye has to pick
+/// one object out of several it did not place. Somebody choosing a colour for
+/// their own 딸 button is the opposite case: they picked it because they can
+/// see it. What is not negotiable is the 3:1 lettering floor, and that is
+/// measured below rather than assumed.
+///
+/// Each carries only its face. The other three clay colours and the
+/// lettering are **derived**, because a hand-kept table of 56 values drifts
+/// and because the derivation is what guarantees a new colour cannot be added
+/// without a wall darker than its face.
 enum ButtonColor {
+  // The five that existed before, at their original values. Their *names* are
+  // what `button_color` stores, on disk and on the server, and an unknown name
+  // reads back as null — so renaming one silently resets every button already
+  // set to it.
   vermilion(Color(0xFFE24C2B)),
   orange(Color(0xFFF0902B)),
   yellow(Color(0xFFE8B22E)),
   rust(Color(0xFFC4451F)),
-  rose(Color(0xFFD96A8A));
+  rose(Color(0xFFD96A8A)),
+  // The nine that complete the circle.
+  amber(Color(0xFFEDA42F)),
+  lime(Color(0xFF95B846)),
+  green(Color(0xFF55A05C)),
+  teal(Color(0xFF3C9E91)),
+  sky(Color(0xFF3997BD)),
+  blue(Color(0xFF4B7FC4)),
+  indigo(Color(0xFF5C56B2)),
+  purple(Color(0xFF8F63BE)),
+  magenta(Color(0xFFB867B1)),
+  brown(Color(0xFF85614D));
 
   const ButtonColor(this.color);
 
+  /// The face.
   final Color color;
+
+  /// Lit top of the face.
+  Color get lightColor => _shift(satScale: 0.72, value: 0.13);
+
+  /// Shaded foot, where the face turns away from the light.
+  Color get deepColor => _shift(sat: 0.05, value: -0.14);
+
+  /// The side wall the tile stands on, and always the darkest of the four.
+  /// Without it the tile is a rectangle rather than an object.
+  Color get wallColor => _shift(sat: 0.07, value: -0.23);
+
+  /// White or ink, whichever the face can actually hold.
+  ///
+  /// Measured rather than listed. The floor is 3:1, which is what lettering
+  /// this size needs, and the yellows cannot reach it with white — they take
+  /// ink, exactly as the 카카오톡 tile does.
+  Color get letteringColor {
+    final white = _contrast(color, const Color(0xFFFFFFFF));
+    final inked = _contrast(color, AppColors.seniorInk);
+    return white >= inked ? const Color(0xFFFFFFFF) : AppColors.seniorInk;
+  }
+
+  /// The hand-tuned category colours sit within these offsets of their own
+  /// face, so a derived set lands among them rather than beside them.
+  Color _shift({double sat = 0, double satScale = 1, double value = 0}) {
+    final hsv = HSVColor.fromColor(color);
+    return hsv
+        .withSaturation((hsv.saturation * satScale + sat).clamp(0.0, 1.0))
+        .withValue((hsv.value + value).clamp(0.0, 1.0))
+        .toColor();
+  }
+
+  static double _contrast(Color a, Color b) {
+    final la = a.computeLuminance(), lb = b.computeLuminance();
+    final hi = la > lb ? la : lb, lo = la > lb ? lb : la;
+    return (hi + 0.05) / (lo + 0.05);
+  }
 }
 
 /// A single launcher home button.
@@ -55,8 +128,17 @@ class LauncherApp {
   bool get opensDialer =>
       category.isContact && (phoneNumber?.trim().isNotEmpty ?? false);
 
-  /// The colour actually drawn.
+  /// The four colours actually drawn, and the lettering over them.
+  ///
+  /// All five defer to [color] together. Replacing only the face — which is
+  /// what `AppTile` used to do by reading the category directly — leaves a
+  /// green wall under a blue face, and white lettering on a yellow one.
   Color get baseColor => color?.color ?? category.baseColor;
+  Color get lightColor => color?.lightColor ?? category.lightColor;
+  Color get deepColor => color?.deepColor ?? category.deepColor;
+  Color get wallColor => color?.wallColor ?? category.wallColor;
+  Color get letteringColor =>
+      color?.letteringColor ?? category.letteringColor;
 
   LauncherApp copyWith({
     String? label,

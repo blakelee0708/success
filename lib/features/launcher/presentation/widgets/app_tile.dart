@@ -6,8 +6,15 @@ import '../../../../domain/launcher_app.dart';
 
 /// One home-screen tile, drawn as a pressable object by [ClayPad].
 ///
-/// The lettering colour comes from the category rather than being white
-/// outright: the yellow face cannot carry white text and takes ink instead.
+/// **Every colour comes from the app, not from its category.** They used to
+/// be read off `app.category` directly, which meant a colour the senior
+/// picked in 앱 설정하기 was written to disk, synced to the server, and drawn
+/// by nobody. On a phone that reads as the setting being broken, on the one
+/// screen where they cannot work around it.
+///
+/// The lettering is measured rather than assumed white: a yellow face cannot
+/// carry white text and takes ink instead, whether that yellow arrived from
+/// the 카카오톡 category or from somebody choosing it.
 class AppTile extends StatelessWidget {
   const AppTile({super.key, required this.app, required this.onTap});
 
@@ -22,17 +29,16 @@ class AppTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = app.category;
-    final ink = cat.letteringColor;
+    final ink = app.letteringColor;
     final onDark = ink == Colors.white;
     return Semantics(
       button: true,
       label: app.label,
       child: ClayPad(
-        light: cat.lightColor,
-        face: cat.baseColor,
-        deep: cat.deepColor,
-        wall: cat.wallColor,
+        light: app.lightColor,
+        face: app.baseColor,
+        deep: app.deepColor,
+        wall: app.wallColor,
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -45,7 +51,7 @@ class AppTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  cat.icon,
+                  app.category.icon,
                   size: 44,
                   color: ink,
                   shadows: onDark ? _lift : null,

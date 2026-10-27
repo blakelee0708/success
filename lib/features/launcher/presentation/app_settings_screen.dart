@@ -8,6 +8,13 @@ import '../application/senior_settings_controller.dart';
 import 'widgets/category_picker.dart';
 import 'widgets/contact_dialog.dart';
 
+abstract final class AppSettingsKeys {
+  /// The grip that starts a reorder. Named so a test can assert it exists:
+  /// the list reorders perfectly well without it and shows nothing, which is
+  /// how it shipped.
+  static Key dragHandle(String id) => Key('drag-handle-$id');
+}
+
 /// 앱 설정하기 — the senior's own view of their home buttons: reorder, rename,
 /// recolour, remove, add.
 ///
@@ -31,9 +38,10 @@ class AppSettingsScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               onReorder: controller.reorderApps,
               children: [
-                for (final app in apps)
+                for (final (index, app) in apps.indexed)
                   _AppRow(
                     key: ValueKey(app.id),
+                    index: index,
                     app: app,
                     onRename: () => _rename(context, ref, app),
                     onRecolour: () => _recolour(context, ref, app),
@@ -270,15 +278,29 @@ class _NameDialogState extends State<_NameDialog> {
   }
 }
 
+/// One button in the list.
+///
+/// **The handle is the whole point of the row.** `ReorderableListView` on
+/// Android starts a drag on a *long press* and draws nothing at all to say
+/// so, which left 드래그 순서 변경 — a thing `04_SCREEN_SPEC` asks for — with
+/// no way to discover it. Long-press is the gesture this app's readers are
+/// least likely to know, so an invisible one is the same as a missing
+/// feature; on a real phone it was reported as one.
+///
+/// `ReorderableDragStartListener` also makes the handle drag *immediately*
+/// rather than after a hold, which is the difference between a control and a
+/// trick.
 class _AppRow extends StatelessWidget {
   const _AppRow({
     super.key,
+    required this.index,
     required this.app,
     required this.onRename,
     required this.onRecolour,
     required this.onDelete,
   });
 
+  final int index;
   final LauncherApp app;
   final VoidCallback onRename;
   final VoidCallback onRecolour;
@@ -295,7 +317,9 @@ class _AppRow extends StatelessWidget {
           color: app.baseColor,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(app.category.icon, color: Colors.white, size: 28),
+        // Measured, not assumed white — the yellows cannot hold it. The
+        // home screen's tiles follow the same rule.
+        child: Icon(app.category.icon, color: app.letteringColor, size: 28),
       ),
       title: Text(
         app.label,
@@ -309,6 +333,20 @@ class _AppRow extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          ReorderableDragStartListener(
+            key: AppSettingsKeys.dragHandle(app.id),
+            index: index,
+            child: const Padding(
+              // A target an ageing hand can land on, rather than the icon's
+              // own bounds.
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              child: Icon(
+                Icons.drag_handle,
+                size: 30,
+                color: AppColors.seniorInkMuted,
+              ),
+            ),
+          ),
           IconButton(
             key: Key('colour-${app.id}'),
             onPressed: onRecolour,
