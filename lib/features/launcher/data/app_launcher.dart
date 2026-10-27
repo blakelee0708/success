@@ -77,6 +77,13 @@ LaunchRequest launchRequestFor(AppCategory category) => switch (category) {
   // Never reached: `launchRequestForApp` answers for this one, because the
   // package is on the button and not on the kind. The switch has to be total.
   AppCategory.installed => const LaunchRequest(),
+  // The three fixed slots never reach here either: 가족 opens the
+  // conversation and the other two change the phone rather than opening
+  // anything. The switch has to be total, and opening nothing is the honest
+  // answer rather than a guess that launches some app at a senior.
+  AppCategory.family ||
+  AppCategory.sound ||
+  AppCategory.internet => const LaunchRequest(),
 };
 
 /// One app already on this phone, as the picker offers it.

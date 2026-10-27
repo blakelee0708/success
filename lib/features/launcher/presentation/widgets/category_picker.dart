@@ -39,9 +39,18 @@ class CategoryPickerKeys {
 /// an app on the parent's phone means **reading the list of apps on the
 /// parent's phone**, and that list is deliberately never sent off it. Showing
 /// the option there would be offering something the next screen cannot do.
+/// The three fixed slots are never offered. 가족, 소리 and 인터넷 each have a
+/// place of their own on both home screens, there is exactly one of each, and
+/// the senior did not put it there - so adding one is not a thing to offer.
+/// They are still ordinary saved buttons, which is how the family renames and
+/// recolours them.
+final addableCategories = [
+  for (final c in AppCategory.values) if (!c.fixedSlot) c,
+];
+
 Future<AppCategory?> askForCategory(
   BuildContext context, {
-  List<AppCategory> offer = AppCategory.values,
+  List<AppCategory>? offer,
   List<LauncherApp> alreadyOn = const [],
 }) =>
     showDialog<AppCategory>(
@@ -73,7 +82,7 @@ Future<AppCategory?> askForCategory(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              for (final category in offer)
+              for (final category in (offer ?? addableCategories))
                 if (category.repeatable ||
                     !alreadyOn.any((a) => a.category == category))
                   _Option(category: category),

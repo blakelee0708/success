@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../domain/device_status.dart';
+import '../../../../domain/app_category.dart';
+import '../../../../domain/launcher_app.dart';
+import '../../application/senior_settings_controller.dart';
 import '../../application/ringer_controller.dart';
 import '../../data/phone_controls.dart';
 import 'home_pill.dart';
@@ -62,6 +65,13 @@ class HomeUtilityRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ringer = ref.watch(ringerControllerProvider);
+    // The senior's own words and colours. They are ordinary saved buttons,
+    // which is how the family can rename and recolour them from either phone;
+    // what keeps them out of the grid is `fixedSlot`.
+    final saved = ref.watch(seniorSettingsControllerProvider).value?.apps;
+    final all = (saved == null || saved.isEmpty) ? fixedSlotApps : saved;
+    final soundButton = fixedSlotApp(all, AppCategory.sound);
+    final internetButton = fixedSlotApp(all, AppCategory.internet);
     return Row(
       children: [
         Expanded(
@@ -71,11 +81,13 @@ class HomeUtilityRow extends ConsumerWidget {
             // `flutter test` the channel never answers at all, and a button
             // claiming the ringer is off when nobody asked is the same
             // fabrication as a battery reading of 0%.
+            // The state is appended to whatever they called it, so a button
+            // renamed 벨소리 still says which way it is set.
             label: switch (ringer) {
-              RingerMode.normal => '소리 켜짐',
+              RingerMode.normal => '${soundButton.label} 켜짐',
               RingerMode.vibrate => '진동',
-              RingerMode.silent => '소리 꺼짐',
-              null => '소리',
+              RingerMode.silent => '${soundButton.label} 꺼짐',
+              null => soundButton.label,
             },
             // Null gets the speaker too, because the label beside it is the
             // neutral 소리 and the icon must not contradict it. A vibration
@@ -102,13 +114,13 @@ class HomeUtilityRow extends ConsumerWidget {
         Expanded(
           child: HomePill(
             key: internetKey,
-            label: '인터넷',
-            icon: Icons.wifi_rounded,
-            light: AppColors.seniorUtilityLight,
-            face: AppColors.seniorUtility,
-            deep: AppColors.seniorUtilityDeep,
-            wall: AppColors.seniorUtilityWall,
-            ink: AppColors.seniorInk,
+            label: internetButton.label,
+            icon: internetButton.category.icon,
+            light: internetButton.lightColor,
+            face: internetButton.baseColor,
+            deep: internetButton.deepColor,
+            wall: internetButton.wallColor,
+            ink: internetButton.letteringColor,
             sheen: 0.4,
             height: height,
             iconSize: 21,

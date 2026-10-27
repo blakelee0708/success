@@ -50,7 +50,7 @@ void main() {
     // senior picked, and two of them differ only by that. Asking the kind
     // for it comes back empty — correctly — and this used to read that as a
     // category with no way to open.
-    for (final category in AppCategory.values) {
+    for (final category in AppCategory.values.where((c) => !c.fixedSlot)) {
       final app = LauncherApp(
         id: 'x',
         label: category.defaultLabel,

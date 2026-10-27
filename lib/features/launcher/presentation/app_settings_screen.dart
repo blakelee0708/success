@@ -53,7 +53,26 @@ class AppSettingsScreen extends ConsumerWidget {
               // simply the next thing after the last one, and adding pushes
               // it down. Hollow, so it is the same object as the 추가하기
               // slot on 자세한 화면 — two ways to the same act, drawn alike.
-              footer: _AddRow(onTap: () => addHomeButton(context, ref)),
+              footer: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _AddRow(onTap: () => addHomeButton(context, ref)),
+                  // 가족, 소리 and 인터넷 - the three that are not apps. Below
+                  // the apps rather than above them, because they are the
+                  // furniture around what the senior actually chose, and in
+                  // the footer rather than the list because there is exactly
+                  // one of each: nothing here is reordered or deleted.
+                  const _GroupTitle('이 화면에 늘 있는 버튼'),
+                  for (final category in AppCategory.values)
+                    if (category.fixedSlot)
+                      _FixedRow(
+                        app: fixedSlotApp(apps, category),
+                        onRename: () => _renameFixed(context, ref, category),
+                        onRecolour: () => _recolourFixed(context, ref, category),
+                      ),
+                  const SizedBox(height: 8),
+                ],
+              ),
               children: [
                 for (final (index, app) in apps.indexed)
                   _AppRow(
@@ -108,11 +127,46 @@ class AppSettingsScreen extends ConsumerWidget {
         .renameApp(app.id, name);
   }
 
-  Future<void> _recolour(
+  Future<void> _renameFixed(
     BuildContext context,
     WidgetRef ref,
-    LauncherApp app,
+    AppCategory category,
   ) async {
+    final apps = ref.read(seniorSettingsControllerProvider).value?.apps ?? [];
+    final current = fixedSlotApp(apps, category);
+    final name = await askForButtonName(
+      context,
+      title: '이름 바꾸기',
+      initial: current.label,
+    );
+    if (name == null) return;
+    await ref
+        .read(seniorSettingsControllerProvider.notifier)
+        .editFixedSlot(category, label: name);
+  }
+
+  Future<void> _recolourFixed(
+    BuildContext context,
+    WidgetRef ref,
+    AppCategory category,
+  ) async {
+    final apps = ref.read(seniorSettingsControllerProvider).value?.apps ?? [];
+    final chosen = await _pickColour(
+      context,
+      current: fixedSlotApp(apps, category).color,
+    );
+    if (chosen == null) return;
+    await ref
+        .read(seniorSettingsControllerProvider.notifier)
+        .editFixedSlot(category, color: chosen);
+  }
+
+  /// Shared by an app button and a fixed slot: the same circles, the same
+  /// ring on the one already chosen. Null means they backed out.
+  Future<ButtonColor?> _pickColour(
+    BuildContext context, {
+    ButtonColor? current,
+  }) async {
     final chosen = await showDialog<ButtonColor?>(
       context: context,
       builder: (context) => SimpleDialog(
@@ -134,7 +188,7 @@ class AppSettingsScreen extends ConsumerWidget {
                         shape: BoxShape.circle,
                         color: colour.color,
                         border: Border.all(
-                          color: app.color == colour
+                          color: current == colour
                               ? AppColors.seniorOnSurface
                               : Colors.transparent,
                           width: 3,
@@ -148,6 +202,15 @@ class AppSettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+    return chosen;
+  }
+
+  Future<void> _recolour(
+    BuildContext context,
+    WidgetRef ref,
+    LauncherApp app,
+  ) async {
+    final chosen = await _pickColour(context, current: app.color);
     if (chosen == null) return;
     await ref
         .read(seniorSettingsControllerProvider.notifier)
@@ -322,6 +385,92 @@ class _AddRow extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The heading over the three that are not apps.
+class _GroupTitle extends StatelessWidget {
+  const _GroupTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        color: AppColors.seniorInkMuted,
+      ),
+    ),
+  );
+}
+
+/// One of 가족, 소리, 인터넷.
+///
+/// The same two edits as an app button and neither of the other two: there is
+/// exactly one of each, so nothing here is dragged into a different order or
+/// deleted. A senior who could delete 가족 would lose the only way to their
+/// family from the home screen, and nothing on that screen would say why.
+class _FixedRow extends StatelessWidget {
+  const _FixedRow({
+    required this.app,
+    required this.onRename,
+    required this.onRecolour,
+  });
+
+  final LauncherApp app;
+  final VoidCallback onRename;
+  final VoidCallback onRecolour;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onRename,
+          borderRadius: BorderRadius.circular(20),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: app.baseColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  app.category.icon,
+                  color: app.letteringColor,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  app.label,
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.seniorInk,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: onRecolour,
+                tooltip: '색 바꾸기',
+                icon: const Icon(Icons.palette_outlined, size: 26),
+                color: AppColors.seniorInkMuted,
+              ),
+            ],
           ),
         ),
       ),

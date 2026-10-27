@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
+import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
 import 'add_home_button.dart';
@@ -46,7 +47,9 @@ class DetailedHomeScreen extends ConsumerWidget {
     // Saved buttons rather than the constant defaults, so an edit made in
     // 설정 reaches the home screen.
     final saved = ref.watch(seniorSettingsControllerProvider).value?.apps;
-    final apps = (saved == null || saved.isEmpty) ? defaultDetailedApps : saved;
+    final all = (saved == null || saved.isEmpty) ? defaultDetailedApps : saved;
+    final apps = seniorGridApps(all);
+    final familyButton = fixedSlotApp(all, AppCategory.family);
     final connected =
         (ref.watch(seniorGuardiansProvider).value ?? const []).isNotEmpty;
 
@@ -122,12 +125,18 @@ class DetailedHomeScreen extends ConsumerWidget {
                         Expanded(
                           flex: _familyFlex,
                           child: HomePill(
-                            label: connected ? '가족' : '가족 연결',
-                            icon: Icons.family_restroom,
-                            light: AppColors.seniorFamilyLight,
-                            face: AppColors.seniorFamily,
-                            deep: AppColors.seniorFamilyDeep,
-                            wall: AppColors.seniorFamilyWall,
+                            // The senior's own words and colour, which the
+                            // family can change from either phone. Before a
+                            // family is attached the button is still an
+                            // invitation, so the label they chose waits.
+                            label: connected
+                                ? familyButton.label
+                                : '가족 연결',
+                            icon: familyButton.category.icon,
+                            light: familyButton.lightColor,
+                            face: familyButton.baseColor,
+                            deep: familyButton.deepColor,
+                            wall: familyButton.wallColor,
                             // Amber is too light to carry white lettering.
                             ink: AppColors.seniorInk,
                             // The band used to carry the newest message and

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
 import 'open_home_button.dart';
@@ -29,7 +30,9 @@ class EasyHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final saved = ref.watch(seniorSettingsControllerProvider).value?.apps;
-    final apps = (saved == null || saved.isEmpty) ? defaultEasyApps : saved;
+    final all = (saved == null || saved.isEmpty) ? defaultEasyApps : saved;
+    final apps = seniorGridApps(all);
+    final familyButton = fixedSlotApp(all, AppCategory.family);
     // `04_SCREEN_SPEC` gives this slot as 가족 연결 또는 자녀 이름 버튼. Talking
     // to the family moved up into [HomeStrip], which shows their newest
     // message, so what is left for the button is the connection itself —
@@ -73,17 +76,19 @@ class EasyHomeScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: HomePill(
-                            label: connected ? '가족' : '가족 연결',
-                            icon: Icons.family_restroom,
-                            light: AppColors.seniorFamilyLight,
-                            face: AppColors.seniorFamily,
-                            deep: AppColors.seniorFamilyDeep,
-                            wall: AppColors.seniorFamilyWall,
-                            // Amber is too light to carry white lettering, so this
-                            // one is written in ink. Blue and teal are gone from
-                            // the senior's screens entirely: short-wavelength
-                            // colours are the first an ageing eye loses.
-                            ink: AppColors.seniorInk,
+                            // The senior's own words and colour, which the
+                            // family can change from either phone. Before a
+                            // family is attached the button is still an
+                            // invitation, so the label they chose waits.
+                            label: connected
+                                ? familyButton.label
+                                : '가족 연결',
+                            icon: familyButton.category.icon,
+                            light: familyButton.lightColor,
+                            face: familyButton.baseColor,
+                            deep: familyButton.deepColor,
+                            wall: familyButton.wallColor,
+                            ink: familyButton.letteringColor,
                             // The band used to carry the newest message and
                             // open the conversation. With the band down to a
                             // clock, this button takes that back - which is

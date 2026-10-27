@@ -107,6 +107,36 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
   Future<void> setAppColor(String id, ButtonColor? color) =>
       _mapApps((app) => app.id == id ? app.withColor(color) : app);
 
+  /// Renames or recolours one of the three fixed slots, adding it to the
+  /// saved list the first time somebody does.
+  ///
+  /// They are not in either screen's defaults - seeding them changed the
+  /// count and order of `defaultDetailedApps`, which the spec fixes - so a
+  /// saved list holds one only once it has been edited. Until then the home
+  /// screen falls back to [fixedSlotApps], which is also what covers settings
+  /// written before these existed.
+  Future<void> editFixedSlot(
+    AppCategory category, {
+    String? label,
+    ButtonColor? color,
+    bool clearColor = false,
+  }) async {
+    final current = state.value ?? const SeniorSettings();
+    final apps = [...current.apps];
+    final at = apps.indexWhere((a) => a.category == category);
+    final base = at >= 0
+        ? apps[at]
+        : fixedSlotApps.firstWhere((a) => a.category == category);
+    var next = label == null ? base : base.copyWith(label: label);
+    if (clearColor || color != null) next = next.withColor(color);
+    if (at >= 0) {
+      apps[at] = next;
+    } else {
+      apps.add(next);
+    }
+    await _write(current.copyWith(apps: List.unmodifiable(apps)));
+  }
+
   Future<void> removeApp(String id) async {
     final current = state.value ?? const SeniorSettings();
     await _write(

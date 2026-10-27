@@ -6,6 +6,7 @@ import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
 import '../../../domain/app_category.dart';
+import '../../launcher/presentation/widgets/category_picker.dart';
 import '../../../domain/senior_settings.dart';
 import '../../launcher/application/senior_settings_controller.dart';
 import '../../launcher/presentation/widgets/home_app_coach.dart';
@@ -194,10 +195,13 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
                 child: _ModeCard(
                   title: '자세한 화면',
                   subtitle: '앱 6개에 설정까지.\n조금 더 쓸 수 있어요',
-                  preview: const ScreenModePreview(
+                  preview: ScreenModePreview(
                     key: ScreenModeChoiceKeys.detailedPreview,
                     tiles: 6,
-                    categories: AppCategory.values,
+                    // The preview shows app tiles, so it shows the kinds that
+                    // can be one. 가족, 소리 and 인터넷 have places of their
+                    // own and are not in the grid at all.
+                    categories: addableCategories,
                     hasTabBar: true,
                   ),
                   onTap: () => _choose(context, ref, ScreenMode.detailed),

@@ -286,3 +286,36 @@ const List<LauncherApp> defaultDetailedApps = [
   LauncherApp(id: 'camera', label: '사진찍기', category: AppCategory.camera),
   LauncherApp(id: 'gallery', label: '사진 보기', category: AppCategory.gallery),
 ];
+
+/// The three that are not apps: 가족, 소리, 인터넷.
+///
+/// **Not** in either screen's defaults, and that is deliberate. Seeding them
+/// changed the count and the order of `defaultDetailedApps`, which a dozen
+/// tests read as the spec's six in the spec's order - and they were right to.
+/// These three are not among the apps a senior chose; they are the furniture
+/// around them.
+///
+/// So a saved list holds one only once somebody has edited it. Until then
+/// [fixedSlotApp] hands back the default, which is also what covers settings
+/// written before these existed.
+const List<LauncherApp> fixedSlotApps = [
+  LauncherApp(id: 'family', label: '가족', category: AppCategory.family),
+  LauncherApp(id: 'sound', label: '소리', category: AppCategory.sound),
+  LauncherApp(id: 'internet', label: '인터넷', category: AppCategory.internet),
+];
+
+/// The buttons that go in the grid, in order.
+List<LauncherApp> seniorGridApps(List<LauncherApp> apps) =>
+    [for (final app in apps) if (!app.category.fixedSlot) app];
+
+/// The saved button for [category], or the default if the senior has none.
+///
+/// A fallback rather than an assumption: settings saved before these three
+/// existed do not carry them, and a sync that drops a row must not take 가족
+/// off the home screen with it.
+LauncherApp fixedSlotApp(List<LauncherApp> apps, AppCategory category) {
+  for (final app in apps) {
+    if (app.category == category) return app;
+  }
+  return fixedSlotApps.firstWhere((a) => a.category == category);
+}
