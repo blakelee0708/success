@@ -1901,6 +1901,30 @@ that the policy sits on the host the reset mail points at. Adding one
 permission fails that test with the line about rewriting the page in the same
 commit - checked by adding `ACCESS_FINE_LOCATION` and watching it fail.
 
+### The site pages can be rendered here, and it found two faults
+
+Chromium and Playwright are pre-installed in this environment, so a static
+page under `site/` **can be looked at** even though there is no display and
+`github.io` is blocked. That is worth knowing, because it is the only review
+these pages ever get - `screenshots_test.dart` covers the Flutter screens and
+nothing covered these.
+
+Rendered at 390px, the first draft of `privacy.html` had two faults, neither
+of which reading the source would have shown:
+
+- **The whole page scrolled sideways by 101px.** `white-space: nowrap` on the
+  table labels meant `Google (Firebase Cloud Messaging)` could not shrink, so
+  `width: 100%` on the table stopped meaning anything. No single element
+  reported an overflow; only the document did.
+- **Korean broke between syllables.** `채워지기` came out as `채워지` / `기`.
+  Browsers do that by default; `word-break: keep-all` breaks at spaces
+  instead. This is the same fault the consent cards document from the other
+  side, where a wrapped line left `은` alone - and the fix is one line of CSS
+  rather than counting glyphs, because this page is not a fixed-width card.
+
+`index.html` and `reset.html` were measured too and were already clean at
+phone width, with no JS errors.
+
 ## `flutter test` was not hanging
 
 Recorded because the last commit's own message guessed wrong about it, and

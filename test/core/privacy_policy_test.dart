@@ -69,7 +69,11 @@ void main() {
     // blank — and a blank 상호 on a published policy is worse than no page.
     // The banner is what keeps that from happening quietly: whoever fills
     // the fields removes it, and until then the page says so itself.
-    final hasBlanks = policy.contains('「 ');
+    // Anchored on the chip's class, not on the 「 」 glyphs. The glyphs are
+    // copy and move around; `class="todo"` is what marks a field as unfilled,
+    // and the check went vacuous once for exactly that reason - a `&nbsp;`
+    // inside one chip stopped it matching, and a vacuous check passes.
+    final hasBlanks = policy.contains('class="todo"');
 
     expect(
       hasBlanks ? policy.contains('아직 공개 전 초안입니다') : true,

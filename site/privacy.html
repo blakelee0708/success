@@ -56,6 +56,13 @@
     color: var(--ink);
     -webkit-text-size-adjust: 100%;
     padding: 28px 16px 64px;
+    /* Browsers break Korean between syllables by default, so `채워지기`
+       came out as `채워지` / `기` across two lines. `keep-all` breaks at
+       spaces instead, which is how the language is read. The app's consent
+       cards document the same fault from the other side, where a wrapped
+       line left `은` alone. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
   main {
     width: 100%;
@@ -116,7 +123,6 @@
     margin: 0 0 16px;
     font-size: 14.5px;
   }
-  tbody th { background: transparent; color: var(--ink); }
   th, td {
     text-align: left;
     vertical-align: top;
@@ -127,8 +133,18 @@
   th {
     color: var(--ink);
     font-weight: 700;
-    white-space: nowrap;
     background: rgba(11, 95, 217, 0.04);
+  }
+  /* No `white-space: nowrap` on these. It was there first, and it made the
+     whole page scroll sideways by 101px at 390px wide: a label like
+     `Google (Firebase Cloud Messaging)` cannot shrink, so `width: 100%` on
+     the table stopped meaning anything. Measured in a real browser at phone
+     width, which is the only way this shows up. */
+  tbody th {
+    width: 30%;
+    min-width: 7.5em;
+    background: transparent;
+    color: var(--ink);
   }
   td { color: var(--ink-soft); }
   .todo {
@@ -150,6 +166,11 @@
     line-height: 1.7;
     font-weight: 600;
   }
+  @media (max-width: 480px) {
+    body { padding: 20px 12px 48px; }
+    main { padding: 28px 18px 32px; border-radius: 18px; }
+    th, td { padding: 9px 8px; font-size: 14px; }
+  }
   .foot {
     margin-top: 34px;
     padding-top: 20px;
@@ -166,7 +187,7 @@
   <h1>개인정보처리방침</h1>
 
   <p class="notice">
-    이 문서는 아직 공개 전 초안입니다. <span class="todo">「 」</span> 로 표시된
+    이 문서는 아직 공개 전 초안입니다. <span class="todo">「&nbsp;」</span> 로 표시된
     칸은 사업자 정보와 연락처로, 채워지기 전에는 Play 심사나 카카오 동의항목에
     제출할 수 없습니다.
   </p>
