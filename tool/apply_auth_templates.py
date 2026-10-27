@@ -133,11 +133,30 @@ def patch(body):
         return e.code, e.read().decode()[:400]
 
 
+def flag_payload(before):
+    """The two flag objects, with only the four keys this script owns set true.
+
+    The content fields are gated on these: with the flag false the API takes a
+    `mailer_subjects_recovery` and returns 200 having stored nothing, which is
+    the exact shape of failure this script was written to catch. So the flags
+    go in the same call as the copy, and the other keys in each object are
+    sent back as they were rather than being replaced wholesale.
+    """
+    out = {}
+    for obj_key, flag_key in FLAGS.values():
+        obj = dict(before.get(obj_key) or {})
+        obj[flag_key] = True
+        out[obj_key] = obj
+    return out
+
+
 def main():
     print(f"project {REF}")
 
-    print("\nwriting the Korean mail copy")
-    status, err = patch(WANTED)
+    print("\nwriting the Korean mail copy, and the flags that decide it is used")
+    body = dict(WANTED)
+    body.update(flag_payload(read_config()))
+    status, err = patch(body)
     check(f"PATCH /config/auth returned {status}", status in (200, 201), err or "")
 
     print("\nreading it back, because a 2xx is not the question")
