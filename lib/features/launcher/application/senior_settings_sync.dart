@@ -4,6 +4,7 @@ import '../../../core/supabase/supabase_providers.dart';
 import '../../../data/remote/home_apps_repository.dart';
 import '../../../data/remote/senior_link_repository.dart';
 import '../../../data/senior_link_store.dart';
+import '../../../domain/launcher_app.dart';
 import '../../../domain/senior_settings.dart';
 
 /// Carries the launcher's settings between the parent's phone and the server.
@@ -57,12 +58,42 @@ class SeniorSettingsSync {
       final profile = await _links.fetchProfile(profileId);
       final apps = await _homeApps.fetch(profileId);
       final merged = profile.applyTo(current);
-      final next = apps.isEmpty ? merged : merged.copyWith(apps: apps);
+      final next = apps.isEmpty
+          ? merged
+          : merged.copyWith(apps: _keepIcons(apps, current.apps));
       return next == current ? null : next;
     } on Object {
       return null;
     }
   }
+}
+
+/// Puts the locally held app icons back on the rows that came down.
+///
+/// An installed-app button carries its chosen app's icon in bytes, and those
+/// bytes are deliberately **never sent to the server** — the guardian does
+/// not receive the list of what is on their parent's phone. So every row that
+/// comes back has a null icon, and applying it verbatim would wipe the real
+/// one on every resume: the tile would go from the senior's 고스톱 logo to a
+/// grey glyph, and stay there.
+///
+/// Same rule the device-status column follows — *null means the other side
+/// could not say, never that there is nothing.*
+List<LauncherApp> _keepIcons(
+  List<LauncherApp> fromServer,
+  List<LauncherApp> local,
+) {
+  final icons = {
+    for (final app in local)
+      if (app.iconBytes != null) app.id: app.iconBytes!,
+  };
+  if (icons.isEmpty) return fromServer;
+  return [
+    for (final app in fromServer)
+      app.iconBytes == null && icons.containsKey(app.id)
+          ? app.copyWith(iconBytes: icons[app.id])
+          : app,
+  ];
 }
 
 final seniorSettingsSyncProvider = Provider<SeniorSettingsSync>(

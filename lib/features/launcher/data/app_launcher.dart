@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/app_category.dart';
+import '../../../domain/launcher_app.dart';
 
 /// A well-known kind of app, resolved on the platform side by intent rather
 /// than by package name.
@@ -44,7 +45,16 @@ class LaunchRequest {
   int get hashCode => Object.hash(packageName, intent, fallbackUrl);
 }
 
-/// How each home button opens.
+/// How a home button opens.
+///
+/// Takes the button rather than its category, because an `installed` one is
+/// the package the senior picked and two of them differ only by that.
+LaunchRequest launchRequestForApp(LauncherApp app) =>
+    app.category == AppCategory.installed
+    ? LaunchRequest(packageName: app.packageName)
+    : launchRequestFor(app.category);
+
+/// How each *kind* of home button opens.
 ///
 /// 전화 resolves to ACTION_DIAL, never ACTION_CALL: `06_PERMISSION_AND_POLICY`
 /// says the app must not place a call itself, and that rule is not only about
@@ -64,10 +74,43 @@ LaunchRequest launchRequestFor(AppCategory category) => switch (category) {
     intent: LaunchIntent.browser,
     fallbackUrl: 'https://m.youtube.com',
   ),
+  // Never reached: `launchRequestForApp` answers for this one, because the
+  // package is on the button and not on the kind. The switch has to be total.
+  AppCategory.installed => const LaunchRequest(),
 };
+
+/// One app already on this phone, as the picker offers it.
+class InstalledApp {
+  const InstalledApp({
+    required this.packageName,
+    required this.label,
+    this.icon,
+  });
+
+  final String packageName;
+
+  /// The name the phone shows for it, which is the name the senior is
+  /// looking for — not a package id and not our own word for it.
+  final String label;
+
+  /// Its own icon, PNG. Null where the phone could not render one; the app is
+  /// still offered, because it is being picked by name.
+  final Uint8List? icon;
+}
 
 /// Opening other apps, and the launcher's own standing on this phone.
 abstract interface class AppLauncher {
+  /// Every app on this phone with a launcher icon, by name.
+  ///
+  /// Empty where the platform cannot say — a desktop build, `flutter test`.
+  /// A caller must render that as *nothing to choose from* rather than as an
+  /// error, the same way every other channel read here degrades.
+  ///
+  /// **Never called to draw a tile.** The home screen keeps each chosen
+  /// app's icon beside its button instead; nothing a senior is looking at may
+  /// wait on this channel, and this one is the slowest of them.
+  Future<List<InstalledApp>> installedApps();
+
   /// False when nothing on the phone could handle it — usually the app is
   /// simply not installed.
   Future<bool> open(LaunchRequest request);
@@ -101,6 +144,26 @@ class MethodChannelAppLauncher implements AppLauncher {
       return false;
     } on MissingPluginException {
       return false;
+    }
+  }
+
+  @override
+  Future<List<InstalledApp>> installedApps() async {
+    try {
+      final rows = await channel.invokeListMethod<Object?>('installedApps');
+      return [
+        for (final row in rows ?? const [])
+          if (row is Map && row['package'] is String && row['label'] is String)
+            InstalledApp(
+              packageName: row['package'] as String,
+              label: row['label'] as String,
+              icon: row['icon'] as Uint8List?,
+            ),
+      ];
+    } on PlatformException {
+      return const [];
+    } on MissingPluginException {
+      return const [];
     }
   }
 
@@ -145,10 +208,23 @@ class FakeAppLauncher implements AppLauncher {
   final List<LaunchRequest> opened = [];
   int homeSettingsOpened = 0;
 
+  /// What the phone offers to pick from. Empty by default, which is what a
+  /// platform that cannot answer gives back — so a screen that does not
+  /// handle the empty case fails in a test rather than on someone's mother's
+  /// phone.
+  List<InstalledApp> apps = const [];
+  int appsListed = 0;
+
   @override
   Future<bool> open(LaunchRequest request) async {
     opened.add(request);
     return installed;
+  }
+
+  @override
+  Future<List<InstalledApp>> installedApps() async {
+    appsListed++;
+    return apps;
   }
 
   @override

@@ -186,7 +186,18 @@ class _Editor extends ConsumerWidget {
   /// the guardian is choosing what will appear on their mother's home screen,
   /// so what they are shown is that button, not a form control.
   Future<void> _add(BuildContext context, WidgetRef ref) async {
-    final category = await askForCategory(context);
+    // Without 폰에 있는 앱. The senior adds one of those from their own
+    // phone, in 앱 설정하기; offering it here would mean sending the guardian
+    // a list of what is installed on their parent's phone, which is the one
+    // thing this feature was scoped not to do. The guardian can still rename
+    // it, recolour it and move it once it is there.
+    final category = await askForCategory(
+      context,
+      offer: [
+        for (final c in AppCategory.values)
+          if (c != AppCategory.installed) c,
+      ],
+    );
     if (category == null || !context.mounted) return;
 
     // A person needs a number as well as a name. This is the screen it is

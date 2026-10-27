@@ -104,6 +104,21 @@
         <package android:name="com.kakao.talk"/>
         <package android:name="com.google.android.youtube"/>
 
+        <!-- Every app with a launcher icon, so the senior can put one of their
+             own on the home screen.
+
+             This is what a launcher does, and it is deliberately NOT
+             QUERY_ALL_PACKAGES: that permission is Play-restricted and its
+             published list of acceptable uses is device search, antivirus,
+             file managers and browsers — launchers are not on it. An intent
+             query needs no declaration form and no review, and it already
+             works: six <intent> entries above use <category> the same way and
+             open real apps on a real phone. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent>
+
         <!-- Resolved to answer "am I the current home app?", which is what the
              홈 화면으로 설정하기 prompt is keyed on. -->
         <intent>

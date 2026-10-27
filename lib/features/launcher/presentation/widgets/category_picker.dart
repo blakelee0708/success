@@ -23,7 +23,16 @@ class CategoryPickerKeys {
 /// Drawn as the tiles themselves rather than as a list of names: the senior,
 /// or the son choosing on their behalf, is picking the thing they are about
 /// to see on the home screen.
-Future<AppCategory?> askForCategory(BuildContext context) =>
+/// [offer] is what the caller can actually follow through on.
+///
+/// The guardian's half passes a list without [AppCategory.installed]: picking
+/// an app on the parent's phone means **reading the list of apps on the
+/// parent's phone**, and that list is deliberately never sent off it. Showing
+/// the option there would be offering something the next screen cannot do.
+Future<AppCategory?> askForCategory(
+  BuildContext context, {
+  List<AppCategory> offer = AppCategory.values,
+}) =>
     showDialog<AppCategory>(
       context: context,
       builder: (context) => AlertDialog(
@@ -53,8 +62,7 @@ Future<AppCategory?> askForCategory(BuildContext context) =>
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              for (final category in AppCategory.values)
-                _Option(category: category),
+              for (final category in offer) _Option(category: category),
             ],
           ),
         ),
@@ -84,7 +92,7 @@ class _Option extends StatelessWidget {
     final ink = category.letteringColor;
     return Semantics(
       button: true,
-      label: category.defaultLabel,
+      label: category.pickerLabel,
       child: ClayPad(
         key: CategoryPickerKeys.option(category),
         light: category.lightColor,
@@ -104,7 +112,7 @@ class _Option extends StatelessWidget {
                 Icon(category.icon, size: 26, color: ink),
                 const SizedBox(width: 9),
                 Text(
-                  category.defaultLabel,
+                  category.pickerLabel,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,

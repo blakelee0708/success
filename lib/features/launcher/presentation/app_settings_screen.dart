@@ -7,6 +7,7 @@ import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
 import 'widgets/category_picker.dart';
 import 'widgets/contact_dialog.dart';
+import 'widgets/installed_app_picker.dart';
 
 abstract final class AppSettingsKeys {
   /// The grip that starts a reorder. Named so a test can assert it exists:
@@ -111,6 +112,23 @@ class AppSettingsScreen extends ConsumerWidget {
   Future<void> _add(BuildContext context, WidgetRef ref) async {
     final category = await askForCategory(context);
     if (category == null || !context.mounted) return;
+
+    // An app already on the phone brings its own name and its own icon, so
+    // there is nothing left to ask. A senior adding their 고스톱 presses
+    // twice — the kind, then the app — and never types.
+    if (category == AppCategory.installed) {
+      final picked = await askForInstalledApp(context, ref);
+      if (picked == null) return;
+      await ref
+          .read(seniorSettingsControllerProvider.notifier)
+          .addApp(
+            label: picked.label,
+            category: category,
+            packageName: picked.packageName,
+            iconBytes: picked.icon,
+          );
+      return;
+    }
 
     // A person needs a number as well as a name, and there is no sensible
     // default for either.

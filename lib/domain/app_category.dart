@@ -16,7 +16,29 @@ import '../core/theme/app_colors.dart';
 /// button dials the number the guardian typed instead of opening anything.
 /// Seniors fail at *finding people* far more often than at finding apps:
 /// opening 연락처 and scrolling is where they give up.
-enum AppCategory { phone, message, kakao, youtube, camera, gallery, contact }
+enum AppCategory {
+  phone,
+  message,
+  kakao,
+  youtube,
+  camera,
+  gallery,
+  contact,
+
+  /// An app already on this phone, chosen from the list it offers.
+  ///
+  /// The six above are *kinds* of app — the phone opens whichever dialer or
+  /// gallery its owner already uses. This one is a named package, because a
+  /// senior's 고스톱 or their bank has no category and nothing can stand in
+  /// for it.
+  ///
+  /// It is why this exists at all: seniors do not fail at opening apps, they
+  /// fail at **finding** them, and the app they most want is usually not one
+  /// of six categories. `home_apps.app_type` has had `'installed_app'` in its
+  /// check constraint and a `package_name` column since Phase 4 —
+  /// `05_DATA_MODEL` anticipated it and nothing had ever written one.
+  installed,
+}
 
 extension AppCategoryStyle on AppCategory {
   /// Darker gradient stop (c2 in launcher.jsx).
@@ -28,6 +50,9 @@ extension AppCategoryStyle on AppCategory {
     AppCategory.camera => AppColors.seniorButtonPurple,
     AppCategory.gallery => AppColors.seniorButtonPink,
     AppCategory.contact => AppColors.seniorFamily,
+    // Neutral on purpose: the tile carries the app's own icon, and a strong
+    // face behind a foreign logo fights it. The senior can recolour it.
+    AppCategory.installed => AppColors.seniorMore,
   };
 
   /// Lit top of the face.
@@ -39,6 +64,7 @@ extension AppCategoryStyle on AppCategory {
     AppCategory.camera => AppColors.seniorButtonPurpleLight,
     AppCategory.gallery => AppColors.seniorButtonPinkLight,
     AppCategory.contact => AppColors.seniorFamilyLight,
+    AppCategory.installed => AppColors.seniorMoreLight,
   };
 
   /// Shaded foot of the face, where it turns away from the light.
@@ -50,6 +76,7 @@ extension AppCategoryStyle on AppCategory {
     AppCategory.camera => AppColors.seniorButtonPurpleDeep,
     AppCategory.gallery => AppColors.seniorButtonPinkDeep,
     AppCategory.contact => AppColors.seniorFamilyDeep,
+    AppCategory.installed => AppColors.seniorMoreDeep,
   };
 
   /// The side wall the tile stands on — the thing that makes it an object
@@ -62,6 +89,7 @@ extension AppCategoryStyle on AppCategory {
     AppCategory.camera => AppColors.seniorButtonPurpleWall,
     AppCategory.gallery => AppColors.seniorButtonPinkWall,
     AppCategory.contact => AppColors.seniorFamilyWall,
+    AppCategory.installed => AppColors.seniorMoreWall,
   };
 
   /// What the icon and the label are drawn in.
@@ -92,6 +120,17 @@ extension AppCategoryStyle on AppCategory {
     AppCategory.camera => '사진찍기',
     AppCategory.gallery => '사진 보기',
     AppCategory.contact => '가족',
+    AppCategory.installed => '앱',
+  };
+
+  /// What the 어떤 버튼인가요? sheet calls this kind.
+  ///
+  /// Separate from [defaultLabel], which prefills the name dialog: an
+  /// installed app never reaches that dialog, because it arrives carrying the
+  /// name the phone already shows for it.
+  String get pickerLabel => switch (this) {
+    AppCategory.installed => '폰에 있는 앱',
+    _ => defaultLabel,
   };
 
   /// Nearest Material glyph to the launcher.jsx custom icon.
@@ -103,5 +142,8 @@ extension AppCategoryStyle on AppCategory {
     AppCategory.camera => Icons.photo_camera,
     AppCategory.gallery => Icons.photo_library,
     AppCategory.contact => Icons.person_rounded,
+    // Only drawn until the app's real icon arrives, and on the guardian's
+    // half, which never receives one.
+    AppCategory.installed => Icons.apps_rounded,
   };
 }

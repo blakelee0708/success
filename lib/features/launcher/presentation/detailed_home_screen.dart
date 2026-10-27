@@ -63,7 +63,7 @@ class DetailedHomeScreen extends ConsumerWidget {
 
     final opened = await ref
         .read(appLauncherProvider)
-        .open(launchRequestFor(app.category));
+        .open(launchRequestForApp(app));
     if (opened || !context.mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()

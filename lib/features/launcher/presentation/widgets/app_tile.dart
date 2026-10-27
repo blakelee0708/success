@@ -50,12 +50,32 @@ class AppTile extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  app.category.icon,
-                  size: 44,
-                  color: ink,
-                  shadows: onDark ? _lift : null,
-                ),
+                // An installed app wears its own icon, because that is the
+                // thing the senior recognises — they are looking for the
+                // picture they already know, not for our word for it. The
+                // generic glyph is the fallback for a button whose icon
+                // could not be read, and for the guardian's half, which is
+                // never sent one.
+                if (app.iconBytes != null)
+                  Image.memory(
+                    app.iconBytes!,
+                    width: 44,
+                    height: 44,
+                    filterQuality: FilterQuality.medium,
+                    errorBuilder: (context, _, _) => Icon(
+                      app.category.icon,
+                      size: 44,
+                      color: ink,
+                      shadows: onDark ? _lift : null,
+                    ),
+                  )
+                else
+                  Icon(
+                    app.category.icon,
+                    size: 44,
+                    color: ink,
+                    shadows: onDark ? _lift : null,
+                  ),
                 const SizedBox(height: 10),
                 Text(
                   app.label,

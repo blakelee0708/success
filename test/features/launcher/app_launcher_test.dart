@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/domain/app_category.dart';
+import 'package:app/domain/launcher_app.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 
 void main() {
@@ -44,14 +45,42 @@ void main() {
   });
 
   test('every category resolves to something openable', () {
+    // Asked of a *button* rather than of a kind, because one category's
+    // answer lives on the button: an `installed` one opens the package the
+    // senior picked, and two of them differ only by that. Asking the kind
+    // for it comes back empty — correctly — and this used to read that as a
+    // category with no way to open.
     for (final category in AppCategory.values) {
-      final request = launchRequestFor(category);
+      final app = LauncherApp(
+        id: 'x',
+        label: category.defaultLabel,
+        category: category,
+        packageName: category == AppCategory.installed
+            ? 'com.game.gostop'
+            : null,
+      );
+      final request = launchRequestForApp(app);
       expect(
         request.packageName ?? request.intent ?? request.fallbackUrl,
         isNotNull,
         reason: '$category has no way to open',
       );
     }
+  });
+
+  test('an app button nobody has chosen yet opens nothing', () {
+    // The state the guardian's seeded button sits in until the senior picks.
+    // It must resolve to nothing rather than to some fallback, so the home
+    // screen can send it to the picker instead of opening a browser.
+    const unchosen = LauncherApp(
+      id: 'x',
+      label: '앱 고르기',
+      category: AppCategory.installed,
+    );
+    final request = launchRequestForApp(unchosen);
+    expect(request.packageName, isNull);
+    expect(request.intent, isNull);
+    expect(request.fallbackUrl, isNull);
   });
 
   test('the arguments carry enum names the platform side matches on', () {

@@ -24,11 +24,23 @@ List<Map<String, Object?>> homeAppsPayload(List<LauncherApp> apps) => [
       // `family_contact` was in the table's check constraint from Phase 4 —
       // `05_DATA_MODEL` anticipated people on the home screen long before
       // anything wrote one.
-      'app_type': apps[i].category.isContact ? 'family_contact' : 'system_app',
+      // Both `family_contact` and `installed_app` were in the table's check
+      // constraint from Phase 4 — `05_DATA_MODEL` anticipated people and
+      // chosen apps on the home screen long before anything wrote one.
+      'app_type': switch (apps[i].category) {
+        AppCategory.contact => 'family_contact',
+        AppCategory.installed => 'installed_app',
+        _ => 'system_app',
+      },
       'label': apps[i].label,
       'icon_key': apps[i].category.name,
       'button_color': apps[i].color?.name,
       'phone_number': apps[i].phoneNumber,
+      'package_name': apps[i].packageName,
+      // The icon is **not** here and must not be. Sending it would hand the
+      // guardian a picture of what is on their parent's phone, which is the
+      // one thing this feature was scoped not to do.
+
       'sort_order': i,
       'is_default': _defaultIds.contains(apps[i].id),
     },
@@ -61,6 +73,10 @@ LauncherApp? _toApp(Map<String, Object?> row) {
     category: category,
     color: _byName(ButtonColor.values, row['button_color']),
     phoneNumber: switch (row['phone_number']) {
+      final String value when value.trim().isNotEmpty => value,
+      _ => null,
+    },
+    packageName: switch (row['package_name']) {
       final String value when value.trim().isNotEmpty => value,
       _ => null,
     },

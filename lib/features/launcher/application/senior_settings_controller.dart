@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/senior_settings_repository.dart';
@@ -131,6 +133,8 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
     required String label,
     required AppCategory category,
     String? phoneNumber,
+    String? packageName,
+    Uint8List? iconBytes,
   }) async {
     final current = state.value ?? const SeniorSettings();
     await _write(
@@ -142,6 +146,8 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
             label: label,
             category: category,
             phoneNumber: phoneNumber,
+            packageName: packageName,
+            iconBytes: iconBytes,
           ),
         ],
       ),

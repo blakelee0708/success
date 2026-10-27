@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
@@ -103,6 +106,8 @@ class LauncherApp {
     required this.category,
     this.color,
     this.phoneNumber,
+    this.packageName,
+    this.iconBytes,
   });
 
   final String id;
@@ -121,6 +126,25 @@ class LauncherApp {
   /// Null on every other kind, and null on a contact the guardian has not
   /// finished setting up — [opensDialer] is what the home screen asks.
   final String? phoneNumber;
+
+  /// The app this button opens, for [AppCategory.installed]. Null on every
+  /// other kind, where the phone is asked by category instead so it uses
+  /// whichever dialer or gallery its owner already has.
+  final String? packageName;
+
+  /// The chosen app's own icon, as PNG bytes.
+  ///
+  /// **Kept with the button rather than fetched when the home screen draws.**
+  /// Nothing a senior is looking at may wait on a platform channel, and a
+  /// launcher that asked the phone for eighty icons at start-up would be
+  /// doing exactly that — the tiles would open blank and fill in a beat
+  /// later, every time. A few kilobytes beside the label costs nothing and
+  /// the home screen stays synchronous.
+  ///
+  /// It is **not** sent to the server. The guardian never receives the list
+  /// of what is on their parent's phone, which is the whole point of how
+  /// this feature was scoped, so their half draws the generic glyph.
+  final Uint8List? iconBytes;
 
   /// Whether tapping this opens the dialer rather than an app. Both halves
   /// matter: a contact with no number has nothing to dial, and a number on
@@ -144,12 +168,16 @@ class LauncherApp {
     String? label,
     AppCategory? category,
     String? phoneNumber,
+    String? packageName,
+    Uint8List? iconBytes,
   }) => LauncherApp(
     id: id,
     label: label ?? this.label,
     category: category ?? this.category,
     color: color,
     phoneNumber: phoneNumber ?? this.phoneNumber,
+    packageName: packageName ?? this.packageName,
+    iconBytes: iconBytes ?? this.iconBytes,
   );
 
   /// Separate from [copyWith] because clearing a colour is a real edit —
@@ -160,6 +188,8 @@ class LauncherApp {
     category: category,
     color: value,
     phoneNumber: phoneNumber,
+    packageName: packageName,
+    iconBytes: iconBytes,
   );
 
   Map<String, Object?> toJson() => {
@@ -168,7 +198,23 @@ class LauncherApp {
     'category': category.name,
     'color': color?.name,
     'phoneNumber': phoneNumber,
+    'packageName': packageName,
+    // Base64 because this lands in SharedPreferences as JSON. A handful of
+    // kilobytes per installed-app button, and the price of a home screen that
+    // never waits on the phone to draw its own tiles.
+    'iconBytes': iconBytes == null ? null : base64Encode(iconBytes!),
   };
+
+  /// A stored icon that will not decode is simply no icon — the tile falls
+  /// back to the generic glyph rather than the home screen failing to build.
+  static Uint8List? _icon(Object? value) {
+    if (value is! String || value.isEmpty) return null;
+    try {
+      return base64Decode(value);
+    } on FormatException {
+      return null;
+    }
+  }
 
   /// Returns null for a row that cannot be read, so one bad button does not
   /// take the whole home screen down with it.
@@ -183,6 +229,8 @@ class LauncherApp {
       category: category,
       color: _byName(ButtonColor.values, json['color']),
       phoneNumber: json['phoneNumber'] as String?,
+      packageName: json['packageName'] as String?,
+      iconBytes: _icon(json['iconBytes']),
     );
   }
 

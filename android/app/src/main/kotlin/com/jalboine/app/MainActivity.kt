@@ -6,6 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import java.io.ByteArrayOutputStream
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
@@ -46,6 +50,7 @@ class MainActivity : FlutterActivity() {
                             call.argument<String>("fallbackUrl"),
                         )
                     )
+                    "installedApps" -> result.success(installedApps())
                     "isDefaultHome" -> result.success(isDefaultHome())
                     "deviceStatus" -> result.success(deviceStatus())
                     "startEmergencySound" -> result.success(startEmergencySound())
@@ -296,6 +301,71 @@ class MainActivity : FlutterActivity() {
         tts?.shutdown()
         tts = null
         super.onDestroy()
+    }
+
+    /**
+     * Every app on this phone that has a launcher icon, with its name and its
+     * icon, so the senior can put one on their home screen.
+     *
+     * This is the thing the product is actually for: seniors do not fail at
+     * *opening* apps, they fail at **finding** them, and the app they most
+     * want is rarely one of six categories.
+     *
+     * Visible through the `<intent>` query in the manifest rather than
+     * QUERY_ALL_PACKAGES. That permission is Play-restricted and its published
+     * list of acceptable uses does not include launchers, so asking for it
+     * risks the listing over something an intent query already answers.
+     *
+     * The icons come back as PNG bytes and the Dart side keeps them beside the
+     * button it made. Nothing a senior is looking at may wait on this channel,
+     * so the home screen must never call it to draw a tile.
+     */
+    private fun installedApps(): List<Map<String, Any?>> {
+        val main = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val resolved = packageManager.queryIntentActivities(main, 0)
+        return resolved
+            .asSequence()
+            // This launcher itself is never worth offering: it is the screen
+            // they would be putting the button on.
+            .filter { it.activityInfo?.packageName != packageName }
+            .mapNotNull { info ->
+                val pkg = info.activityInfo?.packageName ?: return@mapNotNull null
+                val label = info.loadLabel(packageManager)?.toString()?.trim()
+                if (label.isNullOrEmpty()) return@mapNotNull null
+                mapOf(
+                    "package" to pkg,
+                    "label" to label,
+                    "icon" to iconBytes(info),
+                )
+            }
+            // By name, because a senior scanning for 고스톱 is reading, not
+            // remembering where it sat last time.
+            .distinctBy { it["package"] }
+            .sortedBy { it["label"] as String }
+            .toList()
+    }
+
+    /**
+     * An adaptive icon is a Drawable with no bitmap of its own, so it has to be
+     * drawn onto one rather than cast. 96px squares: large enough for the tile
+     * at 아주 크게 and small enough that eighty of them cross the channel
+     * without stalling it.
+     */
+    private fun iconBytes(info: ResolveInfo): ByteArray? = try {
+        val drawable = info.loadIcon(packageManager)
+        val size = 96
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, size, size)
+        drawable.draw(canvas)
+        ByteArrayOutputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            out.toByteArray()
+        }
+    } catch (e: Exception) {
+        // An icon that will not render is no reason to leave the app out of
+        // the list — the senior picks it by name either way.
+        null
     }
 
     private fun isDefaultHome(): Boolean {
