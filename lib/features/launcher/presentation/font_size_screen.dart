@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'widgets/go_home_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/senior_settings.dart';
 import '../application/senior_settings_controller.dart';
@@ -27,6 +28,7 @@ class FontSizeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('글씨 크기')),
+      bottomNavigationBar: const SafeArea(child: GoHomeBar()),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [

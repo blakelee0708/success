@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'widgets/go_home_bar.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
@@ -317,6 +318,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
           ),
         ),
       ),
+      bottomNavigationBar: const SafeArea(child: GoHomeBar()),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),

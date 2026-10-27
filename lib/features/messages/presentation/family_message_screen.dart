@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../launcher/presentation/widgets/go_home_bar.dart';
 import '../../launcher/application/senior_settings_controller.dart';
 import 'conversation_view.dart';
 
@@ -19,6 +20,7 @@ class FamilyMessageScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('가족 메시지')),
+      bottomNavigationBar: const SafeArea(child: GoHomeBar()),
       body: MediaQuery.withClampedTextScaling(
         minScaleFactor: scale?.scale ?? 1.0,
         maxScaleFactor: scale?.scale ?? 1.0,

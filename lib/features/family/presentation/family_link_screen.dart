@@ -1,3 +1,4 @@
+import '../../launcher/presentation/widgets/go_home_bar.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -80,6 +81,7 @@ class _FamilyLinkScreenState extends ConsumerState<FamilyLinkScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('가족 연결')),
+      bottomNavigationBar: const SafeArea(child: GoHomeBar()),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),

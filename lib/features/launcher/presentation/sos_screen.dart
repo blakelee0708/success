@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'widgets/go_home_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
 import '../../../domain/pair_link.dart';
@@ -44,6 +45,7 @@ class SosScreen extends ConsumerWidget {
           ),
         ),
       ),
+      bottomNavigationBar: const SafeArea(child: GoHomeBar()),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),

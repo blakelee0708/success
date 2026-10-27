@@ -1,3 +1,4 @@
+import 'widgets/go_home_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,9 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../core/router/routes.dart';
 import 'add_home_button.dart';
 import 'widgets/contact_dialog.dart';
 import 'widgets/name_dialog.dart';
@@ -15,7 +14,7 @@ import 'widgets/name_dialog.dart';
 abstract final class AppSettingsKeys {
   /// The way out. The ← in the corner is small, in the hardest place to
   /// reach, and a symbol rather than a word.
-  static const done = Key('app-settings-done');
+  static const done = GoHomeBar.buttonKey;
 
   static const add = Key('app-settings-add');
 
@@ -68,50 +67,12 @@ class AppSettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      key: AppSettingsKeys.done,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.seniorPrimary,
-                        minimumSize: const Size.fromHeight(68),
-                      ),
-                      // All the way home, not back one screen. There are two
-                      // ways into this screen now — 설정, and the hollow slot
-                      // on the home screen — and popping would leave half the
-                      // visitors standing in 설정 with another exit to find.
-                      // It is also what makes the label true.
-                      onPressed: () => context.go(Routes.firstScreen),
-                      child: const Text(
-                        '첫 화면으로 가기',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // It says the change *already happened*, not that this
-                  // button does it — which is the difference between
-                  // reassuring someone and turning the ← arrow into the one
-                  // that loses their work.
-                  const Text(
-                    '바꾸시면 바로 바뀌어요',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.seniorInkMuted,
-                    ),
-                  ),
-                ],
-              ),
+          const SafeArea(
+            child: GoHomeBar(
+              // It says the change *already happened*, not that this button
+              // does it - the difference between reassuring somebody and
+              // turning the ← into the one that loses their work.
+              note: '바꾸시면 바로 바뀌어요',
             ),
           ),
         ],
