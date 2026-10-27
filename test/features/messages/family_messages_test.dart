@@ -96,10 +96,10 @@ Future<void> _pumpSeniorMessages(WidgetTester tester, Harness h) async {
     },
   );
   await tester.pumpAndSettle();
-  // The conversation is reached from the band across the top of the home,
-  // which shows the family's newest message. It used to be a button down by
-  // 더 보기; the band replaced it and shows the message itself.
-  await tester.tap(find.byKey(HomeStrip.stripKey));
+  // The 가족 button, which is where `04_SCREEN_SPEC` puts it. The band held
+  // this for a while and gave it back when it went down to a clock, so that
+  // 소리 and 인터넷 could reach both home screens.
+  await tester.tap(find.text('가족'));
   await tester.pumpAndSettle();
 }
 
@@ -246,8 +246,9 @@ void main() {
       tester,
     ) async {
       // 04_SCREEN_SPEC gives this slot as 가족 연결 또는 자녀 이름 버튼: once a
-      // family is attached, connecting is not what they need it for. The slot
-      // is now the band at the top, which carries the name and the message.
+      // family is attached, connecting is not what they need it for. The band
+      // carried it for a while; it is the 가족 button again now that the band
+      // is down to a clock, which is where the spec had it to begin with.
       final h = await _family();
       await _pumpSeniorMessages(tester, h);
 
@@ -308,9 +309,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // With no family attached the button is the invitation, and the band
+      // is only a clock.
       expect(find.text('가족 연결'), findsOneWidget);
-      expect(find.byKey(HomeStrip.connectKey), findsOneWidget);
-      expect(find.byKey(HomeStrip.messageKey), findsNothing);
+      expect(find.byType(HomeStrip), findsOneWidget);
     });
   });
 }

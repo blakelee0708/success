@@ -153,8 +153,20 @@ void main() {
     await h.subs.startCare(h.profileId);
     await _pumpSeniorHome(tester, h);
 
-    expect(find.textContaining('인터넷'), findsNothing);
-    expect(find.textContaining('배터리와 소리'), findsNothing);
+    // Scoped to the card, not the screen. 인터넷 is a word on the senior's
+    // home now - the button that opens the phone's own panel - and matching
+    // it anywhere would make this pass or fail on a control that has nothing
+    // to do with what is being consented to. The rule itself is unchanged:
+    // the card may not name a reading it does not take.
+    final card = find.byType(CareConsentPrompt);
+    expect(
+      find.descendant(of: card, matching: find.textContaining('인터넷')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: card, matching: find.textContaining('배터리와 소리')),
+      findsNothing,
+    );
   });
 
   testWidgets('it lists exactly what it will do, from the one list', (

@@ -60,6 +60,25 @@ class AppColors {
   static const seniorCardDeep = Color(0xFFEAEBEC);
   static const seniorCardWall = Color(0xFFD2D4D7);
 
+  /// 소리 and 인터넷, the two controls that change the phone rather than
+  /// open an app.
+  ///
+  /// Warm sand, and the warmth is the point: an ageing eye loses the short
+  /// wavelengths first, so a cool grey control is the one a senior stops
+  /// seeing. It is also the reason the first attempt failed - near-white
+  /// `seniorCard` disappeared into the white ground, and these have to be
+  /// found by somebody whose phone has gone quiet.
+  ///
+  /// A light face rather than a saturated one, deliberately. Terracotta read
+  /// as a second 긴급 구조 요청 on the same screen, and the whole trouble
+  /// with that is it is the colour a senior has been taught to press in a
+  /// hurry. Sand is visible without claiming to be urgent, and it carries
+  /// ink rather than white, the same rule the amber 가족 button follows.
+  static const seniorUtilityLight = Color(0xFFFFF6E8);
+  static const seniorUtility = Color(0xFFF4DFC2);
+  static const seniorUtilityDeep = Color(0xFFE3C9A2);
+  static const seniorUtilityWall = Color(0xFFC3A67C);
+
   static const seniorCreamLegacy = Color(0xFFFDF7EE); // splash only
   static const seniorBackgroundEnd = Color(
     0xFFF6EBDA,

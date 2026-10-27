@@ -58,6 +58,8 @@ class MainActivity : FlutterActivity() {
                     "speak" -> result.success(speak(call.argument<String>("text")))
                     "stopSpeaking" -> result.success(stopSpeaking())
                     "openHomeSettings" -> result.success(openHomeSettings())
+                    "setRingerMode" -> result.success(setRingerMode(call.argument<String>("mode")))
+                    "openInternetPanel" -> result.success(openInternetPanel())
                     else -> result.notImplemented()
                 }
             }
@@ -163,6 +165,63 @@ class MainActivity : FlutterActivity() {
      * the last real reading standing; a 0 here would be drawn on the dashboard
      * as 배터리 0%, the most alarming reading on the card, invented.
      */
+    /**
+     * 소리 and 진동, and deliberately nothing else.
+     *
+     * RINGER_MODE_SILENT is left out because it needs ACCESS_NOTIFICATION_POLICY,
+     * which is not a runtime dialog but a system settings screen the senior has
+     * to find and switch on by themselves - the same ask as the home-app
+     * chooser, and this app exists because they cannot make it. The product
+     * reason is the stronger one: the guardian installs this because
+     * 엄마가 전화를 안 받아, and a phone on silent is the first cause of that.
+     *
+     * It reads the mode back instead of trusting the write. Do Not Disturb can
+     * accept the call and leave the ringer exactly where it was, and the one
+     * moment that matters is the one where somebody is trying to get their
+     * ringer back - so the Dart side is told false and says so, rather than
+     * showing a label that lies.
+     */
+    private fun setRingerMode(mode: String?): Boolean {
+        val audio = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return false
+        val target = when (mode) {
+            "normal" -> AudioManager.RINGER_MODE_NORMAL
+            "vibrate" -> AudioManager.RINGER_MODE_VIBRATE
+            else -> return false
+        }
+        return try {
+            audio.ringerMode = target
+            audio.ringerMode == target
+        } catch (e: SecurityException) {
+            false
+        }
+    }
+
+    /**
+     * The phone's own internet sheet.
+     *
+     * There is no toggle to write here and there never will be:
+     * `setWifiEnabled` has been a no-op for ordinary apps since Android 10, and
+     * mobile data needs carrier privileges. The panel is what Google gave
+     * instead - it needs no permission and it slides over this app rather than
+     * sending the senior off into Settings to find their way back.
+     *
+     * Below Android 10 there is no panel, so the Wi-Fi settings screen stands
+     * in. minSdk is 24, so that branch is real even though almost no phone
+     * reaches it now.
+     */
+    private fun openInternetPanel(): Boolean = try {
+        startActivity(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)
+            } else {
+                Intent(Settings.ACTION_WIFI_SETTINGS)
+            }
+        )
+        true
+    } catch (e: ActivityNotFoundException) {
+        false
+    }
+
     private fun deviceStatus(): Map<String, Any> {
         val status = HashMap<String, Any>()
 

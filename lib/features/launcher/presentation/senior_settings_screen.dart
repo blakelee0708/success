@@ -7,6 +7,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
 import '../data/app_launcher.dart';
 import 'widgets/home_app_coach.dart';
+import 'widgets/home_utility_row.dart';
+import '../application/ringer_controller.dart';
+import '../../../domain/device_status.dart';
 
 /// 설정 — everything a senior can change about their own phone.
 ///
@@ -396,15 +399,40 @@ class SeniorSettingsScreen extends ConsumerWidget {
               onTap: () => context.push(Routes.familyLink),
             ),
             const SizedBox(height: 26),
-            const _GroupTitle('아직 준비 중'),
-            const _Row(
-              label: '진동/벨소리 전환',
-              detail: '곧 쓰실 수 있어요',
-              icon: Icons.volume_up_rounded,
+            // 아직 준비 중 is gone: 진동/벨소리 전환 was the only thing left in
+            // it, and it is built. The group existed to be honest about a row
+            // that could not be pressed; keeping an empty heading would be a
+            // different kind of dishonesty.
+            const _GroupTitle('이 폰'),
+            _Row(
+              label: switch (ref.watch(ringerControllerProvider)) {
+                RingerMode.normal => '소리 켜짐',
+                RingerMode.vibrate => '진동',
+                RingerMode.silent => '소리 꺼짐',
+                null => '소리와 진동',
+              },
+              // 무음 is not offered, so this says what the press does rather
+              // than listing three states one of which never appears.
+              detail: '누르시면 소리와 진동이 바뀝니다',
+              icon: ref.watch(ringerControllerProvider) == RingerMode.normal
+                  ? Icons.volume_up_rounded
+                  : Icons.vibration_rounded,
               face: AppColors.seniorMore,
               light: AppColors.seniorMoreLight,
               deep: AppColors.seniorMoreDeep,
               wall: AppColors.seniorMoreWall,
+              onTap: () => ref.read(ringerControllerProvider.notifier).toggle(),
+            ),
+            const SizedBox(height: 12),
+            _Row(
+              label: '인터넷',
+              detail: '와이파이를 켜고 끕니다',
+              icon: Icons.wifi_rounded,
+              face: AppColors.seniorMore,
+              light: AppColors.seniorMoreLight,
+              deep: AppColors.seniorMoreDeep,
+              wall: AppColors.seniorMoreWall,
+              onTap: () => openInternetPanel(context, ref),
             ),
           ],
         ),

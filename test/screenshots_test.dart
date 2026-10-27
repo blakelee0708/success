@@ -36,6 +36,7 @@ import 'package:app/features/family/presentation/primary_guardian_prompt.dart';
 import 'package:app/features/launcher/presentation/app_settings_screen.dart';
 import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
 import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
+import 'package:app/features/launcher/presentation/widgets/home_utility_row.dart';
 import 'package:app/features/guardian/presentation/guardian_login_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_dashboard_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_start_screen.dart';
@@ -454,7 +455,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(HomeStrip.messageKey), findsOneWidget);
+    // The band is a clock now. What used to be checked here - that it
+    // carried the family's newest message - moved to the 가족 button, which
+    // is where `04_SCREEN_SPEC` put it before the band took it over.
+    expect(find.byType(HomeStrip), findsOneWidget);
+    expect(find.byKey(HomeUtilityRow.soundKey), findsOneWidget);
+    expect(find.byKey(HomeUtilityRow.internetKey), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _capture(tester, '16-easy-home');
   });

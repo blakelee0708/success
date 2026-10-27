@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'home_strip.dart';
+import 'home_utility_row.dart';
 
 /// The part both homes share: the clock-and-family band, and the grid of
 /// tiles under it.
@@ -45,11 +46,11 @@ class HomeBody extends StatelessWidget {
   /// larger by scaling the whole band back down — so every increase cancelled
   /// itself and the band looked unchanged. That is the same silence this
   /// wrapper has produced twice before. The height had to move with the type.
-  static const preferredStrip = 212.0;
+  static const preferredStrip = 132.0;
 
   /// The band yields down to this, but only when the rows could not otherwise
   /// hold an icon and a label.
-  static const minStrip = 110.0;
+  static const minStrip = 96.0;
 
   /// The shortest a row can be and still draw a 44px icon over a label.
   /// The shortest a row can be and still draw a 44px icon over a label.
@@ -66,7 +67,8 @@ class HomeBody extends StatelessWidget {
         // band was invented to fix.
         final tile = (constraints.maxWidth - gutter) / 2;
         final square = rows * tile + (rows - 1) * rowGap;
-        final available = constraints.maxHeight - sectionGap;
+        final available =
+            constraints.maxHeight - sectionGap - 14 - HomeUtilityRow.height;
 
         // The band is laid out at its drawn height and the grid takes what is
         // left. The other way round — which is what this did at first — let
@@ -85,6 +87,11 @@ class HomeBody extends StatelessWidget {
         return Column(
           children: [
             const Expanded(child: HomeStrip()),
+            const SizedBox(height: 14),
+            // Directly under the clock, above the apps: these change the
+            // phone rather than open anything, and the band is the part of
+            // the screen that is about the phone itself.
+            const HomeUtilityRow(),
             const SizedBox(height: sectionGap),
             SizedBox(
               height: grid,

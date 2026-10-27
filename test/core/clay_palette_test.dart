@@ -112,6 +112,42 @@ void main() {
     }
   });
 
+  test('소리 and 인터넷 are warm, visible, and carry ink', () {
+    // These are the two controls that change the phone rather than open an
+    // app, and an ageing eye loses the short wavelengths first - so the face
+    // has to be warm, not a neutral grey.
+    final face = AppColors.seniorUtility;
+    expect(face.r, greaterThan(face.b), reason: 'the face has gone cool');
+
+    // It must not vanish into the white ground, which is what killed the
+    // near-white first attempt. A face this light is told apart from the
+    // ground by its wall, so that is what gets measured.
+    final ground = AppColors.seniorBackground.computeLuminance();
+    final wall = AppColors.seniorUtilityWall.computeLuminance();
+    expect(
+      (ground + 0.05) / (wall + 0.05),
+      greaterThanOrEqualTo(2.0),
+      reason: 'the pad has no edge against the ground',
+    );
+
+    // Lettering is 17px, which is small — 4.5:1, not the 3:1 a tile label
+    // gets. White is not an option on a face this light and is not used.
+    final f = face.computeLuminance();
+    final ink = AppColors.seniorInk.computeLuminance();
+    expect((f + 0.05) / (ink + 0.05), greaterThanOrEqualTo(4.5));
+
+    // light → base → deep → wall, darkest last, like every other pad.
+    final stops = [
+      AppColors.seniorUtilityLight,
+      AppColors.seniorUtility,
+      AppColors.seniorUtilityDeep,
+      AppColors.seniorUtilityWall,
+    ].map((c) => c.computeLuminance()).toList();
+    for (var i = 1; i < stops.length; i++) {
+      expect(stops[i], lessThan(stops[i - 1]), reason: 'stop $i is not darker');
+    }
+  });
+
   test('the ink is warm, and a step back from black', () {
     // Pure-ish black on a white ground measured 17.4:1 and the strokes of
     // large glyphs read as though they were bleeding — the bright ground

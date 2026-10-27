@@ -84,7 +84,16 @@ class EasyHomeScreen extends ConsumerWidget {
                             // the senior's screens entirely: short-wavelength
                             // colours are the first an ageing eye loses.
                             ink: AppColors.seniorInk,
-                            onTap: () => context.push(Routes.familyLink),
+                            // The band used to carry the newest message and
+                            // open the conversation. With the band down to a
+                            // clock, this button takes that back - which is
+                            // what `04_SCREEN_SPEC` asked of it in the first
+                            // place. Without this the conversation has no
+                            // route from the senior's home at all: 가족 연결
+                            // only ever reaches a 연결되었어요 notice.
+                            onTap: () => context.push(
+                              connected ? Routes.familyMessages : Routes.familyLink,
+                            ),
                           ),
                         ),
                         const SizedBox(width: HomeBody.gutter),

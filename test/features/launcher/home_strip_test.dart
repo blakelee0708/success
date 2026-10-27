@@ -3,12 +3,6 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/core/clock.dart';
-import 'package:app/core/supabase/supabase_providers.dart';
-import 'package:app/data/remote/message_repository.dart';
-import 'package:app/data/remote/pairing_repository.dart';
-import 'package:app/data/remote/senior_link_repository.dart';
-import 'package:app/data/remote/subscription_repository.dart';
-import 'package:app/data/senior_link_store.dart';
 import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
@@ -45,48 +39,29 @@ void main() {
     expect(find.text('10월 20일 화요일'), findsOneWidget);
   });
 
-  testWidgets('with nobody connected it invites them to connect', (
-    tester,
-  ) async {
+  testWidgets('the band carries the clock and nothing else', (tester) async {
+    // It used to hold the family's newest message under a rule, and tapping
+    // it opened the conversation. Both moved to the 가족 button, which is
+    // where `04_SCREEN_SPEC` had put them before the band took them over.
+    //
+    // The band kept the job for as long as it was the only thing with room
+    // for it. Giving it up is what let 소리 and 인터넷 onto both home screens
+    // and took 자세한 화면's tiles out of the squeeze they were in.
     await _pumpHome(tester);
 
-    expect(find.byKey(HomeStrip.connectKey), findsOneWidget);
-    expect(find.byKey(HomeStrip.messageKey), findsNothing);
+    expect(find.byType(HomeStrip), findsOneWidget);
+    expect(find.text('오후 2:30'), findsOneWidget);
+    expect(find.text('10월 20일 화요일'), findsOneWidget);
+    // Nothing about the family *inside the band*. The word still appears on
+    // the home screen, on the button that took the job over, so matching it
+    // anywhere would pass and fail on the wrong widget.
+    expect(
+      find.descendant(
+        of: find.byType(HomeStrip),
+        matching: find.textContaining('가족'),
+      ),
+      findsNothing,
+    );
   });
 
-  testWidgets('once a family is attached it shows their newest message', (
-    tester,
-  ) async {
-    final store = InMemorySeniorLinkRepository();
-    final pairing = InMemoryPairingRepository(store);
-    final subs = InMemorySubscriptionRepository(store);
-    final messages = InMemoryMessageRepository(store, subscriptions: subs);
-    await store.ensureGuardianAccount(displayName: '영희');
-    final started = await pairing.startSeniorPairing(installId: 'senior-phone');
-    final profile = await pairing.claimSeniorPairingCode(
-      code: started.code,
-      displayName: '어머니',
-    );
-    await messages.send(profile.id, body: '엄마, 점심 드셨어요?');
-
-    await _pumpHome(
-      tester,
-      overrides: [
-        seniorLinkRepositoryProvider.overrideWithValue(store),
-        pairingRepositoryProvider.overrideWithValue(pairing),
-        subscriptionRepositoryProvider.overrideWithValue(subs),
-        messageRepositoryProvider.overrideWithValue(messages),
-        seniorLinkStoreProvider.overrideWithValue(
-          InMemorySeniorLinkStore(
-            SeniorLink(installId: 'senior-phone', seniorProfileId: profile.id),
-          ),
-        ),
-      ],
-    );
-
-    expect(find.byKey(HomeStrip.messageKey), findsOneWidget);
-    expect(find.text('엄마, 점심 드셨어요?'), findsOneWidget);
-    expect(find.text('영희'), findsOneWidget);
-    expect(find.byKey(HomeStrip.connectKey), findsNothing);
-  });
 }

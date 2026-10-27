@@ -22,6 +22,7 @@ class HomePill extends StatelessWidget {
     this.height = 80,
     this.iconSize = 29,
     this.fontSize = 23,
+    this.sheen = 1,
   });
 
   final String label;
@@ -42,6 +43,10 @@ class HomePill extends StatelessWidget {
   final double iconSize;
   final double fontSize;
 
+  /// Scaled down for a near-white face, where full strength reads as grime.
+  /// The clock card already carries 0.3 for the same reason.
+  final double sheen;
+
   @override
   Widget build(BuildContext context) {
     return Semantics(
@@ -55,6 +60,7 @@ class HomePill extends StatelessWidget {
           deep: deep,
           wall: wall,
           radius: 26,
+          sheen: sheen,
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),

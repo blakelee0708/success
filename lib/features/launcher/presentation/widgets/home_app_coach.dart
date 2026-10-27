@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import 'coach_lines.dart';
 
 /// What to say before the phone's own home-app chooser opens.
 ///
@@ -81,39 +81,14 @@ class HomeAppCoach extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final line in _lines)
-          line.isEmpty
-              ? const SizedBox(height: 14)
-              : Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    line,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      height: 1.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.seniorInk,
-                    ),
-                  ),
-                ),
-        const SizedBox(height: 14),
-        // For the phones that word it differently. One line, and quiet,
-        // because it is wrong-footing to lead with an exception that most
-        // readers will never meet.
-        const Text(
-          '비슷한 말이 적힌 버튼이어도 돼요.',
-          style: TextStyle(
-            fontSize: 16,
-            height: 1.45,
-            fontWeight: FontWeight.w500,
-            color: AppColors.seniorInkMuted,
-          ),
-        ),
-      ],
+    // The body is shared with [InternetCoach]: both are said before a system
+    // screen we do not own appears, and two copies of that layout would drift.
+    return CoachLines(
+      lines: _lines,
+      // For the phones that word it differently. One line, and quiet, because
+      // it is wrong-footing to lead with an exception that most readers will
+      // never meet.
+      footnote: '비슷한 말이 적힌 버튼이어도 돼요.',
     );
   }
 }
