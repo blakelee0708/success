@@ -41,28 +41,30 @@
 
 ## 1. 스키마 넣기
 
-`supabase/migrations/`의 13개를 **파일 이름 순서대로**
-`POST /v1/projects/{ref}/database/query`로 실행한다.
+한 줄이다.
 
 ```bash
-for f in $(ls supabase/migrations/*.sql | sort); do
-  echo "== $f"
-  python3 -c "import json,sys;print(json.dumps({'query':open(sys.argv[1]).read()}))" "$f" \
-  | curl -s -X POST \
-      -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-      -H 'User-Agent: curl/8.5.0' -H 'Content-Type: application/json' \
-      --cacert /root/.ccr/ca-bundle.crt -d @- \
-      "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query"
-  echo
-done
+export SSL_CERT_FILE=/root/.ccr/ca-bundle.crt
+python3 tool/apply_migrations.py
 ```
 
-**하나만 미리 의심해 둘 것이 있다.** `20261021030000_care_alerts.sql`이
-`create extension if not exists pg_cron with schema cron`을 부른다. 싱가포르
-프로젝트에서 pg_cron은 `cron`이 아니라 `pg_catalog`에 들어가 있고,
-`if not exists`는 이미 있는 확장을 옮기지 않는다. 새 프로젝트에 `cron`
-스키마가 없으면 이 줄에서 멈춘다. 멈추면 `create schema if not exists cron;`을
-먼저 실행하고 다시 돌린다.
+`tool/apply_migrations.py`가 13개를 파일 이름 순서대로 넣고, 끝나면 아래 다섯
+숫자를 세어 대조까지 한다. 셸 루프를 쓰지 않는 이유는 세 가지다.
+
+- **테이블이 이미 있는 프로젝트에서는 거부한다.** `--force` 없이는 돌지
+  않는다. `create table`은 `if not exists`가 아니라서 중간에 실패하고 뒤쪽이
+  통째로 안 들어간 상태가 되는데, 그 상태는 나중에 아무도 진단하지 못한다.
+- **`cron` 스키마를 먼저 만든다.** `20261021030000_care_alerts.sql`이
+  `create extension if not exists pg_cron with schema cron`을 부른다. 싱가포르
+  프로젝트에서 pg_cron은 `cron`이 아니라 `pg_catalog`에 들어가 있고,
+  `if not exists`는 이미 있는 확장을 옮기지 않는다. 그래서 새 프로젝트를
+  멈춰 세울 후보 1순위였고, 스크립트가 그 이유를 없앤다.
+- **끝나고 센다.** 마이그레이션은 2xx를 돌려주고도 다음 것이 기대하는 것을
+  만들어 두지 않을 수 있다.
+
+읽기만 하려면 `--check`를 붙인다. 두 경로 모두 2026-10-27에 싱가포르에
+돌려서 확인했다 - `--check`는 다섯 숫자가 전부 맞고, 플래그 없이는 테이블
+9개를 보고 거부한다.
 
 ### 대조
 
@@ -104,6 +106,26 @@ done
 CA 번들과 기본값이 아닌 `User-Agent` 없이는 에이전트 프록시가 파이썬을
 403으로 막는다. `tool/verify_ring_function.py`는 아홉 번째이고, Edge
 Function을 새 프로젝트에 배포한 **뒤에** 돌린다.
+
+### 한글 메일 템플릿
+
+```bash
+python3 tool/apply_auth_templates.py
+```
+
+**이 스크립트가 생긴 이유는 그 문구가 다른 데 없었기 때문이다.** 한글 제목과
+본문이 싱가포르 프로젝트의 auth 설정에만 있었고 저장소에는 없었다. 그 프로젝트를
+지우면 사라지고, 아무도 모른 채로 보호자가 재설정을 요청했을 때 영어 기본값이
+나갔을 것이다. 이제 문구가 파일 안에 있다.
+
+재설정 한 쌍과 가입 확인 한 쌍, 넷을 넣고 **플래그를 읽어서 확인한다.** 2xx로
+끝내지 않는 것이 요점이다 - 저장된 본문은 플래그가 true일 때만 쓰이고, false인
+채로 한글 본문이 앉아 있으면 영어 기본값이 나가는데 아무 신호도 없다. 플래그가
+false면 스크립트가 실패하면서 대시보드 Emails에서 그 템플릿을 열어 저장하라고
+말한다.
+
+2026-10-27에 싱가포르에 돌려 9개 검사 전부 통과했다 (같은 값을 다시 쓰는
+것이므로 아무것도 바뀌지 않는다).
 
 ## 2. 오너가 대시보드에서 해야 하는 것
 
@@ -169,10 +191,11 @@ email이 꺼져 있는 동안만 안전하다.** 아무것도 그 주소를 거�
 | 어디 | 무엇 | 상태 |
 |---|---|---|
 | `lib/data/remote/guardian_auth_repository.dart` | `passwordResetRedirect` | **완료** - `https://app.jalboine.com/reset.html` |
-| `site/reset.html` | `SUPABASE_URL`과 `PUBLISHABLE` | 남음 |
+| `site/reset.html` | `SUPABASE_URL`과 `PUBLISHABLE` | 남음 (publishable 키 필요) |
 | CI 저장소 시크릿 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | 남음 (오너) |
 | 카카오 콘솔 | Redirect URI를 새 Supabase 주소로 | 남음 (오너) |
 | Edge Function | `ring-phone` 재배포 + `FCM_SERVICE_ACCOUNT` 시크릿 | 남음 |
+| 한글 메일 템플릿 | `tool/apply_auth_templates.py` | **저장소에 들어왔음**, 새 프로젝트에 실행만 |
 
 **`site/reset.html`의 두 값은 같이 바꿔야 한다.** URL만 바꾸고 키를 두면
 그 페이지는 조용히 실패한다 - 비밀번호를 잊은 보호자가 다시 들어올 유일한
@@ -181,6 +204,19 @@ email이 꺼져 있는 동안만 안전하다.** 아무것도 그 주소를 거�
 API 설정에서 읽어야 한다. 그 키가 손에 들어오는 세션에서 한 번에 바꾼다.
 바꾸고 나면 페이지 아래 `v2` 표시도 `v3`으로 올려, 폰이 캐시를 들고 있는
 것과 실제로 고장난 것을 눈으로 가를 수 있게 한다.
+
+**이제 잊어버릴 수 없다.** `.github/workflows/android.yml`의 `check` 잡이
+`site/reset.html`의 URL과 키를 CI 시크릿과 대조한다. APK는 빌드 때
+`--dart-define`으로 프로젝트를 받고 재설정 페이지는 소스에 박아 둔 정적
+파일이라 둘이 서로를 볼 수 없는데, 어긋나는 방식이 최악이다 - APK는 A
+프로젝트로 로그인시키고, 재설정 메일이 가고, 페이지는 그 토큰을 B 프로젝트에
+쓴다. B는 그 계정을 본 적이 없으니 보호자는 링크가 잘못됐다는 말을 듣고,
+잊은 계정으로 돌아갈 유일한 길이 아무 기록도 없이 닫힌다.
+
+그래서 **시크릿을 새 프로젝트로 바꾸는 순간 CI가 빨개진다.** 그것이 의도다.
+`reset.html`을 같이 고치라는 신호다. 시크릿이 비어 있으면 (키 없는 APK는
+어차피 서버에 닿지 않으므로) 검사를 건너뛴다. 네 경로를 모두 손으로
+돌려 확인했다: 일치, 프로젝트 불일치, 키만 불일치, 시크릿 없음.
 
 ## 4. GitHub Pages 다시 세우기
 

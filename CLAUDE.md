@@ -648,7 +648,12 @@ Project: `jal 26.07`, ref `jnmvhdmxzonngqyicelx`, ap-southeast-1, PostgreSQL 17.
 `SUPABASE_PROJECT_REF` holds the ref.
 
 **It is being replaced by a Korean project, `handkezisjufyyumpuma`, and that
-move is not finished.** `docs/SEOUL_MIGRATION.md` is the runbook. The reason
+move is not finished.** `docs/SEOUL_MIGRATION.md` is the runbook, and
+`tool/apply_migrations.py` is the whole of step one: it applies the thirteen
+files in name order, creates the `cron` schema first (the one pre-step
+`care_alerts` needs and the likeliest place a fresh project stops), refuses to
+run over a project that already has tables, and counts the five numbers
+afterwards. `--check` only counts. The reason
 it could not be done on 2026-10-27 is worth knowing before trying again:
 **the new project is on a different Supabase account.** This environment's
 `SUPABASE_ACCESS_TOKEN` gets a 403 on it, and the three organizations that
@@ -840,6 +845,15 @@ switched back on). Two flags decide whether a stored template is used at all
 keyed per template — and a Korean body sitting behind a `false` flag sends
 the English default with no sign anything is wrong. Both were checked after
 writing.
+
+**The copy lives in `tool/apply_auth_templates.py` now, and that is not a
+convenience.** Until 2026-10-27 it existed only as rows in the Singapore
+project's auth config, and the plan is to delete that project. Nobody would
+have found out until a guardian asked for a reset and got
+`Reset your password` in English. The script carries the four Korean values,
+writes them, and then **reads the config back and fails on a false flag**,
+because a 2xx is not the question. Nine checks, run against the live project;
+re-running it writes the same values, so it is a no-op.
 
 ### site/, and the two pages it holds
 
@@ -1464,6 +1478,20 @@ Two things about it:
   `signingConfigs.debug`. It sideloads fine and is enough to test on a phone. It
   is not a store build — a real upload key is still to do. The `applicationId`
   is no longer one of the blockers; see `## com.jalboine.app` below.
+
+**One thing the `check` job does has nothing to do with Dart**: it compares
+`site/reset.html`'s Supabase URL and publishable key against the CI secrets.
+The APK takes its project from a `--dart-define` at build time and the reset
+page is a static file with both values written into its source, so the two
+copies cannot see each other — and they break in the worst way. The APK signs
+people in against project A, a reset mail goes out, and the page spends the
+token against project B, which has never heard of that account: the guardian
+is told the link is invalid, and the only route back into a forgotten account
+closes with nothing in any log. It is checked in CI because `flutter test`
+has no secrets and the Dart does not know what it will be built with. A
+missing `SUPABASE_URL` secret skips it rather than failing, since a keyless
+APK reaches no server at all. All four paths were run by hand: match, wrong
+project, stale key, no secret.
 
 Neither job fetches a font any more. The app's own faces are committed under
 `assets/fonts/`, and `screenshots_test.dart` reads them from the asset bundle,

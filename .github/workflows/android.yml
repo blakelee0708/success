@@ -40,6 +40,51 @@ jobs:
 
       - run: flutter test
 
+      # The APK and site/reset.html must name the SAME Supabase project, and
+      # nothing else can check it. The app gets its project from a
+      # --dart-define at build time; the reset page is a static file with the
+      # URL and the publishable key written into its source, because it runs
+      # in a browser with no build step. So the two copies cannot see each
+      # other, and the way they break is the worst kind: the APK signs people
+      # in against project A, a reset mail is sent, and the page spends the
+      # token against project B, which has never heard of that account. The
+      # guardian is told the link is invalid, and the one route back into a
+      # forgotten account is closed with nothing in any log.
+      #
+      # It is checked here rather than in `flutter test` because the test run
+      # has no secrets and the Dart has no idea what it will be built with.
+      # With no SUPABASE_URL secret the whole question is moot - a keyless
+      # APK reaches no server at all - so this skips rather than fails.
+      - name: Check reset.html names the project the APK is built against
+        env:
+          WANT_URL: ${{ secrets.SUPABASE_URL }}
+          WANT_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_ANON_KEY }}
+        run: |
+          page_url="$(sed -n "s/^var SUPABASE_URL *= *'\([^']*\)'.*/\1/p" \
+                        site/reset.html | head -1)"
+          page_key="$(sed -n "s/^var PUBLISHABLE *= *'\([^']*\)'.*/\1/p" \
+                        site/reset.html | head -1)"
+          if [ -z "$page_url" ] || [ -z "$page_key" ]; then
+            echo "::error::could not read SUPABASE_URL / PUBLISHABLE out of site/reset.html"
+            exit 1
+          fi
+          if [ -z "$WANT_URL" ]; then
+            echo "no SUPABASE_URL secret — keyless build, nothing to compare"
+            exit 0
+          fi
+          # Trailing slashes only; neither value is printed, because the
+          # publishable key is public but a CI log is not the place to put it.
+          if [ "${page_url%/}" != "${WANT_URL%/}" ]; then
+            echo "::error::site/reset.html points at a different Supabase project than this APK. Password reset would land on a project that has never seen the account."
+            exit 1
+          fi
+          echo "ok: reset.html and the APK name the same project"
+          if [ -n "$WANT_KEY" ] && [ "$page_key" != "$WANT_KEY" ]; then
+            echo "::error::site/reset.html carries a different publishable key than the APK. The URL and the key have to move together."
+            exit 1
+          fi
+          echo "ok: reset.html carries the matching publishable key"
+
       # The screens are reviewed as PNGs — there is no display in the
       # development environment — so they are worth keeping off the run.
       - name: Upload screenshots
