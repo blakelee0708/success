@@ -1421,6 +1421,68 @@ So the feature is **plumbed and gated, not working**. Nothing on either screen
 claims otherwise: 소리 울리기 is still `CareReadiness.planned` and sits in
 돌봄's 준비 중 block.
 
+## 폰에 있는 앱, and the two ways in
+
+The six categories are *kinds* of app — the phone opens whichever dialer or
+gallery its owner already uses. `AppCategory.installed` is a named package,
+because a senior's 고스톱 or their bank has no category and never will have
+one. It is the same argument 사람 버튼 rests on: **seniors do not fail at
+opening apps, they fail at finding them**, and the app they most want is
+rarely one of six kinds.
+
+**No migration.** `app_type` has had `'installed_app'` in its check constraint
+and a `package_name` column since Phase 4 — `05_DATA_MODEL` anticipated this
+and nothing had ever written one, exactly as with `family_contact`.
+
+**The list is read through a `<queries>` intent, not `QUERY_ALL_PACKAGES`.**
+That permission is Play-restricted and its published list of acceptable uses
+is device search, antivirus, file managers and browsers — **launchers are not
+on it**, which was checked rather than assumed. An intent query needs no
+declaration form, and six `<intent>` entries in this manifest already use
+`<category>` the same way and open real apps on a real phone.
+
+**The icon lives on the button, not on a channel.** Nothing a senior is
+looking at may wait on a platform channel, and this is the slowest one in the
+app: a home screen that asked for eighty icons at start-up would open with
+blank tiles and fill in a beat later, every time. The bytes sit beside the
+label in the saved settings, so drawing stays synchronous.
+
+**The icon is never sent to the server**, which is the whole shape of the
+feature. Sending it would hand the guardian a picture of what is installed on
+their parent's phone — the thing the 위치 decision ruled out. `activeDevice`
+and `homeAppsPayload` both leave it out, and `SeniorSettingsSync` puts the
+local bytes **back** onto the rows that come down: without that, every resume
+would replace the senior's 고스톱 logo with a grey glyph and leave it there.
+Same rule as the device-status columns — *null means the other side could not
+say, never that there is nothing.*
+
+### Two ways in, because two different people are stuck
+
+- **경로 1, the senior alone.** The hollow slot on 자세한 화면 → 어떤
+  버튼인가요 → 폰에 있는 앱 → the list. Two presses from the home screen.
+  That slot used to open 앱 설정 — a list of the buttons they already have,
+  with 버튼 추가하기 at the bottom — so it took four screens and two of them
+  existed only to be passed through. The step a senior gives up at is never
+  the choosing; it is getting to the place where they can choose.
+- **경로 2, the senior who cannot do even that.** The guardian places an
+  **empty slot** from their own phone, and their parent presses it once and
+  picks. The guardian is still never shown the list — they can create the
+  slot without being shown what goes in it, which is what keeps the privacy
+  property while removing the navigation.
+
+`awaitingChoice` is that state and it adds **no field**: an `installed`
+button with no package is one nobody has filled in, the same shape as a
+contact with no number. The tile is drawn hollow, like the empty slot,
+because the one thing it must not look like is an app — a senior who reads it
+as one presses it, nothing opens, and they conclude the phone is broken. On
+the guardian's row it says `부모님이 폰에서 고르시면 이름이 나와요`, and
+renaming is disabled: the name becomes the app's own the moment they pick, so
+anything written now is a label that turns into a lie.
+
+`openHomeButton` and `addHomeButton` are shared by both home screens and both
+entry points. The two screens had already grown identical copies of the tap
+handler; a third branch in each is where they would have drifted.
+
 ## Conventions
 
 - Tests come before implementation — see `.claude/skills/test-driven-development`.

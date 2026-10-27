@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/widgets/clay_pad.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../domain/app_category.dart';
+import '../../../../core/widgets/clay_pad.dart';
 import '../../../../domain/launcher_app.dart';
 
 /// One home-screen tile, drawn as a pressable object by [ClayPad].
@@ -29,6 +30,13 @@ class AppTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // An app button nobody has chosen an app for yet. Drawn hollow, like the
+    // empty slot on 자세한 화면, because the one thing it must not look like
+    // is an app: a senior who reads it as one presses it, nothing opens, and
+    // they decide the phone is broken. Hollow says *nothing is standing here
+    // yet*, and the label says what to do about it.
+    if (app.awaitingChoice) return _Unchosen(label: app.label, onTap: onTap);
+
     final ink = app.letteringColor;
     final onDark = ink == Colors.white;
     return Semantics(
@@ -88,6 +96,66 @@ class AppTile extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The guardian's seeded button, before the senior has filled it in.
+class _Unchosen extends StatelessWidget {
+  const _Unchosen({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        // The gaps answer too, so a tile this size has no dead patches.
+        behavior: HitTestBehavior.opaque,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.seniorSlotFill,
+            borderRadius: BorderRadius.circular(34),
+            border: Border.all(
+              color: AppColors.seniorSlotBorder,
+              width: 2.5,
+              strokeAlign: BorderSide.strokeAlignInside,
+            ),
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.touch_app_outlined,
+                      size: 44,
+                      color: AppColors.seniorSlotInk,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.seniorSlotInk,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

@@ -154,6 +154,36 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
     );
   }
 
+  /// Fills in an app button the guardian put there, once the senior has
+  /// picked from their own phone's list.
+  ///
+  /// The label becomes the app's own name rather than whatever the guardian
+  /// wrote on the slot: the tile is named after what it opens, and a 고스톱
+  /// button that opens the bank is worse than one named 은행.
+  Future<void> chooseInstalledApp(
+    String id, {
+    required String label,
+    required String packageName,
+    Uint8List? iconBytes,
+  }) async {
+    final current = state.value ?? const SeniorSettings();
+    await _write(
+      current.copyWith(
+        apps: [
+          for (final app in current.apps)
+            if (app.id == id)
+              app.copyWith(
+                label: label,
+                packageName: packageName,
+                iconBytes: iconBytes,
+              )
+            else
+              app,
+        ],
+      ),
+    );
+  }
+
   /// Both halves of a person button at once. Renaming and renumbering are one
   /// edit: a number that can only be set at creation means a typo is fixed by
   /// deleting the button and starting over.

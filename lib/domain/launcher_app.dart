@@ -146,6 +146,21 @@ class LauncherApp {
   /// this feature was scoped, so their half draws the generic glyph.
   final Uint8List? iconBytes;
 
+  /// An app button the senior has not chosen an app for yet.
+  ///
+  /// This is the whole of 경로 2's state, and it deliberately adds no field:
+  /// an `installed` button with no package is one nobody has filled in. The
+  /// guardian puts it on their parent's home screen from their own phone —
+  /// which is the step the parent cannot do — and the parent presses it once
+  /// and picks, which is the step they can.
+  ///
+  /// It exists because the list of apps on the parent's phone never leaves
+  /// that phone. The guardian can create the *slot* without being shown what
+  /// is in it.
+  bool get awaitingChoice =>
+      category == AppCategory.installed &&
+      (packageName?.trim().isEmpty ?? true);
+
   /// Whether tapping this opens the dialer rather than an app. Both halves
   /// matter: a contact with no number has nothing to dial, and a number on
   /// any other kind would be ignored.

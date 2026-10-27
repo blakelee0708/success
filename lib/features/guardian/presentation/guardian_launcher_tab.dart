@@ -186,19 +186,29 @@ class _Editor extends ConsumerWidget {
   /// the guardian is choosing what will appear on their mother's home screen,
   /// so what they are shown is that button, not a form control.
   Future<void> _add(BuildContext context, WidgetRef ref) async {
-    // Without 폰에 있는 앱. The senior adds one of those from their own
-    // phone, in 앱 설정하기; offering it here would mean sending the guardian
-    // a list of what is installed on their parent's phone, which is the one
-    // thing this feature was scoped not to do. The guardian can still rename
-    // it, recolour it and move it once it is there.
-    final category = await askForCategory(
-      context,
-      offer: [
-        for (final c in AppCategory.values)
-          if (c != AppCategory.installed) c,
-      ],
-    );
+    // 폰에 있는 앱 **is** offered here, and it means something different from
+    // what it means on the parent's phone. The guardian is not shown the list
+    // of what is installed — that list never leaves their parent's handset —
+    // so what they place is an empty slot. Their parent presses it once and
+    // picks from their own phone.
+    //
+    // That split is the whole of 경로 2: the guardian does the part their
+    // parent cannot (knowing a button should exist, and putting it on the
+    // home screen) and the parent does the part only they can (choosing from
+    // a list only their phone can see).
+    final category = await askForCategory(context);
     if (category == null || !context.mounted) return;
+
+    // Nothing to ask. Naming it would be naming an app nobody has chosen,
+    // and the label becomes the app's own name the moment they do.
+    if (category == AppCategory.installed) {
+      await _run(
+        context,
+        ref,
+        (c) => c.add(label: '눌러서 앱 고르기', category: category),
+      );
+      return;
+    }
 
     // A person needs a number as well as a name. This is the screen it is
     // meant to be typed on: the guardian knows the number, the parent does
@@ -402,19 +412,41 @@ class _AppRow extends StatelessWidget {
             Expanded(
               child: TextButton(
                 key: GuardianLauncherKeys.rename(app.id),
-                onPressed: onRename,
+                // A slot nobody has filled in cannot be renamed: the name is
+                // whatever app the parent picks, and writing one now would
+                // only be a label that turns into a lie.
+                onPressed: app.awaitingChoice ? null : onRename,
                 style: TextButton.styleFrom(
                   alignment: Alignment.centerLeft,
                   padding: EdgeInsets.zero,
                 ),
-                child: Text(
-                  app.label,
-                  style: const TextStyle(
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
-                    color: AppColors.guardianInk,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      app.awaitingChoice ? '앱 버튼' : app.label,
+                      style: const TextStyle(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
+                        color: AppColors.guardianInk,
+                      ),
+                    ),
+                    // Says where the ball is. The guardian placed this and
+                    // nothing more will happen until their parent presses it,
+                    // and a row that did not say so would read as broken.
+                    if (app.awaitingChoice)
+                      const Text(
+                        '부모님이 폰에서 고르시면 이름이 나와요',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.35,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.guardianInkFaint,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

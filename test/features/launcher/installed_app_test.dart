@@ -53,6 +53,62 @@ Future<void> _openAppSettings(
   await tester.pumpAndSettle();
 }
 
+/// The guardian's 홈 화면 tab, with one parent linked.
+Future<({
+  InMemoryHomeAppsRepository homeApps,
+  FakeAppLauncher launcher,
+  String profileId,
+})> _pumpGuardianTab(WidgetTester tester) async {
+  final auth = InMemoryGuardianAuthRepository()
+    ..seedSignedIn(const GuardianSession(userId: 'u1'));
+  addTearDown(auth.dispose);
+  final links = InMemorySeniorLinkRepository();
+  await links.ensureGuardianAccount(displayName: '김보호');
+  final profile = await links.createSeniorProfile(displayName: '어머니');
+  final homeApps = InMemoryHomeAppsRepository();
+  await homeApps.replace(profile.id, const [
+    LauncherApp(id: 'phone', label: '전화', category: AppCategory.phone),
+  ]);
+  // Loaded with apps on purpose: if the guardian's half ever reached for the
+  // picker, it would list the guardian's own phone, and these would show up.
+  final launcher = FakeAppLauncher(defaultHome: false)..apps = [_gostop];
+
+  await pumpApp(
+    tester,
+    overrides: [
+      guardianAuthRepositoryProvider.overrideWithValue(auth),
+      seniorLinkRepositoryProvider.overrideWithValue(links),
+      homeAppsRepositoryProvider.overrideWithValue(homeApps),
+      appLauncherProvider.overrideWithValue(launcher),
+    ],
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('홈 화면'));
+  await tester.pumpAndSettle();
+  return (homeApps: homeApps, launcher: launcher, profileId: profile.id);
+}
+
+/// The parent's own home screen, with whatever buttons are on it.
+Future<FakeAppLauncher> _pumpSeniorHome(
+  WidgetTester tester, {
+  required List<LauncherApp> apps,
+  List<InstalledApp> installed = const [],
+  ScreenMode mode = ScreenMode.easy,
+}) async {
+  final launcher = FakeAppLauncher(defaultHome: true)..apps = installed;
+  await pumpApp(
+    tester,
+    overrides: [appLauncherProvider.overrideWithValue(launcher)],
+    prefs: {
+      SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+        SeniorSettings(screenMode: mode, apps: apps).toJson(),
+      ),
+    },
+  );
+  await tester.pumpAndSettle();
+  return launcher;
+}
+
 Future<void> _pickKind(WidgetTester tester) async {
   await tester.tap(find.text('버튼 추가하기'));
   await tester.pumpAndSettle();
@@ -104,43 +160,135 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the guardian is not offered it at all', (tester) async {
-      // Picking an app on the parent's phone means reading the list of apps
-      // on the parent's phone, and that list never leaves it.
-      final auth = InMemoryGuardianAuthRepository()
-        ..seedSignedIn(const GuardianSession(userId: 'u1'));
-      addTearDown(auth.dispose);
-      final links = InMemorySeniorLinkRepository();
-      await links.ensureGuardianAccount(displayName: '김보호');
-      final profile = await links.createSeniorProfile(displayName: '어머니');
-      final homeApps = InMemoryHomeAppsRepository();
-      await homeApps.replace(profile.id, const [
-        LauncherApp(id: 'phone', label: '전화', category: AppCategory.phone),
-      ]);
-
-      await pumpApp(
-        tester,
-        overrides: [
-          guardianAuthRepositoryProvider.overrideWithValue(auth),
-          seniorLinkRepositoryProvider.overrideWithValue(links),
-          homeAppsRepositoryProvider.overrideWithValue(homeApps),
-        ],
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('홈 화면'));
-      await tester.pumpAndSettle();
+    testWidgets('the guardian places an empty slot, not an app', (
+      tester,
+    ) async {
+      // 경로 2. The guardian is never shown what is installed on their
+      // parent's phone — that list never leaves it — so what they can place
+      // is the slot. Their parent presses it once and picks.
+      final h = await _pumpGuardianTab(tester);
       await tester.tap(find.text('버튼 추가하기'));
       await tester.pumpAndSettle();
-
-      expect(
+      await tester.tap(
         find.byKey(CategoryPickerKeys.option(AppCategory.installed)),
-        findsNothing,
       );
-      expect(
-        find.byKey(CategoryPickerKeys.option(AppCategory.contact)),
-        findsOneWidget,
-      );
+      await tester.pumpAndSettle();
+
+      final added = h.homeApps.byProfile[h.profileId]!.last;
+      expect(added.category, AppCategory.installed);
+      expect(added.awaitingChoice, isTrue);
+      expect(added.packageName, isNull);
     });
+
+    testWidgets('the guardian is never shown the list itself', (tester) async {
+      // The picker reads the phone it is running on. Opening it on the
+      // guardian's would list *their* apps, which is both useless and the
+      // wrong phone.
+      final h = await _pumpGuardianTab(tester);
+      await tester.tap(find.text('버튼 추가하기'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(CategoryPickerKeys.option(AppCategory.installed)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(InstalledAppPickerKeys.sheet), findsNothing);
+      expect(h.launcher.appsListed, 0);
+    });
+
+    testWidgets('and their row says whose turn it is', (tester) async {
+      // A row that did not say so would read as a button that failed to
+      // save. Nothing more happens until the parent presses it.
+      final h = await _pumpGuardianTab(tester);
+      await tester.tap(find.text('버튼 추가하기'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(CategoryPickerKeys.option(AppCategory.installed)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('부모님이'), findsOneWidget);
+      expect(h.homeApps.byProfile[h.profileId]!.last.awaitingChoice, isTrue);
+    });
+  });
+
+  group('the senior fills it in from their home screen', () {
+    testWidgets('pressing the slot opens the list and the button becomes the app', (
+      tester,
+    ) async {
+      // Two presses on the screen they are already looking at. The step they
+      // could not do — knowing a button should exist and placing it — was
+      // done from the other phone.
+      await _pumpSeniorHome(
+        tester,
+        apps: const [
+          LauncherApp(
+            id: 'slot',
+            label: '눌러서 앱 고르기',
+            category: AppCategory.installed,
+          ),
+        ],
+        installed: [_gostop],
+      );
+
+      await tester.tap(find.text('눌러서 앱 고르기'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(InstalledAppPickerKeys.sheet), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(InstalledAppPickerKeys.option('com.game.gostop')),
+      );
+      await tester.pumpAndSettle();
+
+      // Named after what it opens, not after whatever the guardian wrote.
+      expect(find.text('고스톱'), findsWidgets);
+      expect(find.text('눌러서 앱 고르기'), findsNothing);
+    });
+
+    testWidgets('an unfilled slot never opens an app', (tester) async {
+      // It resolves to nothing rather than to some fallback, so it cannot
+      // open a browser at somebody's mother.
+      final launcher = await _pumpSeniorHome(
+        tester,
+        apps: const [
+          LauncherApp(
+            id: 'slot',
+            label: '눌러서 앱 고르기',
+            category: AppCategory.installed,
+          ),
+        ],
+      );
+
+      await tester.tap(find.text('눌러서 앱 고르기'));
+      await tester.pumpAndSettle();
+
+      expect(launcher.opened, isEmpty);
+    });
+  });
+
+  testWidgets('the hollow slot on the home screen goes straight to the question', (
+    tester,
+  ) async {
+    // It used to land on 앱 설정 — a list of the buttons they already have,
+    // with 버튼 추가하기 at the bottom — so adding one from the home screen
+    // took four screens, two of which existed to be passed through. The step
+    // a senior gives up at is not the choosing; it is getting to the place
+    // where they can choose.
+    await _pumpSeniorHome(
+      tester,
+      mode: ScreenMode.detailed,
+      apps: const [
+        LauncherApp(id: 'phone', label: '전화', category: AppCategory.phone),
+      ],
+      installed: [_gostop],
+    );
+
+    // One button leaves two hollow slots — the grid keeps a whole row
+    // rather than one orphan. Either opens the same question.
+    await tester.tap(find.text('추가하기').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(CategoryPickerKeys.sheet), findsOneWidget);
   });
 
   group('opening it', () {

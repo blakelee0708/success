@@ -6,9 +6,7 @@ import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
-import '../../../domain/app_category.dart';
-import '../data/app_launcher.dart';
-import '../data/phone_dialer.dart';
+import 'open_home_button.dart';
 import 'widgets/app_tile.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import 'widgets/home_body.dart';
@@ -27,36 +25,6 @@ class EasyHomeScreen extends ConsumerWidget {
 
   /// Four tiles have room to breathe where 자세한 화면's eight do not.
   static const _rowGap = 22.0;
-
-  /// Says so when nothing opened, rather than leaving the senior tapping a
-  /// tile that does nothing. Almost always the app is simply not installed.
-  Future<void> _openApp(
-    BuildContext context,
-    WidgetRef ref,
-    LauncherApp app,
-  ) async {
-    // A person is dialled, not opened. `tel:` resolves to ACTION_DIAL, so the
-    // keypad appears with the number in it and the senior presses call —
-    // exactly as 119 does, and for the same reason.
-    if (app.opensDialer) {
-      await ref.read(phoneDialerProvider).openDialer(app.phoneNumber!);
-      return;
-    }
-    // A contact the guardian has not finished — a name with no number — has
-    // nothing to dial. Opening the dialer blank looks broken rather than
-    // unfinished, so it does nothing at all.
-    if (app.category.isContact) return;
-
-    final opened = await ref
-        .read(appLauncherProvider)
-        .open(launchRequestForApp(app));
-    if (opened || !context.mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text('${app.label}을(를) 열 수 없어요. 자녀분께 말씀해 주세요.')),
-      );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -84,7 +52,7 @@ class EasyHomeScreen extends ConsumerWidget {
                         for (final app in apps)
                           AppTile(
                             app: app,
-                            onTap: () => _openApp(context, ref, app),
+                            onTap: () => openHomeButton(context, ref, app),
                           ),
                       ],
                     ),

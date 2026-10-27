@@ -7,9 +7,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
-import '../../../domain/app_category.dart';
-import '../data/app_launcher.dart';
-import '../data/phone_dialer.dart';
+import 'add_home_button.dart';
+import 'open_home_button.dart';
 import 'widgets/app_tile.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import 'widgets/home_body.dart';
@@ -42,36 +41,6 @@ class DetailedHomeScreen extends ConsumerWidget {
   static const _sosFlex = 203;
   static const _familyFlex = 135;
 
-  /// Says so when nothing opened, rather than leaving the senior tapping a
-  /// tile that does nothing. Almost always the app is simply not installed.
-  Future<void> _openApp(
-    BuildContext context,
-    WidgetRef ref,
-    LauncherApp app,
-  ) async {
-    // A person is dialled, not opened. `tel:` resolves to ACTION_DIAL, so the
-    // keypad appears with the number in it and the senior presses call —
-    // exactly as 119 does, and for the same reason.
-    if (app.opensDialer) {
-      await ref.read(phoneDialerProvider).openDialer(app.phoneNumber!);
-      return;
-    }
-    // A contact the guardian has not finished — a name with no number — has
-    // nothing to dial. Opening the dialer blank looks broken rather than
-    // unfinished, so it does nothing at all.
-    if (app.category.isContact) return;
-
-    final opened = await ref
-        .read(appLauncherProvider)
-        .open(launchRequestForApp(app));
-    if (opened || !context.mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text('${app.label}을(를) 열 수 없어요. 자녀분께 말씀해 주세요.')),
-      );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Saved buttons rather than the constant defaults, so an edit made in
@@ -102,14 +71,22 @@ class DetailedHomeScreen extends ConsumerWidget {
                         for (final app in apps)
                           AppTile(
                             app: app,
-                            onTap: () => _openApp(context, ref, app),
+                            onTap: () => openHomeButton(context, ref, app),
                           ),
                         _SettingsTile(
                           onTap: () => context.push(Routes.seniorSettings),
                         ),
                         for (var i = 0; i < slots; i++)
                           _AddSlot(
-                            onTap: () => context.push(Routes.appSettings),
+                            // Straight to the question, not to the settings
+                            // list. It used to land on 앱 설정 — a list of
+                            // the buttons they already have, with 버튼
+                            // 추가하기 at the bottom — so adding one from the
+                            // home screen took four screens. Two of them
+                            // were there to be passed through, and the step
+                            // a senior gives up at is never the choosing, it
+                            // is getting to the place where they can choose.
+                            onTap: () => addHomeButton(context, ref),
                           ),
                       ],
                     ),

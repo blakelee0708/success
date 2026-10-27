@@ -5,9 +5,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
-import 'widgets/category_picker.dart';
+import 'add_home_button.dart';
 import 'widgets/contact_dialog.dart';
-import 'widgets/installed_app_picker.dart';
+import 'widgets/name_dialog.dart';
 
 abstract final class AppSettingsKeys {
   /// The grip that starts a reorder. Named so a test can assert it exists:
@@ -61,7 +61,7 @@ class AppSettingsScreen extends ConsumerWidget {
                     backgroundColor: AppColors.seniorPrimary,
                     minimumSize: const Size.fromHeight(64),
                   ),
-                  onPressed: () => _add(context, ref),
+                  onPressed: () => addHomeButton(context, ref),
                   icon: const Icon(Icons.add, size: 28),
                   label: const Text(
                     '버튼 추가하기',
@@ -97,63 +97,11 @@ class AppSettingsScreen extends ConsumerWidget {
       return;
     }
 
-    final name = await _askForName(context, title: '이름 바꾸기', initial: app.label);
+    final name = await askForButtonName(context, title: '이름 바꾸기', initial: app.label);
     if (name == null) return;
     await ref
         .read(seniorSettingsControllerProvider.notifier)
         .renameApp(app.id, name);
-  }
-
-  /// The kind comes first, then the name.
-  ///
-  /// Both ways in used to add every button as `AppCategory.message`, so a
-  /// button called 딸 wore the 문자 icon, came out blue and opened the
-  /// messaging app. The kind decides all three, so it has to be asked.
-  Future<void> _add(BuildContext context, WidgetRef ref) async {
-    final category = await askForCategory(context);
-    if (category == null || !context.mounted) return;
-
-    // An app already on the phone brings its own name and its own icon, so
-    // there is nothing left to ask. A senior adding their 고스톱 presses
-    // twice — the kind, then the app — and never types.
-    if (category == AppCategory.installed) {
-      final picked = await askForInstalledApp(context, ref);
-      if (picked == null) return;
-      await ref
-          .read(seniorSettingsControllerProvider.notifier)
-          .addApp(
-            label: picked.label,
-            category: category,
-            packageName: picked.packageName,
-            iconBytes: picked.icon,
-          );
-      return;
-    }
-
-    // A person needs a number as well as a name, and there is no sensible
-    // default for either.
-    if (category.isContact) {
-      final draft = await askForContact(context);
-      if (draft == null) return;
-      await ref
-          .read(seniorSettingsControllerProvider.notifier)
-          .addApp(
-            label: draft.name,
-            category: category,
-            phoneNumber: draft.number,
-          );
-      return;
-    }
-
-    final name = await _askForName(
-      context,
-      title: '버튼 추가하기',
-      initial: category.defaultLabel,
-    );
-    if (name == null) return;
-    await ref
-        .read(seniorSettingsControllerProvider.notifier)
-        .addApp(label: name, category: category);
   }
 
   Future<void> _recolour(
@@ -235,65 +183,6 @@ class AppSettingsScreen extends ConsumerWidget {
 
   /// Returns null when the senior backs out or leaves the field empty — an
   /// unnamed button is indistinguishable from every other unnamed button.
-  Future<String?> _askForName(
-    BuildContext context, {
-    required String title,
-    required String initial,
-  }) async {
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) => _NameDialog(title: title, initial: initial),
-    );
-    return (name == null || name.isEmpty) ? null : name;
-  }
-}
-
-/// Owns its own controller so it is disposed with the dialog rather than the
-/// moment `showDialog` returns — tearing the controller down while the field
-/// still holds focus trips a framework assertion.
-class _NameDialog extends StatefulWidget {
-  const _NameDialog({required this.title, required this.initial});
-
-  final String title;
-  final String initial;
-
-  @override
-  State<_NameDialog> createState() => _NameDialogState();
-}
-
-class _NameDialogState extends State<_NameDialog> {
-  late final TextEditingController _field = TextEditingController(
-    text: widget.initial,
-  );
-
-  @override
-  void dispose() {
-    _field.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        controller: _field,
-        autofocus: true,
-        style: const TextStyle(fontSize: 24),
-        decoration: const InputDecoration(hintText: '이름'),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('그만두기', style: TextStyle(fontSize: 20)),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, _field.text.trim()),
-          child: const Text('저장', style: TextStyle(fontSize: 20)),
-        ),
-      ],
-    );
-  }
 }
 
 /// One button in the list.
