@@ -327,9 +327,10 @@ void main() {
     );
     await tester.tap(find.byKey(SplashScreen.guardianCardKey));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(GuardianStartKeys.kakao));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(GuardianStartKeys.emailFallback));
+    // 이메일로 시작하기, the third button, which goes straight to the form.
+    // The Kakao sheet's email button is not a route any more: a provider
+    // that answers raises no sheet for it to sit in.
+    await tester.tap(find.byKey(GuardianStartKeys.email));
     await tester.pumpAndSettle();
 
     expect(find.byKey(GuardianLoginKeys.email), findsOneWidget);

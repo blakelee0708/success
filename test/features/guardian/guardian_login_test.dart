@@ -19,7 +19,12 @@ const _configured = SupabaseConfig(
   anonKey: 'test-key',
 );
 
-/// Walks the real route: splash → 보호자 시작하기 → the provider sheet → login.
+/// Walks the real route: splash → 보호자 시작하기 → 이메일로 시작하기 → login.
+///
+/// The third button goes straight to the form. The walk used to go through
+/// the Kakao sheet's 이메일로 계속하기 button instead, and that stopped being a
+/// route the moment the provider buttons started asking the server: a
+/// provider that answers raises no sheet, so the tap had nothing to hit.
 Future<void> _gotoLogin(
   WidgetTester tester,
   InMemoryGuardianAuthRepository auth,
@@ -40,9 +45,7 @@ Future<void> _gotoLogin(
   );
   await tester.tap(find.byKey(SplashScreen.guardianCardKey));
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(GuardianStartKeys.kakao));
-  await tester.pumpAndSettle();
-  await tester.tap(find.byKey(GuardianStartKeys.emailFallback));
+  await tester.tap(find.byKey(GuardianStartKeys.email));
   await tester.pumpAndSettle();
 }
 
@@ -77,29 +80,6 @@ String _messageText(WidgetTester tester) => tester
     .data!;
 
 void main() {
-  testWidgets('a social button explains itself rather than failing on tap', (
-    tester,
-  ) async {
-    final auth = InMemoryGuardianAuthRepository();
-    addTearDown(auth.dispose);
-    await pumpApp(
-      tester,
-      overrides: [
-        supabaseConfigProvider.overrideWithValue(_configured),
-        guardianAuthRepositoryProvider.overrideWithValue(auth),
-      ],
-    );
-    await tester.tap(find.byKey(SplashScreen.guardianCardKey));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(GuardianStartKeys.kakao));
-    await tester.pumpAndSettle();
-
-    // Kakao is still the intended entry, but no OAuth client is configured on
-    // the project, so the honest move is to say so and offer the route that
-    // works — not to fail on tap.
-    expect(find.text('카카오 로그인은 준비 중이에요'), findsOneWidget);
-  });
-
   testWidgets('the guardian reaches a login form', (tester) async {
     await _gotoLogin(tester, InMemoryGuardianAuthRepository());
 
