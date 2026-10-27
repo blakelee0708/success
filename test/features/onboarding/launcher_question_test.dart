@@ -65,6 +65,11 @@ void main() {
 
     await tester.tap(find.byKey(SeniorSettingsScreen.homeAppRow));
     await tester.pumpAndSettle();
+    // The row now says what Android's chooser will look like before opening
+    // it — which row is theirs, and that the confirm is bottom right. None
+    // of that can be set on the chooser itself.
+    await tester.tap(find.text('알겠어요'));
+    await tester.pumpAndSettle();
     expect(launcher.homeSettingsOpened, 1);
   });
 

@@ -1483,6 +1483,62 @@ anything written now is a label that turns into a lie.
 entry points. The two screens had already grown identical copies of the tap
 handler; a third branch in each is where they would have drifted.
 
+## 앱 설정 has a way out that is a word
+
+The only exit was the `←` in the top-left corner: small, in the hardest place
+on the screen for a hand to reach, and a symbol rather than a word. A senior
+who came to rename one button had to find it.
+
+`첫 화면으로 가기` sits at the bottom now, and **it goes all the way home
+rather than popping one screen.** There are two ways into this screen since
+the hollow slot on 자세한 화면 started leading here, and popping would leave
+half the visitors standing in 설정 with another exit to find. It is also what
+makes the label true.
+
+**Every change on this screen is already written** — `_write` saves to disk
+the moment it is pressed. So the exit cannot be called 저장 or 완료, and the
+line under it says `바꾸시면 바로 바뀌어요`: the change *already happened*,
+rather than this button being what does it. The difference is not pedantry.
+A button claiming to save makes the `←` the one that **loses** your work,
+which is false, and a senior who backs out by accident would redo edits that
+were never lost and learn to fear the corner.
+
+`버튼 추가하기` moved into the list as its `footer` and is drawn **hollow**,
+which settles two things at once: the guardian's half already learnt that a
+pinned add button leaves a field of nothing between the last row and itself
+and says nothing about where a new button lands; and hollow makes it the same
+object as the 추가하기 slot on the home screen, which is the same act reached
+another way. The filled terracotta is left to the exit, so the two largest
+buttons on the screen are not the same colour.
+
+## The phone's home-app chooser cannot be changed, so it is explained first
+
+Pressing 첫 화면으로 정하기 opens Android's own `RoleManager` chooser, and
+**no part of it is ours** — not the wording, not the order, and not which row
+starts selected. It opens on whatever is the home app *now*, which is the
+other one. That is deliberate on Android's side: an app that could pre-select
+itself is how a launcher gets hijacked. Asked on a real phone whether ours
+could come up already chosen, the answer is no, and there is no flag for it.
+
+So the only thing left is what the senior knows before it appears, and until
+2026-10-27 that was nothing: a system dialog in system language arrived with
+no warning, radio already on the other app.
+
+`HomeAppCoach` is said first, in all three places that open the chooser —
+onboarding, 설정 → 첫 화면으로 정하기, and 사용하지 않기, which points the
+**other way** and tells them to pick the app they had before.
+
+**It names no button on that screen.** Samsung says 기본 앱으로 설정; other
+phones and other Android versions say something else, so quoting one would be
+wrong on the phones that say the other — and being wrong *here* is worse than
+being vague. Two things are true everywhere: the app being asked about is
+named in the list, and the confirm sits bottom right. That is all it claims.
+
+This is not the screen that was removed for saying 첫 화면으로 정하기 three
+times before doing what the row does on tap. A test holds that line: the step
+has to contain `잘보이네` and must **not** contain the label of the row that
+opened it.
+
 ## Conventions
 
 - Tests come before implementation — see `.claude/skills/test-driven-development`.

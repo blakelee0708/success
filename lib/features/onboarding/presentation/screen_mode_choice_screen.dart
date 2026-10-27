@@ -8,6 +8,7 @@ import '../../../core/widgets/clay_pad.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/senior_settings.dart';
 import '../../launcher/application/senior_settings_controller.dart';
+import '../../launcher/presentation/widgets/home_app_coach.dart';
 import '../../launcher/data/app_launcher.dart';
 import 'widgets/screen_mode_preview.dart';
 
@@ -76,13 +77,28 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
               color: AppColors.seniorInk,
             ),
           ),
-          content: const Text(
-            '한 번만 정해두면, 홈 버튼을 누를 때마다\n이 화면이 나옵니다.',
-            style: TextStyle(
-              fontSize: 18,
-              height: 1.55,
-              color: AppColors.seniorInkMuted,
-            ),
+          content: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '한 번만 정해두면, 홈 버튼을 누를 때마다\n이 화면이 나옵니다.',
+                style: TextStyle(
+                  fontSize: 18,
+                  height: 1.55,
+                  color: AppColors.seniorInkMuted,
+                ),
+              ),
+              SizedBox(height: 18),
+              Divider(height: 1, color: AppColors.seniorHairline),
+              SizedBox(height: 14),
+              // Pressing 첫 화면으로 정하기 opens Android's own chooser, and
+              // none of it can be changed — including that it starts with
+              // the other app selected. This is the first time most seniors
+              // meet it, so it is the most important of the three places to
+              // say what is coming.
+              HomeAppCoach(direction: HomeAppDirection.take),
+            ],
           ),
           actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
           actions: [

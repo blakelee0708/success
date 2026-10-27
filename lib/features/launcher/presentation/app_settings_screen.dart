@@ -5,11 +5,20 @@ import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../application/senior_settings_controller.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/router/routes.dart';
 import 'add_home_button.dart';
 import 'widgets/contact_dialog.dart';
 import 'widgets/name_dialog.dart';
 
 abstract final class AppSettingsKeys {
+  /// The way out. The ← in the corner is small, in the hardest place to
+  /// reach, and a symbol rather than a word.
+  static const done = Key('app-settings-done');
+
+  static const add = Key('app-settings-add');
+
   /// The grip that starts a reorder. Named so a test can assert it exists:
   /// the list reorders perfectly well without it and shows nothing, which is
   /// how it shipped.
@@ -36,8 +45,16 @@ class AppSettingsScreen extends ConsumerWidget {
         children: [
           Expanded(
             child: ReorderableListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
               onReorder: controller.reorderApps,
+              // In the list rather than pinned to the bottom, which is where
+              // the guardian's half already puts it: pinned, it leaves a
+              // field of nothing between the last row and the button and
+              // says nothing about where a new button will land. Here it is
+              // simply the next thing after the last one, and adding pushes
+              // it down. Hollow, so it is the same object as the 추가하기
+              // slot on 자세한 화면 — two ways to the same act, drawn alike.
+              footer: _AddRow(onTap: () => addHomeButton(context, ref)),
               children: [
                 for (final (index, app) in apps.indexed)
                   _AppRow(
@@ -53,21 +70,47 @@ class AppSettingsScreen extends ConsumerWidget {
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.seniorPrimary,
-                    minimumSize: const Size.fromHeight(64),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      key: AppSettingsKeys.done,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.seniorPrimary,
+                        minimumSize: const Size.fromHeight(68),
+                      ),
+                      // All the way home, not back one screen. There are two
+                      // ways into this screen now — 설정, and the hollow slot
+                      // on the home screen — and popping would leave half the
+                      // visitors standing in 설정 with another exit to find.
+                      // It is also what makes the label true.
+                      onPressed: () => context.go(Routes.firstScreen),
+                      child: const Text(
+                        '첫 화면으로 가기',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
                   ),
-                  onPressed: () => addHomeButton(context, ref),
-                  icon: const Icon(Icons.add, size: 28),
-                  label: const Text(
-                    '버튼 추가하기',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                  const SizedBox(height: 10),
+                  // It says the change *already happened*, not that this
+                  // button does it — which is the difference between
+                  // reassuring someone and turning the ← arrow into the one
+                  // that loses their work.
+                  const Text(
+                    '바꾸시면 바로 바뀌어요',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.seniorInkMuted,
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -267,6 +310,59 @@ class _AppRow extends StatelessWidget {
             tooltip: '지우기',
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 버튼 추가하기, as the last row of the list.
+///
+/// Hollow, like the 추가하기 slot on 자세한 화면 — they are two ways to the
+/// same act and were drawn as two different things. Keeping the filled
+/// terracotta for the way *out* also stops the two biggest buttons on the
+/// screen from being the same colour.
+class _AddRow extends StatelessWidget {
+  const _AddRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: GestureDetector(
+        key: AppSettingsKeys.add,
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.seniorSlotFill,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: AppColors.seniorSlotBorder,
+              width: 2.5,
+              strokeAlign: BorderSide.strokeAlignInside,
+            ),
+          ),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add, size: 30, color: AppColors.seniorSlotInk),
+                SizedBox(width: 10),
+                Text(
+                  '버튼 추가하기',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.seniorSlotInk,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

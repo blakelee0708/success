@@ -6,6 +6,7 @@ import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
 import '../data/app_launcher.dart';
+import 'widgets/home_app_coach.dart';
 
 /// 설정 — everything a senior can change about their own phone.
 ///
@@ -29,6 +30,9 @@ class SeniorSettingsScreen extends ConsumerWidget {
   /// Shown only when the phone refuses to open its own chooser.
   static const manualKey = Key('senior-settings-home-app-manual');
 
+  /// Shown before the phone's own chooser, which cannot be changed.
+  static const homeAppCoach = Key('senior-settings-home-app-coach');
+
   /// Opens the phone's home-app chooser, and says what to do by hand when the
   /// phone will not open it.
   ///
@@ -36,6 +40,48 @@ class SeniorSettingsScreen extends ConsumerWidget {
   /// said 첫 화면으로 정하기 three times — as its title, as its heading and on
   /// its only button — before doing what this does.
   static Future<void> _setHomeApp(BuildContext context, WidgetRef ref) async {
+    // Said first, because the next thing on screen is Android's own chooser
+    // and nothing about it can be changed — least of all that it opens with
+    // the *other* app selected. Until this existed, a system dialog in
+    // system language arrived with no warning and the senior was expected to
+    // work out which of two rows was theirs.
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: SeniorSettingsScreen.homeAppCoach,
+        backgroundColor: AppColors.seniorSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        content: const HomeAppCoach(direction: HomeAppDirection.take),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              '그만두기',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.seniorInkMuted,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              '알겠어요',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.seniorPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !context.mounted) return;
+
     final opened = await ref.read(appLauncherProvider).openHomeSettings();
     // The chooser is a separate screen and the app cannot see what was
     // picked, so the answer is re-read on return rather than assumed.
@@ -115,16 +161,28 @@ class SeniorSettingsScreen extends ConsumerWidget {
         // Nothing is lost and saying so is the point: the buttons, the text
         // size and the family connection are all kept, and a senior left to
         // guess that reads a reversible choice as a final one.
-        content: const Text(
-          '홈 버튼을 누르면 원래 쓰시던\n'
-          '화면이 나옵니다.\n\n'
-          '설정해 두신 것은 그대로 있어요.\n'
-          '언제든 다시 쓰실 수 있어요.',
-          style: TextStyle(
-            fontSize: 19,
-            height: 1.6,
-            color: AppColors.seniorInk,
-          ),
+        content: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '홈 버튼을 누르면 원래 쓰시던\n'
+              '화면이 나옵니다.\n\n'
+              '설정해 두신 것은 그대로 있어요.\n'
+              '언제든 다시 쓰실 수 있어요.',
+              style: TextStyle(
+                fontSize: 19,
+                height: 1.6,
+                color: AppColors.seniorInk,
+              ),
+            ),
+            SizedBox(height: 18),
+            Divider(height: 1, color: AppColors.seniorHairline),
+            SizedBox(height: 14),
+            // The same chooser, pointed the other way — here the row to
+            // press is the app they had before, not this one.
+            HomeAppCoach(direction: HomeAppDirection.give),
+          ],
         ),
         actions: [
           TextButton(
