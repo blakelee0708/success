@@ -30,6 +30,12 @@ class GuardianStartScreen extends StatelessWidget {
   /// Three things this screen may say, and the test beside it is what keeps
   /// the list to three.
   ///
+  /// 사진 is back, and that is the one claim here that changed because the
+  /// app changed rather than because the copy did. The photo bucket exists,
+  /// its policies are checked against the live project, and both ends can
+  /// send one. 배터리 · 소리 · 인터넷 stay out: the readings are still a
+  /// background sync that is an interface with no implementation.
+  ///
   /// It promised 배터리 · 소리 · 인터넷 "한눈에" and 사진 for months, and the
   /// app does neither: the phone readings arrive with the Phase 6 background
   /// sync, which is an interface with no implementation, and sending a
@@ -50,7 +56,7 @@ class GuardianStartScreen extends StatelessWidget {
       Icons.chat_bubble_rounded,
       AppColors.guardianTintViolet,
       AppColors.guardianTintVioletInk,
-      '부모님과 큰 글씨로 메시지를 주고받을 수 있어요',
+      '부모님과 큰 글씨로 메시지와 사진을 주고받을 수 있어요',
       '보내면 부모님 첫 화면에 바로 뜹니다',
     ),
     (

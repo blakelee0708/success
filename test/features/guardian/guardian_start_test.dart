@@ -29,7 +29,7 @@ void main() {
 
     expect(find.text('부모님을 대신해 필요한 앱을 관리해 드릴 수 있어요'), findsOneWidget);
     expect(find.text('홈 화면 버튼의 이름과 색을 멀리서 정리합니다'), findsOneWidget);
-    expect(find.text('부모님과 큰 글씨로 메시지를 주고받을 수 있어요'), findsOneWidget);
+    expect(find.text('부모님과 큰 글씨로 메시지와 사진을 주고받을 수 있어요'), findsOneWidget);
     expect(find.text('보내면 부모님 첫 화면에 바로 뜹니다'), findsOneWidget);
     expect(find.text('부모님 폰을 언제 쓰셨는지 알 수 있어요'), findsOneWidget);
     expect(find.text('마지막으로 쓰신 시각이 보입니다'), findsOneWidget);
@@ -130,20 +130,26 @@ void main() {
     // promises. It was offering 배터리 · 소리 · 인터넷 "한눈에" while the
     // dashboard says 준비 중 for all three — they arrive with the Phase 6
     // background sync, which is an interface with no implementation — and
-    // 사진, which the message tab cannot send: an image needs a picker and
-    // file storage, neither of which exists.
+    // 사진 was on that list too and has come off it, because the app changed
+    // rather than the copy: the private bucket exists with its policies
+    // checked against the live project, and both ends can send one. The
+    // three below are still true - the readings arrive with a background
+    // sync that remains an interface with no implementation.
     //
     // Same rule that took the mocked 배터리 72% off the dashboard, applied one
     // screen earlier. A promise made before sign-up is worse than a hopeful
     // number after it.
     await _gotoGuardianStart(tester);
 
-    for (final claim in ['배터리', '인터넷', '사진']) {
+    for (final claim in ['배터리', '인터넷']) {
       expect(
         find.textContaining(claim),
         findsNothing,
         reason: '$claim is not something this app does yet',
       );
     }
+
+    // And the one that came back is actually offered.
+    expect(find.textContaining('사진'), findsOneWidget);
   });
 }

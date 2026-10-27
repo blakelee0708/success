@@ -365,7 +365,13 @@ class _Quota extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '이번 달 ${quota.textLeft}번 더 보낼 수 있어요',
+            // Both numbers, because the composer can send either and they are
+            // counted apart - 월 50회 / 이미지 10개 in the PRD, two columns on
+            // the server. Showing only the text one meant a guardian whose
+            // photos had run out was told they had 46 sends left and then
+            // refused, with nothing on screen having warned them.
+            '이번 달 메시지 ${quota.textLeft}번, 사진 ${quota.imageLeft}장 '
+            '더 보낼 수 있어요',
             style: TextStyle(
               fontSize: 13,
               fontWeight: quota.isRunningLow

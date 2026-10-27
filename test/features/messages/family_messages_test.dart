@@ -195,7 +195,10 @@ void main() {
       final h = await _family();
       await _pumpGuardianMessages(tester, h);
 
-      expect(find.text('이번 달 50번 더 보낼 수 있어요'), findsOneWidget);
+      expect(
+        find.text('이번 달 메시지 50번, 사진 10장 더 보낼 수 있어요'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('offers 안심 케어 as it runs low, before it is stuck', (
@@ -207,7 +210,10 @@ void main() {
       }
       await _pumpGuardianMessages(tester, h);
 
-      expect(find.text('이번 달 3번 더 보낼 수 있어요'), findsOneWidget);
+      expect(
+        find.text('이번 달 메시지 3번, 사진 10장 더 보낼 수 있어요'),
+        findsOneWidget,
+      );
       expect(find.textContaining('안심 케어를 시작하시면'), findsOneWidget);
     });
 
