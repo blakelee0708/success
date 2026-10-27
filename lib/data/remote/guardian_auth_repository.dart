@@ -108,8 +108,17 @@ const oauthRedirect = 'com.jalboine.app://login-callback';
 /// `redirectTo` it does not recognise and falls back to `site_url`, which
 /// would land a password reset on the page that says 확인이 끝났어요 — a
 /// screen with no password field, reached by someone who came to set one.
-const passwordResetRedirect =
-    'https://jdnnetwork.github.io/success/reset.html';
+///
+/// **A custom domain, not `*.github.io`, and that is the owner's decision
+/// rather than a tidying-up.** This string is printed in a password-reset
+/// mail, so it is the one place a guardian reads the project's address, and
+/// a GitHub username is not what should be standing there. The repository
+/// moved from `jdnnetwork` to `blakelee0708` on 2026-10-27, which would have
+/// broken the old value anyway: a project site serves under `/<repo>/` only
+/// on the default `*.github.io` host, and a repository with its own domain
+/// serves at that domain's root — so there is no `/success/` in the path any
+/// more.
+const passwordResetRedirect = 'https://app.jalboine.com/reset.html';
 
 class SupabaseGuardianAuthRepository implements GuardianAuthRepository {
   SupabaseGuardianAuthRepository(this._client);

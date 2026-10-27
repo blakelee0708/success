@@ -105,8 +105,10 @@ and a run on a real phone, all four of which have since happened. As of
 2026-10-27:
 
 - **Play 출시**: an upload key (the APK is still debug-signed), a Play Console
-  account, a privacy-policy URL, and Play Billing. Until Billing exists the
-  buy button makes a subscription with no money.
+  account, and Play Billing. Until Billing exists the buy button makes a
+  subscription with no money. The privacy-policy URL is no longer one of
+  these — `site/privacy.html` is written, and what it still wants is the
+  사업자 fields nobody but the owner can supply; see `## 개인정보처리방침`.
 - **Guardian sign-in**: Google and Kakao OAuth clients, and the project's mail
   settings — see `### Email sign-up cannot work` below. Both are console work
   only the owner can do.
@@ -645,6 +647,15 @@ display copied as text; that is fixed).
 Project: `jal 26.07`, ref `jnmvhdmxzonngqyicelx`, ap-southeast-1, PostgreSQL 17.
 `SUPABASE_PROJECT_REF` holds the ref.
 
+**It is being replaced by a Korean project, `handkezisjufyyumpuma`, and that
+move is not finished.** `docs/SEOUL_MIGRATION.md` is the runbook. The reason
+it could not be done on 2026-10-27 is worth knowing before trying again:
+**the new project is on a different Supabase account.** This environment's
+`SUPABASE_ACCESS_TOKEN` gets a 403 on it, and the three organizations that
+token can see hold only the Singapore project and an unrelated Tokyo one from
+May. A new token has to go into the environment's secrets, which a running
+session does not pick up. Singapore stays until the new one is proven.
+
 **The project pauses itself when nobody uses it.** It is on the free plan, and
 after a stretch of inactivity its status goes `INACTIVE` — the schema and the
 data survive, but every call fails until it is restored. It came back after two
@@ -832,9 +843,31 @@ writing.
 
 ### site/, and the two pages it holds
 
-Published by `.github/workflows/pages.yml` to
-`https://jdnnetwork.github.io/success/`. **`site/`, never `web/`** — that one
-is Flutter's web template.
+Published by `.github/workflows/pages.yml`. **`site/`, never `web/`** — that
+one is Flutter's web template.
+
+**The host changed twice on 2026-10-27 and neither change was cosmetic.** The
+repository moved from `jdnnetwork/success` to `blakelee0708/success`, which
+broke `https://jdnnetwork.github.io/success/` outright, and the owner then
+ruled that no GitHub username belongs in a password-reset mail — that address
+is the one place a guardian reads this project's name. It is
+**`app.jalboine.com`** now, a custom domain on this repository, so the site
+serves at that domain's **root**: the `/success/` path prefix only exists on
+the default `*.github.io` host. `passwordResetRedirect` carries no prefix for
+that reason, and `privacy_policy_test.dart` pins the host, because the same
+domain is what Play and Kakao were given.
+
+A subdomain rather than the apex, deliberately: one CNAME, and
+`jalboine.com` stays free for a homepage and for receiving mail later. The
+apex choice cannot be undone cheaply, which is the same reason Resend was
+put on `send.jalboine.com`.
+
+Three things on it are **owner-only, and not for want of trying**: the Pages
+source, the `github-pages` branch rule and the custom domain. The agent proxy
+403s `/repos/{owner}/{repo}/pages`, and both `github.io` and
+`docs.github.com` are blocked, so the deployed page cannot even be opened
+from here — which is also why the DNS records must be read off GitHub's own
+settings screen rather than written from memory.
 
 GitHub's `github-pages` environment allows **only the default branch** by
 default, so the first two deploys were rejected before a single step ran:
@@ -1807,6 +1840,60 @@ the confirm.
 
 The other pairs were left alone. `그만두기` beside `저장` is not ambiguous —
 그만두기 only misreads where the screen itself is about stopping something.
+
+## 개인정보처리방침
+
+`site/privacy.html`, written 2026-10-27. It is the URL Play 심사 and 카카오
+동의항목 both ask for, so a reviewer reads it rather than a user, and a
+sentence in it that has quietly stopped being true is published by the
+company about itself.
+
+**Every collection item was read off `supabase/migrations/` and the live
+schema, not recalled.** Two readings in it are easy to get wrong:
+
+- `senior_devices.permission_status` is in the schema and **nothing writes
+  it.** It is not listed. Claiming to collect what is never collected is as
+  wrong as hiding what is.
+- `home_apps.package_name` **does** go to the server. The icon bytes and the
+  installed-app list do not - that is the whole shape of 폰에 있는 앱 - but
+  the one app the senior picked is named on the server, so it is listed.
+
+**Moving the database to Korea does not empty 국외 이전; it removes one line
+from it.** Resend (mail), FCM (the ring's push token) and Google Play are all
+still outside. The brief that asked for this said the problem disappeared
+with the move, and for Supabase it does.
+
+The page leads with the fact that it is **not ready to publish**: six 사업자
+fields - 상호, 대표자, 주소, 보호책임자, 문의 이메일, 공고일/시행일 - sit
+blank as `「 」`, because they cannot be invented and a blank 상호 on a live
+policy is worse than no page. `privacy_policy_test.dart` holds the banner in
+place for as long as a `「 」` remains, and pins the two claims that are facts
+about files here: that the manifest declares **no** `uses-permission`, and
+that the policy sits on the host the reset mail points at. Adding one
+permission fails that test with the line about rewriting the page in the same
+commit - checked by adding `ACCESS_FINE_LOCATION` and watching it fail.
+
+## `flutter test` was not hanging
+
+Recorded because the last commit's own message guessed wrong about it, and
+the guess cost a session. The suite had gone from about 2 minutes to over 10
+and it looked like something was stuck. Something was, but not the suite:
+**one test file stopped dead and the other files went on finishing around
+it**, so the run never ended and the count kept climbing.
+
+`guardian_login_test.dart` still looked for `카카오 로그인은 준비 중이에요`,
+a sentence 432a61c had deliberately deleted - the screen stopped asserting a
+server fact it had never asked about, and the sheet now prints what the
+server said. That test should have gone in the same commit;
+`kakao_login_test.dart` already covers the behaviour from both ends. The
+stall was the tests *after* it: `_gotoLogin` walked splash > 카카오 > the
+sheet's email button, and **a provider that answers raises no sheet**, so
+there was nothing to tap. The screen has had a third button, 이메일로
+시작하기, going straight to the form the whole time, which is the route a
+guardian actually walks. `screenshots_test.dart` was walking the dead path
+too.
+
+592 passing, 0 failing, about 3 minutes.
 
 ## Conventions
 
