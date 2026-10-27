@@ -62,7 +62,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(SeniorSettingsScreen.stopUsingRow),
-        matching: find.text('원래 쓰시던 화면으로 돌아갑니다'),
+        matching: find.text('버튼과 글씨 크기는 그대로 있어요'),
       ),
       findsOneWidget,
     );
@@ -93,7 +93,7 @@ void main() {
 
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('아니요'));
+    await tester.tap(find.text('아니요, 그대로 쓸게요'));
     await tester.pumpAndSettle();
 
     expect(launcher.homeSettingsOpened, 0);
@@ -109,7 +109,9 @@ void main() {
 
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('네, 바꿀래요'));
+    await tester.tap(find.text('네'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('알겠어요'));
     await tester.pumpAndSettle();
 
     expect(launcher.homeSettingsOpened, 1);
@@ -125,7 +127,9 @@ void main() {
 
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('네, 바꿀래요'));
+    await tester.tap(find.text('네'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('알겠어요'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(SeniorSettingsScreen.stopUsingManual), findsOneWidget);
@@ -135,15 +139,15 @@ void main() {
     tester,
   ) async {
     // The buttons, the text size and the family connection all live on in
-    // shared preferences and on the server. Leaving a senior to guess that
-    // is how a reversible choice gets read as a final one.
+    // shared preferences and on the server.
+    //
+    // It is said **on the row**, before the dialog, because its job is to
+    // stop someone refusing out of fear — and a card that only appears after
+    // they have already said 네 cannot do that job. It also leaves the
+    // dialog as the one sentence they are actually answering.
     await _openSettings(tester, isHome: true);
 
-    await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
-    await tester.pumpAndSettle();
-
     expect(find.textContaining('그대로'), findsWidgets);
-    expect(find.textContaining('다시'), findsWidgets);
   });
 
   testWidgets('neither button reads as the other one', (tester) async {
@@ -157,10 +161,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // `아니요` cannot be mistaken for a confirm in any reading.
-    expect(find.text('아니요'), findsOneWidget);
+    expect(find.text('아니요, 그대로 쓸게요'), findsOneWidget);
     expect(find.text('그만두기'), findsNothing);
     // And the confirm repeats the question's own verb, after 네.
-    expect(find.text('네, 바꿀래요'), findsOneWidget);
+    expect(find.text('네'), findsOneWidget);
   });
 
   testWidgets('it names what is kept, rather than calling it 설정', (
@@ -199,10 +203,34 @@ void main() {
         .map((t) => t.data ?? '')
         .join(' ');
     expect(said, contains('바꿀까요'));
-    expect(said, contains('다시 잘보이네로'));
-    expect(said, contains('바꾸실 수 있어요'));
     // One word for a screen, not two. The app already calls its own home
     // 첫 화면, and 원래 화면 does not say which of the two it means.
     expect(said, isNot(contains('원래 화면')));
+  });
+
+  testWidgets('the second card says the result *after* the step', (
+    tester,
+  ) async {
+    // Pressing 네 changes nothing at all — Android's own screen is next and
+    // a person has to finish it. The card used to open with `홈 버튼을
+    // 누르면 그 화면이 나옵니다`, stated as done, and a senior who read it
+    // that way closed the system screen and found the phone unchanged.
+    await _openSettings(tester, isHome: true);
+    await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('네'));
+    await tester.pumpAndSettle();
+
+    final said = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data ?? '')
+        .join(' ');
+    // `그러면` is what joins the two, and it has to come before the result.
+    expect(said.indexOf('그러면'), greaterThan(said.indexOf('눌러 주세요')));
+    expect(said, contains('One UI 홈'));
+    // Samsung's flow is two steps: the list, then a second dialog. A
+    // one-step instruction strands them on the second one.
+    expect(said, contains('변경'));
+    expect(said, contains('비슷한 말'));
   });
 }

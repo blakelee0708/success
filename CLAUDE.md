@@ -1553,11 +1553,35 @@ no warning, radio already on the other app.
 onboarding, 설정 → 첫 화면으로 정하기, and 사용하지 않기, which points the
 **other way** and tells them to pick the app they had before.
 
-**It names no button on that screen.** Samsung says 기본 앱으로 설정; other
-phones and other Android versions say something else, so quoting one would be
-wrong on the phones that say the other — and being wrong *here* is worse than
-being vague. Two things are true everywhere: the app being asked about is
-named in the list, and the confirm sits bottom right. That is all it claims.
+**It names Samsung's buttons.** The first version named none, on the grounds
+that other phones word them differently — true, and it left `오른쪽 아래를
+눌러 주세요` for the overwhelming majority holding a Galaxy, where 변경 is
+simply what the button says. Vague everywhere is worse than exact for almost
+everyone when the reader is this one. The quiet last line covers the rest,
+and it is worded as *a button saying something like that will do* rather than
+as a second instruction.
+
+**It is two steps, because Samsung's is**: the list comes first, and choosing
+a row raises a second dialog with 현재 버전 유지 / 변경. A one-step
+instruction strands them on that second dialog, which is where a senior who
+has got this far is least able to guess.
+
+**The result comes after the condition, and `그러면` joins them.** It opened
+with `홈 버튼을 누르면 그 화면이 나옵니다`, stated as done — and pressing the
+button before it changes nothing at all: Android's screen is next and a
+person has to finish it. A senior who read it as already done closed the
+system screen and found the phone unchanged, which reads as the app being
+broken. Same fault as a button claiming to save what was already saved,
+pointing the other way.
+
+**Every line is measured, not counted.** `home_app_coach_test` lays the card
+out at the real width with the app's own faces loaded and asks each
+paragraph for its intrinsic width. Counting glyphs is not enough here, and
+the first version proved it: `목록에서 「One UI 홈」을 누르고` is seventeen
+characters — the length the consent cards settled on — and still ran 14px
+past its box, because 「」 are full width and the latin letters are not. Three
+lines wrapped, leaving `고` and `다.` alone on lines of their own, which is
+the exact fault the consent cards exist to document.
 
 This is not the screen that was removed for saying 첫 화면으로 정하기 three
 times before doing what the row does on tap. A test holds that line: the step
@@ -1594,10 +1618,26 @@ it — 잘보이네 사용하지 않기 — so it reads as the confirm; `돌아�
 dialog reads as *go back*, which is the cancel. On the screen that hands a
 senior their phone back.
 
-It is `아니요` and `네, 돌아갈래요` now: the first cannot be mistaken for a
-confirm under any reading, and the second repeats the question's own verb
-after 네. That is the pattern the two consent cards already used
-(`아니요` / `허락합니다`) and it was simply never carried across.
+It is `아니요, 그대로 쓸게요` and `네` now. The first cannot be mistaken for
+a confirm under any reading; the second is the shortest thing on the card and
+**deliberately the quieter of the two** — `seniorInkMuted`, not the
+`seniorPrimary` that everywhere else in the app means *this is the thing to
+do*. What is being offered here is giving up the home screen, and a
+terracotta 네 beside a grey refusal is the app leaning on somebody to take
+it.
+
+**It is two cards, and the question is alone on the first.** It carried the
+reassurance and the walkthrough as well, which is a wall of text at the
+moment a senior is only deciding *whether*. What they are answering is one
+sentence long; `HomeAppCoach` follows after 네, and the reassurance moved to
+the row itself — `버튼과 글씨 크기는 그대로 있어요`, where it can stop someone
+refusing out of fear. A card shown after they have already said 네 cannot do
+that job.
+
+The coach card's cancel is `아니요` rather than the `그만두기` the other
+direction uses, for the same reason the pair above was rewritten: 그만두기 is
+the row's own word — 잘보이네 사용하지 않기 — so on *this* card it reads as
+the confirm.
 
 The other pairs were left alone. `그만두기` beside `저장` is not ambiguous —
 그만두기 only misreads where the screen itself is about stopping something.

@@ -680,6 +680,12 @@ void main() {
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
     await _capture(tester, '21c-stop-using');
+    // The question card asks one thing; the walkthrough of the phone's own
+    // chooser is a second card after 네, and it is the one with text in it
+    // worth looking at.
+    await tester.tap(find.text('네'));
+    await tester.pumpAndSettle();
+    await _capture(tester, '21d-stop-using-how');
     // `아니요`, because `그만두기` is the row that opened this and read as the
     // confirm — see the note on that dialog.
     await tester.tap(find.text('아니요'));

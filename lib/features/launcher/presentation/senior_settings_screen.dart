@@ -25,6 +25,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
   static const homeAppRow = Key('senior-settings-home-app');
   static const stopUsingRow = Key('senior-settings-stop-using');
   static const stopUsingConfirm = Key('senior-settings-stop-using-confirm');
+  static const stopUsingCoach = Key('senior-settings-stop-using-coach');
   static const stopUsingManual = Key('senior-settings-stop-using-manual');
 
   /// Shown only when the phone refuses to open its own chooser.
@@ -140,6 +141,10 @@ class SeniorSettingsScreen extends ConsumerWidget {
   /// It asks first. This changes what pressing Home does on someone's phone,
   /// and the senior is the one who has to live with the answer.
   static Future<void> _stopUsing(BuildContext context, WidgetRef ref) async {
+    // **The question alone.** It carried the reassurance and the step-by-step
+    // as well, which made it a wall of text at the moment a senior is only
+    // deciding *whether*. What they need to answer is one sentence long, and
+    // everything else belongs after they have said yes.
     final go = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -152,65 +157,73 @@ class SeniorSettingsScreen extends ConsumerWidget {
         // home 첫 화면 (`첫 화면에서 사라집니다`), so a second word for a
         // screen is a second thing to work out — and 원래 does not say which
         // of the two it means.
-        //
-        // The verb is 바꾸다 both here and in the last line of the body, on
-        // purpose. The same word pointing both ways is what shows this can
-        // be undone, without having to claim it in a sentence nobody reads.
         title: const Text(
           '전에 쓰시던 화면으로\n바꿀까요?',
           style: TextStyle(
-            fontSize: 25,
+            fontSize: 26,
             height: 1.35,
             fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
             color: AppColors.seniorInk,
           ),
         ),
-        // Nothing is lost and saying so is the point: the buttons, the text
-        // size and the family connection are all kept, and a senior left to
-        // guess that reads a reversible choice as a final one.
-        content: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Nothing is lost, and **the things are named**. `설정해 두신
-            // 것은 그대로 있어요` is the abstraction, and a senior does not
-            // think of themselves as having configured anything — they think
-            // of their buttons, their big letters and their daughter. Saying
-            // so is the whole job of this card: left to guess, a reversible
-            // choice reads as a final one and nobody presses it.
-            Text(
-              '홈 버튼을 누르면\n'
-              '그 화면이 나옵니다.\n\n'
-              '버튼과 글씨 크기,\n'
-              '가족 연결 모두\n'
-              '그대로 있어요.\n\n'
-              '언제든 다시 잘보이네로\n'
-              '바꾸실 수 있어요.',
+        actionsPadding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+        // **Neither of these is the app's press-me colour, and `네` is the
+        // quieter of the two.** Everywhere else `seniorPrimary` means *this
+        // is the thing to do*; here the thing being offered is giving up the
+        // home screen, and a terracotta `네` beside a grey refusal is the app
+        // leaning on somebody to do it. The one that keeps things as they
+        // are reads first and reads clearly; `네` is legible and no louder
+        // than it has to be.
+        //
+        // The pair used to be `그만두기` / `돌아가기` and **both read as the
+        // other one**: 그만두기 is the word in the row that opens this —
+        // 잘보이네 사용하지 않기 — so it looked like the confirm, and
+        // 돌아가기 in a dialog reads as *go back*, which is the cancel.
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              '아니요, 그대로 쓸게요',
               style: TextStyle(
-                fontSize: 19,
-                height: 1.6,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
                 color: AppColors.seniorInk,
               ),
             ),
-            SizedBox(height: 18),
-            Divider(height: 1, color: AppColors.seniorHairline),
-            SizedBox(height: 14),
-            // The same chooser, pointed the other way — here the row to
-            // press is the app they had before, not this one.
-            HomeAppCoach(direction: HomeAppDirection.give),
-          ],
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              '네',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.seniorInkMuted,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !context.mounted) return;
+    // **Then, and only then, what the phone is about to show.** It used to
+    // be one card carrying the question and the walkthrough together, which
+    // is a wall of text at the moment a senior is still deciding *whether*.
+    //
+    // Its cancel is `아니요` rather than the `그만두기` the other direction
+    // uses: 그만두기 is the row's own word — 잘보이네 사용하지 않기 — so on
+    // this card it reads as the confirm, which is the fault the question
+    // card was just rewritten to remove.
+    final ready = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: SeniorSettingsScreen.stopUsingCoach,
+        backgroundColor: AppColors.seniorSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
         ),
-        // **Both of these used to read as the other one.** `그만두기` is the
-        // word in the row that opened this — 잘보이네 사용하지 않기 — so it
-        // read as the confirm; and `돌아가기` in a dialog reads as *go back*,
-        // which is the cancel. A senior had two buttons that each said the
-        // opposite of what they did, on the screen that gives their phone
-        // back.
-        //
-        // `아니요` cannot be mistaken for a confirm in any reading, and the
-        // other one repeats the question's own verb after 네. It is the
-        // pattern the two consent cards already use.
+        content: const HomeAppCoach(direction: HomeAppDirection.give),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -226,7 +239,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text(
-              '네, 바꿀래요',
+              '알겠어요',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
@@ -237,7 +250,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (go != true || !context.mounted) return;
+    if (ready != true || !context.mounted) return;
 
     final opened = await ref.read(appLauncherProvider).openHomeSettings();
     ref.invalidate(isDefaultHomeProvider);
@@ -346,7 +359,12 @@ class SeniorSettingsScreen extends ConsumerWidget {
               _Row(
                 key: SeniorSettingsScreen.stopUsingRow,
                 label: '잘보이네 사용하지 않기',
-                detail: '원래 쓰시던 화면으로 돌아갑니다',
+                // **The reassurance lives here, not in the dialog.** Its job
+                // is to stop someone refusing out of fear, so it has to be
+                // read *before* they decide — a card that only appears after
+                // 네 cannot do that job. It also keeps the dialog to the one
+                // sentence a senior is actually answering.
+                detail: '버튼과 글씨 크기는 그대로 있어요',
                 icon: Icons.logout_rounded,
                 face: AppColors.seniorMore,
                 light: AppColors.seniorMoreLight,
