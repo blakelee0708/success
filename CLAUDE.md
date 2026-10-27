@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 266 tests, all passing
+flutter test             # currently 628 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -114,8 +114,8 @@ and a run on a real phone, all four of which have since happened. As of
   only the owner can do.
 - **소리 울리기**: the background wake-up and the guardian's button. Both are
   blocked on things outside this environment; see `## Firebase`.
-- **메시지**: image sending, which needs a picker and file storage.
-- **설정**: 진동/벨소리 전환, the one row still in 아직 준비 중.
+- **설정**: 아직 준비 중 is gone. 진동/벨소리 전환 was the only row left in
+  it and it is built.
 - **The paid watchers**: 5분 주기 갱신 and anything else `CareReadiness
   .planned` still covers.
 
@@ -144,9 +144,189 @@ Restoring any of them means changing the PRD first, not just the screen:
 메시지 탭 is now built. An earlier note here said it had no design — that was
 wrong: `04_SCREEN_SPEC` specifies it (카톡 스타일 대화, 텍스트 전송, 이미지 전송,
 무료 잔여 횟수 표시, 유료 전환 안내) and `02_MVP_SCOPE` puts it in the MVP.
-Everything but **image sending** is there; a picture needs an image picker and
-file storage, neither of which can be built or verified here, so it is absent
-rather than present-and-broken.
+Image sending is there now too — see `## 이미지 전송`. The picker is the one
+part that still cannot be exercised here.
+
+## 소리 and 인터넷, which the guardian cannot do for them
+
+Two controls under the clock on both home screens, and the reason they are on
+the senior's phone rather than the guardian's is that there was no choice.
+The guardian can change nothing about either: `setWifiEnabled` has been a
+no-op for ordinary apps since Android 10, mobile data needs carrier
+privileges, and there was never a path to the ringer at all.
+
+**무음 is not offered, and that is the product decision, not a limitation.**
+`RINGER_MODE_SILENT` needs `ACCESS_NOTIFICATION_POLICY`, which is not a
+runtime dialog but a system settings screen the senior has to find and switch
+on — the same ask as the home-app chooser, which this app exists because they
+cannot make. The stronger reason is that the guardian installs this because
+**엄마가 전화를 안 받아**, and a phone left on silent is the first cause of
+that. Handing that family the way back into it is not a feature. So the
+manifest still declares **no `uses-permission` at all**, which
+`privacy_policy_test` holds in place.
+
+인터넷 does not switch anything — it opens the phone's own panel, which is
+what Google gave when it took the toggle away. A system sheet arriving
+unannounced is the same problem as the home-app chooser, so `InternetCoach`
+is said first. Both coaches share `CoachLines`.
+
+**They are not tiles, and the shape is what makes them affordable.** Every app
+button is an icon above a label in a category colour; these lie down at 48px.
+자세한 화면 had exactly **68px** of slack between the grid's floor and the
+band's full height — measured, not guessed — and the first attempt took 70.
+`home_fits_test` failed by **two pixels**: the band dropped to its 110px floor
+and drew at 0.47, which would have put that screen's clock at half the size of
+the one next door. Nothing overflowed and nothing threw.
+
+The sand is `seniorUtility`, and three colours were tried first. Near-white
+vanished into the ground. Brown says the right thing — it is 더 보기's and
+설정's — but it is dark and low-chroma, which is exactly what an ageing eye
+loses first. Terracotta was the most visible and the worst idea: it is
+영상 보기's and 긴급 구조 요청's, so a second red bar on the same screen is one
+a senior may press in a hurry thinking it is the SOS they were taught to reach
+for.
+
+## The band gave up the message, and three things moved
+
+`HomeStrip` is a clock now: date, time, nothing else. It went from 212px to
+132px, and that is what made room for 소리 and 인터넷 on **both** screens and
+took 자세한 화면's eight tiles out of the squeeze they were in.
+
+What it gave up had to land somewhere. The card used to be the whole tap
+target and it was the **only** route to the conversation from the senior's
+home — 가족 연결 reaches a 연결되었어요 notice and stops. So the 가족 button
+took it back, which is what `04_SCREEN_SPEC` asked of it before the band ever
+had it. The clock card is not pressable at all now: a card that opened the
+conversation with nothing on it saying so is a route nobody finds.
+
+## 첫 화면으로 가기 is on every screen a senior can reach
+
+Usability work on older adults lands on exactly the arrangement these screens
+had. They navigate by content rather than by menus and buttons, and the
+assisted buttons **around the corners** are the ones they are measured not
+noticing at all; separately, an icon whose meaning sits far from its function
+is among the most common things they get stuck on. The `←` in the top-left is
+both at once.
+
+앱 설정 worked this out on its own and grew the button. For a while it was the
+only screen that had one, which made it the only screen a senior could
+reliably leave. `GoHomeBar` is that button, shared by six screens, and it goes
+**home rather than back one screen** — several of them have more than one way
+in, so popping leaves half the visitors somewhere they did not come from.
+
+## A message from the family covers the launcher
+
+`FamilyMessagePrompt`, drawn by `SeniorNoticeLayer` behind the two consent
+cards. Those cover the home outright because they must be answered; this one
+is a card over a scrim with the home still showing around it, because a
+senior may simply have reached for their phone to make a call and taking the
+whole screen to tell them something is too much.
+
+It covers anything at all because **a senior does not go looking.** A quiet
+mark beside a button is read by somebody who already knows to look for it.
+
+**나중에 볼게요 never tells the server, and that is the load-bearing part.**
+읽음 확인 means 어머니가 두 시에 읽으셨다, and a card pushed aside without
+looking at it is not that. The dismissal is held in memory, so it comes back
+next launch. Persisting it would stop showing the parent *and* never tell the
+guardian, which is the worst of both. It stores the message id rather than a
+flag, so the next thing the family says is not swallowed by the last 나중에.
+
+The name comes first — 메시지가 왔어요 tells a senior nothing they can act on.
+It is 보냈어요, not 보내셨어요: the reader is the parent and the sender is
+their own child.
+
+**The guardian gets a count, not a card.** `GuardianNavBar` carries a number
+on 메시지. They are an adult with an ordinary phone on which this is one app
+among many, so a card could only ever appear once they had already opened it,
+which is both late and redundant. What reaches them when it matters is a push
+notification, which is not built. This is the exact opposite of the rule FCM
+follows for the senior, for the same reason: a status-bar entry is the one
+place a senior who cannot find their contacts app will not look, and the first
+place their child will.
+
+## Two children, one thread
+
+The conversation is the family's, not each guardian's — the same decision that
+makes the monthly allowance the family's, and for the same reason: the parent
+is the one reading it.
+
+That is right, and it left a gap. The bubbles told the two sides apart by
+`isFromSenior` and said nothing about **who**, so a mother with two children
+could not tell 영희 from 철수 at all. The name is drawn above the bubble, and
+**only when more than one person could have sent it** — with one child a name
+over every bubble is clutter on a screen already scaled up for an ageing eye.
+
+It is not fixed by putting two name buttons on the home screen. Both would
+open the same conversation, which is a choice that chooses nothing.
+
+The test doubles were changed to find it: `senderGuardianId` was hard-coded to
+`account-1`, so the twin could not express a family with two children writing
+into one thread — which is exactly why every test that could have caught this
+had only one possible sender.
+
+## 이미지 전송
+
+The table half had existed since Phase 7 — `messages.image_url`, an allowance
+counted in a separate column, and `send_family_message` refusing an eleventh
+photo on the free plan. What was missing was somewhere for the file to go.
+
+`20261027000000_message_images.sql` is a **private** bucket. A public one
+would mean every photo a family sends is readable by anyone who guesses the
+URL, forever, with no way to take it back; these are pictures of somebody's
+parent. The path is `<senior_profile_id>/<name>` and the policies read that
+first segment, so the same `guardian_manages` and `device_owns` that guard the
+`messages` rows guard the files — no second copy of the rule to drift, and a
+removed guardian loses the photos for free.
+
+**No update and no delete policy.** Nothing in the app edits or removes a sent
+photo, and a read message cannot be unsent.
+
+The row stores a **path, not a URL**: the bucket is private, so the link is
+minted per view. A URL written in when the photo was sent would be dead by the
+time the parent scrolled back to it.
+
+Upload then send, in that order. If the upload works and the send fails, an
+orphan sits in the bucket and nobody is told about a photo that was never
+announced — the harmless way round. The other order puts a message on the
+parent's screen pointing at a file that is not there.
+
+`PhotoPicker` is an interface because `image_picker` is a platform channel and
+`flutter test` has none. It is the one channel in this app that **is** awaited,
+because the senior is looking at the system gallery, not at us.
+
+`tool/verify_supabase_images.py` checks eleven things against the live
+project. Storage RLS cannot be proved by reading it: a public bucket and a
+bucket whose policies never match look identical from the app, because both
+simply work for the person testing, who is always the one with access.
+
+**사진 is back on the sign-in screen**, and it is the one claim there that
+changed because the app changed rather than the copy. 배터리 and 인터넷 stay
+out.
+
+## 가족, 소리 and 인터넷 are the senior's buttons too
+
+They were fixed widgets with hard-coded words and colours — the only things on
+a senior's home screen that their family could not rename or recolour, on the
+half of the app whose whole job is that the family can.
+
+They are ordinary `LauncherApp`s now, so renaming, recolouring and the sync to
+`home_apps` all come for free: `LauncherApp` already prefers a chosen
+`ButtonColor` and falls back to the category. **No migration was needed** —
+`app_type`'s `setting_shortcut` and the `icon_key` name mapping already run
+both ways.
+
+`AppCategory.fixedSlot` is what makes them different: never in the grid, never
+in the 어떤 버튼인가요 sheet, and neither deleted nor dragged. There is one of
+each and the senior did not put it there. A senior who could delete 가족 would
+lose the only way to their family from the home screen, with nothing on that
+screen to say why.
+
+**They are not in either screen's defaults.** Seeding them changed the count
+and order of `defaultDetailedApps`, which a dozen tests read as the spec's six
+in the spec's order — and they were right to. A saved list holds one only once
+somebody has edited it; until then `fixedSlotApp` returns the default, which
+is also what covers settings written before these existed.
 
 ## Layout under large text
 
@@ -161,6 +341,11 @@ silence instead of painting an overflow stripe. `home_fits_test.dart` measures
 every tile against the grid on **both** screens at all three text sizes,
 because nothing throws when this breaks — and it does catch it: replacing the
 clamp with the unclamped square height fails all eight cases.
+
+The two home screens, both consent cards, the home-app card and the message
+popup are all in `home_fits_test.dart`, at all four text sizes. It is the one
+check a `FittedBox` cannot make for you, and on 2026-10-27 it caught a
+two-pixel overspend that would have halved 자세한 화면's clock.
 
 `flutter test test/screenshots_test.dart` writes each screen to
 `build/screenshots/`. There is no display here and no way to build an APK
@@ -448,10 +633,10 @@ text size and the family connection all stay, and a senior left to guess that
 reads a reversible choice as a final one. The same manual-path dialog covers
 a phone that refuses to open its chooser.
 
-진동/벨소리 전환 is what is left in 아직 준비 중. It has no `onTap` at all, so
-it cannot be pressed — the way the disabled SOS tile says the same thing. It
-fades to 0.6 rather than 0.5: `Opacity` fades lettering with the face, and
-`곧 쓰실 수 있어요` is the only thing on that row worth reading. 가족 메시지 is
+**아직 준비 중 is gone.** 진동/벨소리 전환 was the only thing left in it and
+it is built; the group existed to be honest about a row that could not be
+pressed, and keeping an empty heading would be a different dishonesty. 소리
+and 인터넷 sit in **이 폰** now. 가족 메시지 is
 lettered in ink because its amber cannot hold white, the same rule as
 everywhere else.
 
@@ -644,8 +829,9 @@ Wired in as of Phase 4. `SUPABASE_ACCESS_TOKEN` in the environment is now a
 working Management API token (the earlier value was the dashboard's masked
 display copied as text; that is fixed).
 
-Project: `jal 26.07`, ref `jnmvhdmxzonngqyicelx`, ap-southeast-1, PostgreSQL 17.
-`SUPABASE_PROJECT_REF` holds the ref.
+Project: `handkezisjufyyumpuma`, ap-northeast-2 (Seoul), PostgreSQL 17. The
+Singapore project `jnmvhdmxzonngqyicelx` is still there and still holds the
+schema, but nothing points at it any more.
 
 **The ref is `supabase/project.ref`, not an environment variable.** The
 session-start hook reads it and exports `SUPABASE_PROJECT_REF` from it, so all
@@ -663,8 +849,19 @@ at all. **It never fails the session** - a container that cannot reach
 Supabase can still run the tests and build the screens, and refusing to start
 would be worse than saying so. All four paths were run by hand.
 
-**It is being replaced by a Korean project, `handkezisjufyyumpuma`, and that
-move is not finished.** `docs/SEOUL_MIGRATION.md` is the runbook, and
+**The move to the Korean project `handkezisjufyyumpuma` is done.** The
+schema, the eight verifiers, the Korean mail templates, the Redirect URLs,
+Kakao and Google, CI's secrets and `app.jalboine.com` with HTTPS are all on
+it. `docs/SEOUL_MIGRATION.md` records what each step cost. Singapore can be
+deleted once the Edge Function has been redeployed and
+`tool/verify_ring_function.py` has run against Seoul.
+
+The paragraph below is what that runbook replaced, kept because its account
+of why the move stalled is still the clearest statement of how the two
+accounts differ.
+
+**It was being replaced by a Korean project, and for one session that
+move was not finished.** `docs/SEOUL_MIGRATION.md` is the runbook, and
 `tool/apply_migrations.py` is the whole of step one: it applies the thirteen
 files in name order, creates the `cron` schema first (the one pre-step
 `care_alerts` needs and the likeliest place a fresh project stops), refuses to
@@ -984,9 +1181,14 @@ conversation, and two copies would drift. `large` is what differs — the
 senior's is scaled up and hides the counter, because a tally of how many times
 their family may write to them would be unkind and is not about them anyway.
 
+The allowance line names **both** numbers. Showing only the text one meant a
+guardian whose photos had run out was told they had 46 sends left and then
+refused, with nothing on screen having warned them.
+
 On the senior's home, `04_SCREEN_SPEC`'s 가족 연결 또는 자녀 이름 버튼 is now
 literal: before a family is attached it connects one, and afterwards it opens
-the conversation.
+the conversation. The band held that for a while and gave it back — see
+`## The band gave up the message`.
 
 ## The guardian's changes now actually arrive
 
@@ -1961,7 +2163,7 @@ there was nothing to tap. The screen has had a third button, 이메일로
 guardian actually walks. `screenshots_test.dart` was walking the dead path
 too.
 
-592 passing, 0 failing, about 3 minutes.
+628 passing, 0 failing, about 3 minutes.
 
 ## Conventions
 
