@@ -45,20 +45,56 @@ class SeniorNoticeLayer extends ConsumerWidget {
     // One at a time. Two consent screens stacked is not a question, it is an
     // interrogation; the care one goes first because money is already held
     // against it.
+    //
+    // The two consents cover the home outright. A message does not: it is a
+    // card over the launcher with the home still showing around it, because
+    // unlike them it is not a question and the senior may simply have reached
+    // for their phone to make a call. Covering the whole screen for that
+    // would take the phone away from them to tell them something.
+    if (careWaiting || handoverWaiting) {
+      return Positioned.fill(
+        key: SeniorNoticeLayer.layerKey,
+        child: ColoredBox(
+          color: AppColors.seniorBackground,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: careWaiting
+                      ? const CareConsentPrompt()
+                      : const PrimaryGuardianPrompt(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Positioned.fill(
       key: SeniorNoticeLayer.layerKey,
       child: ColoredBox(
-        color: AppColors.seniorBackground,
+        // Dark enough that the card is plainly in front, light enough that
+        // the home is still recognisably there behind it. A senior who can
+        // see their own tiles knows the phone has not changed into something
+        // else while they were not looking.
+        color: const Color(0x8C000000),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-            child: Center(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22),
               child: SingleChildScrollView(
-                child: careWaiting
-                    ? const CareConsentPrompt()
-                    : handoverWaiting
-                    ? const PrimaryGuardianPrompt()
-                    : FamilyMessagePrompt(message: unread!),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.seniorBackground,
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                    child: FamilyMessagePrompt(message: unread!),
+                  ),
+                ),
               ),
             ),
           ),

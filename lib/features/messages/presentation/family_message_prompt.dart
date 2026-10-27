@@ -45,7 +45,11 @@ class FamilyMessagePrompt extends ConsumerWidget {
           // Whose it is comes first. 메시지가 왔어요 tells a senior nothing
           // they can act on; a name tells them whether to stop what they
           // were doing.
-          '${from ?? '가족'}님이 보내셨어요',
+          //
+          // 보냈어요, not 보내셨어요. The reader is the parent and the sender
+          // is their own child, so honouring the child to them is backwards.
+          textAlign: TextAlign.center,
+          '${from ?? '가족'}님이 보냈어요',
           style: const TextStyle(
             fontSize: 27,
             height: 1.35,
@@ -66,6 +70,7 @@ class FamilyMessagePrompt extends ConsumerWidget {
                 : '사진을 보내셨어요',
             // Three lines of the message, then the conversation. The card is
             // an invitation to read it, not the place it is read.
+            textAlign: TextAlign.center,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(

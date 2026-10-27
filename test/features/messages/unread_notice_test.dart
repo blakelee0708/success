@@ -77,7 +77,7 @@ void main() {
     final h = await _family(say: '엄마, 점심 드셨어요?');
     await _pumpHome(tester, h);
 
-    expect(find.text('영희님이 보내셨어요'), findsOneWidget);
+    expect(find.text('영희님이 보냈어요'), findsOneWidget);
     expect(find.text('엄마, 점심 드셨어요?'), findsOneWidget);
     // Drawn in the layer that covers the home, rather than squeezed in above
     // the grid - which is what the two consent cards learned the hard way.
