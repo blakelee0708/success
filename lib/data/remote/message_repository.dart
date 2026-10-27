@@ -150,12 +150,20 @@ class InMemoryMessageRepository implements MessageRepository {
       id: 'message-$_seq',
       sentAt: DateTime(2026, 8, 1).add(Duration(minutes: _seq)),
       body: text,
-      senderGuardianId: sendingAsSenior ? null : 'account-1',
+      senderGuardianId: sendingAsSenior ? null : sendingGuardianId,
       senderDeviceId: sendingAsSenior ? 'device-1' : null,
     );
     (byProfile[seniorProfileId] ??= []).add(message);
     return message;
   }
+
+  /// Which guardian this fake is sending as.
+  ///
+  /// It was hard-coded to `account-1`, which meant the twin could not express
+  /// a family with two children writing into one thread - the exact case that
+  /// left the parent unable to tell 영희 from 철수, because every test that
+  /// could have caught it had only one possible sender.
+  String sendingGuardianId = 'account-1';
 
   /// Which side this fake is reading as — the mirror of [sendingAsSenior].
   bool readingAsSenior = false;

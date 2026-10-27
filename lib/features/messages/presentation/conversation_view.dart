@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/remote/message_repository.dart';
 import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/family_message.dart';
+import '../../family/application/senior_pairing_controller.dart';
 import '../application/message_controller.dart';
 import '../data/speech_reader.dart';
 
@@ -20,6 +21,8 @@ class ConversationKeys {
 
   /// The 읽어드리기 target on one received message, on the parent's phone.
   static Key read(String messageId) => Key('conversation-read-$messageId');
+
+  static Key sender(String messageId) => Key('conversation-from-$messageId');
 
   /// One of the parent's preset replies.
   static Key quickReply(String text) => Key('conversation-quick-$text');
@@ -130,6 +133,14 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
   Widget build(BuildContext context) {
     final messages = ref.watch(conversationProvider).value ?? const [];
     final quota = ref.watch(messageQuotaProvider).value;
+    // Only when more than one person writes into this thread. With a single
+    // child a name over every bubble is clutter on a screen already scaled
+    // up for an ageing eye; with two it is the whole difference.
+    final family = ref.watch(seniorGuardiansProvider).value ?? const [];
+    final active = family.where((g) => g.isActive).toList();
+    final names = active.length > 1
+        ? {for (final g in active) g.guardianAccountId: g.displayName}
+        : const <String, String?>{};
     final scale = widget.large ? 1.25 : 1.0;
 
     return Column(
@@ -162,6 +173,7 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                     showRead: !widget.large &&
                         !messages[i].isFromSenior &&
                         messages[i].isRead,
+                    from: names[messages[i].senderGuardianId],
                   ),
                 ),
         ),
@@ -343,6 +355,7 @@ class _Bubble extends StatelessWidget {
     required this.scale,
     this.onRead,
     this.showRead = false,
+    this.from,
   });
 
   final FamilyMessage message;
@@ -355,16 +368,28 @@ class _Bubble extends StatelessWidget {
   /// Whether to draw the 읽음 mark. The guardian's own messages only.
   final bool showRead;
 
+  /// Who said it, drawn above the bubble - and **only when more than one
+  /// person could have.**
+  ///
+  /// The conversation is the family's, not each guardian's: two siblings
+  /// write into the same thread because the parent is the one reading it.
+  /// With one child that is unambiguous and a name over every bubble is
+  /// clutter on a screen that is scaled up for an ageing eye. With two it is
+  /// the difference between a message and a message from somebody - and
+  /// until now the parent could not tell 영희 from 철수 at all.
+  final String? from;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final named = from != null && !mine;
     final bubble = Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         // Keyed by the message rather than by "a bubble": a shared key across
         // every row of a list is not a key.
         key: ValueKey(message.id),
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: EdgeInsets.only(bottom: 8, top: named ? 2 : 0),
         padding: EdgeInsets.symmetric(
           horizontal: 14 * scale,
           vertical: 10 * scale,
@@ -410,12 +435,36 @@ class _Bubble extends StatelessWidget {
         ),
       ),
     );
-    if (onRead == null) return bubble;
+    // The name goes above the bubble rather than inside it, so it stays
+    // readable whichever way the bubble is coloured and does not eat the
+    // width the message itself needs.
+    Widget withName(Widget child) => named
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 6, bottom: 3),
+                child: Text(
+                  from!,
+                  key: ConversationKeys.sender(message.id),
+                  style: TextStyle(
+                    fontSize: 13 * scale,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              child,
+            ],
+          )
+        : child;
+
+    if (onRead == null) return withName(bubble);
 
     // The whole bubble is the button, with a speaker beside it so a senior
     // knows it can be pressed. A small icon alone would be a target an
     // ageing hand misses; the bubble is the biggest thing on the row.
-    return Row(
+    return withName(Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Flexible(
@@ -434,7 +483,7 @@ class _Bubble extends StatelessWidget {
           icon: const Icon(Icons.volume_up_rounded),
         ),
       ],
-    );
+    ));
   }
 }
 
