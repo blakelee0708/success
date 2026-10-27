@@ -34,6 +34,65 @@
 
 네 경로 모두 손으로 돌려 확인했다.
 
+## 2026-10-27, 스키마는 들어갔다
+
+위의 토큰 문제는 해결됐다. 세션 시작 훅이
+`CONNECTED. region: ap-northeast-2`를 출력하고, 13개가 전부 적용됐고 다섯
+숫자가 전부 맞는다. 남은 것은 **오너가 대시보드에서 해야 하는 두 가지**이고,
+그 두 가지가 검증 스크립트 8개와 메일 템플릿 전부를 막고 있다.
+
+### 막혔던 것 1. `cron` 스키마를 미리 만드는 것이 바로 그 원인이었다
+
+`tool/apply_migrations.py`의 사전 단계가 `create schema if not exists cron`을
+불렀고, 그것이 `20261021030000_care_alerts.sql`을 42P06
+`schema "cron" already exists`로 멈춰 세웠다. **`create extension ... with
+schema cron`은 그 스키마를 직접 만든다.** 미리 있는 것을 원하지 않는다. 즉
+사전 단계의 전제가 거꾸로였고, 막으려던 파일을 자기가 막았다.
+
+지금은 반대로 간다. pg_cron이 설치돼 있지 않으면 빈 `cron` 스키마를
+지운다. RESTRICT로 지우므로 안에 무언가 들어 있는 스키마는 거부하고 파괴하지
+않으며, pg_cron이 이미 있는 프로젝트는 손대지 않는다.
+
+### 막혔던 것 2. 함수가 37이 아니라 38로 세어진다
+
+새 프로젝트에는 `public`에 `rls_auto_enable`이 기본으로 들어 있다. `public`에
+테이블이 만들어지면 RLS를 켜 주는 Supabase 쪽 이벤트 트리거 함수이고,
+우리 마이그레이션 것이 아니다. 비어 있던 시점에 `--check`가 이미
+`functions: 1`을 보고했다. 37 더하기 1이 38이다.
+
+2026-10-27 기준값을 읽어 온 그 프로젝트는 이 함수가 생기기 전에 만들어졌다.
+그래서 숫자를 38로 올리는 대신 **세는 쪽을 우리 스키마로 한정했다** -
+이벤트 트리거를 돌려주는 함수는 세지 않는다. 13개 가운데 이벤트 트리거를
+만드는 파일은 없으므로 이 필터가 우리 것을 가릴 수는 없다.
+
+### 지금 막혀 있는 것. 익명 로그인 하나가 8개를 전부 멈춘다
+
+`verify_supabase_*.py` **8개가 전부** 같은 자리에서 멈춘다.
+
+```
+422 anonymous_provider_disabled: Anonymous sign-ins are disabled
+```
+
+여덟 개가 모두 `device()`로 어르신 폰을 하나 만들고 시작하기 때문이다.
+그래서 이것은 8개 가운데 몇 개가 아니라 **8개 전부**이고, 아래 2번의
+Anonymous sign-ins을 켜는 것 말고 돌아갈 길이 없다. 에이전트 환경에서는
+`external_anonymous_users_enabled` PATCH가 거부된다.
+
+### 메일 템플릿은 SMTP보다 먼저 넣을 수 없다
+
+`tool/apply_auth_templates.py`가 400을 받는다.
+
+```
+Email template modification is not available for free tier projects
+using the default email provider.
+```
+
+**순서가 이 문서에 거꾸로 적혀 있었다.** 템플릿은 에이전트가 넣을 수 있는
+것으로, SMTP는 오너가 하는 것으로 나눠 적었는데, 템플릿 쓰기 자체가 커스텀
+SMTP가 설정돼 있을 것을 요구한다. 싱가포르에서 통과한 이유는 그 프로젝트에
+SMTP가 이미 들어가 있었기 때문이다. 새 프로젝트에서는 **오너가 Resend SMTP를
+넣은 다음에** 이 스크립트를 돌린다.
+
 ## 왜 2026-10-27 세션에서 끝내지 못했는지
 
 **새 프로젝트가 다른 Supabase 계정에 있었다.** 그 세션의
@@ -78,16 +137,18 @@ python3 tool/apply_migrations.py
 ```
 
 `tool/apply_migrations.py`가 13개를 파일 이름 순서대로 넣고, 끝나면 아래 다섯
-숫자를 세어 대조까지 한다. 셸 루프를 쓰지 않는 이유는 세 가지다.
+숫자를 세어 대조까지 한다. **2026-10-27에 서울 프로젝트에 돌려 13개가 전부
+적용되고 다섯 숫자가 전부 맞았다.** 셸 루프를 쓰지 않는 이유는 세 가지다.
 
 - **테이블이 이미 있는 프로젝트에서는 거부한다.** `--force` 없이는 돌지
   않는다. `create table`은 `if not exists`가 아니라서 중간에 실패하고 뒤쪽이
   통째로 안 들어간 상태가 되는데, 그 상태는 나중에 아무도 진단하지 못한다.
-- **`cron` 스키마를 먼저 만든다.** `20261021030000_care_alerts.sql`이
-  `create extension if not exists pg_cron with schema cron`을 부른다. 싱가포르
-  프로젝트에서 pg_cron은 `cron`이 아니라 `pg_catalog`에 들어가 있고,
-  `if not exists`는 이미 있는 확장을 옮기지 않는다. 그래서 새 프로젝트를
-  멈춰 세울 후보 1순위였고, 스크립트가 그 이유를 없앤다.
+- **빈 `cron` 스키마를 먼저 치운다.** `20261021030000_care_alerts.sql`이
+  `create extension if not exists pg_cron with schema cron`을 부르고,
+  `create extension`은 그 스키마를 **직접 만든다.** 미리 있으면 42P06으로
+  실패한다. 이 자리가 새 프로젝트를 멈춰 세울 후보 1순위였던 것은 맞지만
+  이유가 반대였고, 실제로 그렇게 한 번 멈췄다. 자세한 것은 위의
+  '막혔던 것 1'에 있다.
 - **끝나고 센다.** 마이그레이션은 2xx를 돌려주고도 다음 것이 기대하는 것을
   만들어 두지 않을 수 있다.
 
@@ -102,7 +163,7 @@ python3 tool/apply_migrations.py
 | | |
 |---|---|
 | 테이블 (public) | 9 |
-| 함수 (public) | 37 |
+| 함수 (public) | 37 (이벤트 트리거 함수는 세지 않는다. 위의 '막혔던 것 2') |
 | RLS 정책 (public) | 14 |
 | cron job | 1 (`check-unused-phones`, `7 0 * * *`) |
 | 확장 | 6 (`pg_cron`, `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp`) |
@@ -122,8 +183,11 @@ select
 
 ### 검증 스크립트
 
-`verify_supabase_*.py`는 **6개가 아니라 8개**다. 전부 통과하는 것을 위에서
-확인해 두었다.
+`verify_supabase_*.py`는 **6개가 아니라 8개**다. 싱가포르에서 전부 통과하는
+것을 위에서 확인해 두었다.
+
+**서울에서는 8개가 전부 익명 로그인에서 멈춘다.** 2번의 Anonymous sign-ins을
+켠 다음에 돌린다. 켜기 전에 돌려서 나오는 422는 스키마 문제가 아니다.
 
 ```bash
 export SSL_CERT_FILE=/root/.ccr/ca-bundle.crt
@@ -163,6 +227,10 @@ allow-list는 분류기가 아예 거부한다. 그래서 아래는 사람이 �
 
 **싱가포르 프로젝트의 값이 전부 정답이다.** 2026-10-27에 실제로 읽은
 것이므로 추측할 필요가 없다. 같은 값을 새 프로젝트에 넣으면 된다.
+
+이 표에서 **두 줄이 다른 작업을 막고 있다.** Anonymous sign-ins는 검증
+스크립트 8개 전부를, SMTP 네 줄은 한글 메일 템플릿을 막는다. 나머지는
+그 두 가지를 끝낸 뒤에 해도 된다.
 
 | 설정 | 넣을 값 |
 |---|---|
@@ -209,7 +277,11 @@ email이 꺼져 있는 동안만 안전하다.** 아무것도 그 주소를 거�
 
 ### 메일 템플릿
 
-한글 템플릿은 에이전트가 API로 넣을 수 있다. 넣은 뒤
+**SMTP를 넣은 다음에 한다.** 무료 플랜에서 기본 메일 발송자를 쓰는 동안은
+템플릿 수정 자체가 400으로 거부된다. 위의 'SMTP보다 먼저 넣을 수 없다'에
+응답 본문이 있다.
+
+SMTP가 들어가면 한글 템플릿은 에이전트가 API로 넣을 수 있다. 넣은 뒤
 `mailer_subjects_custom_contents`와 `mailer_templates_custom_contents`의
 해당 키가 `true`인지 **반드시** 확인한다. `false`면 영어 기본값이 나가는데
 아무 신호도 없다. 싱가포르에서는 `RECOVERY`와 `CONFIRMATION` 두 쌍이 모두

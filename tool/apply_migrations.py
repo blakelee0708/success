@@ -11,12 +11,17 @@ Three things it does that a loop does not:
   otherwise. Half-applying a schema over an existing one is the state nobody
   can diagnose afterwards, and `create table` without `if not exists` fails
   partway and leaves the rest unapplied.
-- **It creates the `cron` schema first.** `20261021030000_care_alerts.sql`
-  calls `create extension if not exists pg_cron with schema cron`, which needs
-  that schema to exist. On the Singapore project pg_cron sits in `pg_catalog`
-  instead, and `if not exists` does not move an extension that is already
-  there - so that file is the one most likely to stop a fresh project, and
-  this removes the reason.
+- **It clears an empty `cron` schema first.** `20261021030000_care_alerts.sql`
+  calls `create extension if not exists pg_cron with schema cron`, and
+  `create extension` **creates** that schema itself - it does not want one
+  already there. Handed an existing `cron` it fails with 42P06
+  `schema "cron" already exists`, which is what stopped the Seoul project on
+  2026-10-27: an earlier version of this pre-step created the schema, on the
+  belief that the extension needed it, and so broke the file it meant to
+  unblock. So the pre-step now goes the other way - if pg_cron is not
+  installed, an empty `cron` schema is dropped. It drops with RESTRICT, so a
+  schema somebody has put something in refuses rather than being destroyed,
+  and a project that already has pg_cron is left alone.
 - **It counts afterwards.** A migration can return 2xx and still not have
   created what the next one expects, so the run ends with the same five
   numbers `docs/SEOUL_MIGRATION.md` records from the project being replaced.
@@ -49,12 +54,37 @@ MIGRATIONS = pathlib.Path("supabase/migrations")
 # rest come with a fresh Supabase project.
 EXPECTED = {"tables": 9, "functions": 37, "policies": 14, "extensions": 6, "cron_jobs": 1}
 
+# The function count asks about *our* schema, so it leaves out the event-trigger
+# helpers the platform installs into `public` itself. A newer project ships
+# `rls_auto_enable`, which enables RLS on any table created in `public`; the
+# 2026-10-27 project predates it, so counting every function made a fresh Seoul
+# project read 38 against an expected 37 with nothing whatever wrong. None of
+# the thirteen migrations declares an event trigger, so the filter cannot hide
+# one of ours.
+
+# `create extension ... with schema cron` creates that schema and fails 42P06
+# if it is already there, so an empty one left by anything else has to go.
+# A project that already has pg_cron is left exactly as it is, and a `cron`
+# holding objects refuses to drop rather than being destroyed.
+CRON_PRESTEP_SQL = """
+do $$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    return;
+  end if;
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    drop schema cron;
+  end if;
+end $$;
+"""
+
 COUNTS_SQL = """
 select
  (select count(*) from pg_tables where schemaname = 'public') as tables,
  (select count(*) from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public') as functions,
+   where n.nspname = 'public'
+     and p.prorettype <> 'pg_catalog.event_trigger'::regtype) as functions,
  (select count(*) from pg_policies where schemaname = 'public') as policies,
  (select count(*) from pg_extension) as extensions;
 """
@@ -115,12 +145,12 @@ def main():
             raise SystemExit(1)
 
         # The one pre-step, and the reason is in this file's docstring.
-        print("\nmaking sure the cron schema exists")
-        ok, err = run("create schema if not exists cron;")
-        print(f"  {'ok' if ok else 'FAILED'}  create schema if not exists cron")
+        print("\nclearing an empty cron schema, if pg_cron is not installed yet")
+        ok, err = run(CRON_PRESTEP_SQL)
+        print(f"  {'ok' if ok else 'FAILED'}  cron schema ready for pg_cron")
         if not ok:
-            # Not fatal on its own: a project where this is refused may still
-            # have a usable `cron` schema, and care_alerts will say so.
+            # Not fatal on its own: this refuses rather than destroys when the
+            # schema holds something, and care_alerts will then say so.
             print(f"        {err}")
 
         files = sorted(MIGRATIONS.glob("*.sql"))
