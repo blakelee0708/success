@@ -726,15 +726,59 @@ current primary, not any guardian. Everyone else in the list is a guardian, so
 nothing they agree among themselves establishes who should answer for the
 senior.
 
-### Guardian sign-in is email-only
+### Guardian sign-in is email-only, and email is now its own button
 
 Kakao and Google have no OAuth client configured on the project, and only the
 repo owner can add one. `GuardianStartScreen` still leads with both buttons —
-that is a deliberate design decision, see the spec — but with a project attached
-they now open a sheet saying the provider is being prepared and offer the email
-route at `/guardian-login`. With no project attached they open the dashboard as
-they did in Phase 3. Email sign-up needs confirmation (`mailer_autoconfirm` is
-false), so signing up returns no session and the screen says to check the inbox.
+that is a deliberate design decision, see the spec — but with a project
+attached they open a sheet saying the provider is being prepared and offer the
+email route. With no project attached they open the dashboard as they did in
+Phase 3.
+
+**이메일로 시작하기 is the third button**, added 2026-10-27. It goes straight
+to `/guardian-login` with no sheet, because it has nothing to apologise for
+and nothing being prepared — a sheet there would be a screen that exists to be
+passed through. It is last of the three because it asks for a password to
+invent and remember, which is the most work, and it wears the app's own
+`guardianTintBlue` rather than a brand's: white-and-bordered would have read
+as a second Google. Lettering measures 5.1:1 on that face.
+
+A test used to assert `이메일로 시작하기` was absent, under the rule that
+`~로 시작하기` must not be split into 가입 and 로그인. That rule is about the
+**verb**, not the provider, and a third provider wearing the same verb splits
+nothing. The test now pins `이메일로 로그인` and `이메일로 가입하기` instead,
+which are the strings that would actually break it.
+
+### Email sign-up cannot work until the project's mail is configured
+
+**Nothing is wrong with the app.** Checked against the live project on
+2026-10-27, and `auth.users` held **zero rows** — not one unconfirmed account,
+not one anonymous senior device. Three server settings, none of them in this
+repository, stand between 가입하기 and an account:
+
+| | |
+|---|---|
+| `smtp_host` | unset — the built-in sender delivers **only to members of the Supabase organization**, 2 per hour for the whole project |
+| `mailer_autoconfirm` | `false` — an account is unusable until an emailed link is followed |
+| `site_url` | `http://localhost:3000` — so a delivered link would point at a machine the phone cannot reach |
+
+The first is why no row exists: when the send fails the sign-up fails with it,
+so the account is never created rather than created-and-unconfirmed. A
+guardian who is not in the Supabase org cannot sign up at all, and that is
+every guardian but the owner.
+
+Two ways out, and they are not equivalent:
+
+- **`mailer_autoconfirm = true`** unblocks testing today — sign-up returns a
+  session, no mail involved. It is the ordinary pre-launch setting and it is
+  one flag. It also means nobody's address is ever verified, so it is not
+  what ships.
+- **Custom SMTP** is the real fix: it lifts the recipient restriction and the
+  2/hour cap together. It needs credentials nobody in this repository has.
+
+Neither can be done from here — the first was attempted and refused as a
+security relaxation, which is the correct call for an agent to be refused.
+Both are console settings and the owner's to make.
 
 ## 가족 메시지 and its allowance
 

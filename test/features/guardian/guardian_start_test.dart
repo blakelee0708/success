@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
+import 'package:app/features/guardian/presentation/guardian_login_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_start_screen.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
 
@@ -34,16 +35,41 @@ void main() {
     expect(find.text('마지막으로 쓰신 시각이 보입니다'), findsOneWidget);
   });
 
-  testWidgets('guardian start offers Kakao first, then Google', (tester) async {
+  testWidgets('guardian start offers Kakao, then Google, then email', (
+    tester,
+  ) async {
     await _gotoGuardianStart(tester);
 
     final kakao = find.text('카카오로 시작하기');
     final google = find.text('구글로 시작하기');
+    final email = find.text('이메일로 시작하기');
     expect(kakao, findsOneWidget);
     expect(google, findsOneWidget);
+    expect(email, findsOneWidget);
 
     // Kakao sits above Google: nearly every guardian in this age range has one.
     expect(tester.getTopLeft(kakao).dy, lessThan(tester.getTopLeft(google).dy));
+    // Email is last because it is the most work — a password to invent and
+    // remember — not because it matters least. Today it is the only one of
+    // the three that can actually finish.
+    expect(tester.getTopLeft(google).dy, lessThan(tester.getTopLeft(email).dy));
+  });
+
+  testWidgets('email goes straight to the form, with no sheet in between', (
+    tester,
+  ) async {
+    // Kakao and Google have to explain themselves first because neither has
+    // an OAuth client configured. Email has nothing to explain and nothing to
+    // wait for, so a sheet saying so would be a screen that exists to be
+    // passed through — the same fault 더 보기 and 첫 화면으로 정하기 were
+    // both rewritten to remove.
+    await _gotoGuardianStart(tester);
+
+    await tester.tap(find.text('이메일로 시작하기'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(GuardianLoginKeys.email), findsOneWidget);
+    expect(find.byKey(GuardianLoginKeys.submit), findsOneWidget);
   });
 
   testWidgets('guardian start does not split sign-up from sign-in', (
@@ -52,10 +78,18 @@ void main() {
     await _gotoGuardianStart(tester);
 
     // `~로 시작하기` covers both, so a separate 회원가입 control would ask a
-    // question the user cannot answer correctly.
+    // question the user cannot answer correctly: somebody who cannot recall
+    // whether they signed up before has to guess, and guessing wrong is an
+    // error message rather than a sign-in.
+    //
+    // **This is about 가입 vs 로그인, not about which provider.** `이메일로
+    // 시작하기` is a third provider wearing the same verb as the other two,
+    // so it does not split anything; it used to be asserted absent here, and
+    // that read the rule as being about email.
     expect(find.text('회원가입'), findsNothing);
     expect(find.text('계정이 없으신가요?'), findsNothing);
-    expect(find.text('이메일로 시작하기'), findsNothing);
+    expect(find.text('이메일로 로그인'), findsNothing);
+    expect(find.text('이메일로 가입하기'), findsNothing);
   });
 
   testWidgets('guardian start states the terms consent', (tester) async {

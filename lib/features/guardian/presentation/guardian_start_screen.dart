@@ -14,6 +14,7 @@ class GuardianStartKeys {
   static const back = Key('guardian-start-back');
   static const kakao = Key('guardian-start-kakao');
   static const google = Key('guardian-start-google');
+  static const email = Key('guardian-start-email');
   static const emailFallback = Key('guardian-start-email-fallback');
 }
 
@@ -124,6 +125,33 @@ class GuardianStartScreen extends StatelessWidget {
                         foreground: AppColors.guardianInk,
                         icon: Icons.g_mobiledata,
                         borderColor: AppColors.guardianRule,
+                      ),
+                      const SizedBox(height: 10),
+                      // **The third way in, and today the only one that
+                      // finishes.** Kakao and Google both dead-end in a
+                      // 준비 중 sheet because neither has an OAuth client on
+                      // the project, so until one exists a guardian who
+                      // presses either is told to come back to this.
+                      //
+                      // It is last all the same: it asks for a password to
+                      // invent and remember, which the other two do not. Last
+                      // is the right place for the most work, not for the
+                      // least important thing.
+                      //
+                      // It wears the app's own blue rather than a brand's,
+                      // because it belongs to no one else — and that also
+                      // keeps it from reading as a second Google, which the
+                      // white-and-bordered treatment would have.
+                      _ProviderButton(
+                        buttonKey: GuardianStartKeys.email,
+                        label: '이메일로 시작하기',
+                        background: AppColors.guardianTintBlue,
+                        foreground: AppColors.guardianTintBlueInk,
+                        icon: Icons.mail_rounded,
+                        // Straight to the form. There is nothing to explain
+                        // and nothing being prepared, so a sheet here would
+                        // be a screen that exists only to be passed through.
+                        destination: Routes.guardianLogin,
                       ),
                       const SizedBox(height: 22),
                       const Text(
@@ -385,6 +413,7 @@ class _ProviderButton extends ConsumerWidget {
     required this.foreground,
     required this.icon,
     this.borderColor,
+    this.destination,
   });
 
   final Key buttonKey;
@@ -393,6 +422,11 @@ class _ProviderButton extends ConsumerWidget {
   final Color foreground;
   final IconData icon;
   final Color? borderColor;
+
+  /// Where this button goes directly, for a way in that needs no OAuth
+  /// client and so has nothing to apologise for. Null means the provider
+  /// route: the dashboard with no project, the 준비 중 sheet with one.
+  final String? destination;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -413,8 +447,9 @@ class _ProviderButton extends ConsumerWidget {
                 : BorderSide(color: borderColor!, width: 1.4),
           ),
         ),
-        onPressed: () =>
-            _start(context, label, supabaseConfigured: configured),
+        onPressed: () => destination == null
+            ? _start(context, label, supabaseConfigured: configured)
+            : context.go(destination!),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
