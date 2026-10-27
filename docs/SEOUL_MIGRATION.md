@@ -6,19 +6,48 @@
 새 프로젝트 ref는 **`handkezisjufyyumpuma`** 이고, 싱가포르
 `jnmvhdmxzonngqyicelx`는 새 쪽이 전부 동작하는 것을 확인할 때까지만 둔다.
 
-## 왜 이 세션에서 끝내지 못했는지
+## 이제 설정할 것은 토큰 하나다
 
-**새 프로젝트는 다른 Supabase 계정에 있다.** 이 세션의
-`SUPABASE_ACCESS_TOKEN`으로 `GET /v1/projects/handkezisjufyyumpuma`를
-부르면 403이 돌아온다 - 권한이 없다는 뜻이고, 토큰이 보는 조직 3개
-(`jdnnetwork's Org`, `saju`, `jal.26.07`)에 그 프로젝트가 없다. 토큰이 보는
-프로젝트는 싱가포르 `jal 26.07`과 2026-05-03에 만든 도쿄
-`jdnnetwork's Project`(`jubgobjvcrbagfuyohwv`, INACTIVE) 둘뿐이다.
+**ref는 저장소에 있다.** `supabase/project.ref`에 `handkezisjufyyumpuma`가
+적혀 있고, 세션 시작 훅이 그것을 읽어 `SUPABASE_PROJECT_REF`로 내보낸다.
+비밀이 아니다 - 대시보드 주소에도, APK의 `SUPABASE_URL`에도,
+`site/reset.html` 소스에도 들어 있는 값이다. 저장소에 두면 환경변수가
+낡아도 `tool/` 스크립트 아홉 개가 전부 올바른 프로젝트를 가리킨다. 그
+어긋남이 2026-10-27에 세션 하나를 통째로 썼다.
 
-그래서 새 토큰이 환경 설정에 들어가야 한다. 비밀값은 채팅에 붙여넣는 것이
-아니라 환경의 Network secrets(구버전 앱에서는 API credentials)에 넣는다.
-에이전트가 읽는 이름은 `SUPABASE_ACCESS_TOKEN`이고, `SUPABASE_PROJECT_REF`도
-`handkezisjufyyumpuma`로 바꾼다. **새 세션부터 적용된다.**
+그래서 환경 설정에 넣을 것은 **`SUPABASE_ACCESS_TOKEN` 하나뿐이다.**
+
+### 훅이 세션 처음에 연동 상태를 말한다
+
+`.claude/hooks/session-start.sh`가 Flutter를 깔고 나서 Management API에
+프로젝트를 한 번 물어보고, 네 가지 중 하나를 출력한다. 중간까지 가서
+발견하는 대신 맨 위에서 알게 하는 것이 요점이다. **어느 경우에도 세션을
+실패시키지는 않는다** - Supabase에 닿지 못해도 테스트와 화면 작업은 전부
+할 수 있고, 시작을 막는 쪽이 더 나쁘다.
+
+| 출력 | 뜻 |
+|---|---|
+| `CONNECTED. region: ap-northeast-2` | 정상 |
+| `CONNECTED` + region 경고 | 프로젝트가 서울이 아니다. `site/privacy.html`이 대한민국이라고 적어 두었으므로 둘 중 하나는 고쳐야 한다 |
+| `NOT CONNECTED: 403` | 프로젝트는 있는데 **이 토큰의 계정이 볼 수 없다.** 그 프로젝트를 가진 계정에서 토큰을 만들어야 한다 |
+| `NOT CONNECTED: no SUPABASE_ACCESS_TOKEN` | 환경에 토큰이 없다 |
+
+네 경로 모두 손으로 돌려 확인했다.
+
+## 왜 2026-10-27 세션에서 끝내지 못했는지
+
+**새 프로젝트가 다른 Supabase 계정에 있었다.** 그 세션의
+`SUPABASE_ACCESS_TOKEN`으로 `GET /v1/projects/handkezisjufyyumpuma`를 부르면
+403이 돌아왔다. 404가 아니라 403이라는 것이 중요하다 - 없는 게 아니라 권한이
+없다는 뜻이고, 실제로 `https://handkezisjufyyumpuma.supabase.co`는 살아서
+401을 돌려준다.
+
+토큰은 **대시보드에서 그 프로젝트가 보이는 계정으로 로그인한 상태에서**
+만들어야 한다. 그리고 환경변수는 실행 중인 세션에 반영되지 않으므로,
+넣은 뒤에는 **새 세션**을 열어야 한다.
+
+비밀값은 채팅에 붙여넣지 않는다. 환경 설정의 Network secrets(구버전 앱에서는
+API credentials)에 넣는다.
 
 ## 옮길 데이터는 없다
 

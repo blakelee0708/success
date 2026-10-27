@@ -647,6 +647,22 @@ display copied as text; that is fixed).
 Project: `jal 26.07`, ref `jnmvhdmxzonngqyicelx`, ap-southeast-1, PostgreSQL 17.
 `SUPABASE_PROJECT_REF` holds the ref.
 
+**The ref is `supabase/project.ref`, not an environment variable.** The
+session-start hook reads it and exports `SUPABASE_PROJECT_REF` from it, so all
+nine `tool/` scripts target the right project even when the environment still
+holds an older value - which is exactly what cost a session on 2026-10-27. It
+is not a secret: the same string is in the dashboard URL, in every APK's
+`SUPABASE_URL` and in `site/reset.html`. The only thing the owner has to put
+in the environment is the token.
+
+The hook then asks the Management API about that project and prints one of
+four verdicts at the top of every session: connected with its region,
+connected but **not in Korea** (which would make `site/privacy.html` false),
+403 (the project exists but this token's account cannot see it), or no token
+at all. **It never fails the session** - a container that cannot reach
+Supabase can still run the tests and build the screens, and refusing to start
+would be worse than saying so. All four paths were run by hand.
+
 **It is being replaced by a Korean project, `handkezisjufyyumpuma`, and that
 move is not finished.** `docs/SEOUL_MIGRATION.md` is the runbook, and
 `tool/apply_migrations.py` is the whole of step one: it applies the thirteen

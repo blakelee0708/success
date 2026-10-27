@@ -57,3 +57,82 @@ cd "$PROJECT_DIR"
 flutter pub get
 
 flutter --version
+
+# ---------------------------------------------------------------------------
+# Supabase: say at the top of every session whether this container can reach
+# the project, because the alternative is finding out halfway through.
+#
+# The ref lives in `supabase/project.ref`, NOT in the environment. It is not a
+# secret - it is in the dashboard URL, in every APK's SUPABASE_URL and in
+# site/reset.html's source - and keeping it in the repo means the only thing
+# the owner has to set is the token. `SUPABASE_PROJECT_REF` is exported from
+# the file below, so all nine tool/ scripts target the right project even when
+# the environment still holds an older value. That exact mismatch cost a
+# session on 2026-10-27.
+#
+# Nothing here fails the session. A container that cannot reach Supabase can
+# still run the tests, write the screens and do most of the work; refusing to
+# start would be worse than saying so.
+# ---------------------------------------------------------------------------
+supabase_status() {
+  local ref_file="$PROJECT_DIR/supabase/project.ref"
+  [ -f "$ref_file" ] || return 0
+  local want
+  want="$(tr -d '[:space:]' < "$ref_file")"
+  [ -n "$want" ] || return 0
+
+  echo
+  echo "Supabase: project $want (from supabase/project.ref)"
+
+  if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+    echo "export SUPABASE_PROJECT_REF=\"$want\"" >> "$CLAUDE_ENV_FILE"
+  fi
+  if [ -n "${SUPABASE_PROJECT_REF:-}" ] && [ "$SUPABASE_PROJECT_REF" != "$want" ]; then
+    echo "  note: the environment says $SUPABASE_PROJECT_REF; the repo wins."
+  fi
+  export SUPABASE_PROJECT_REF="$want"
+
+  if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+    echo "  NOT CONNECTED: no SUPABASE_ACCESS_TOKEN in this environment."
+    echo "  Add it to the cloud environment settings (the one this session"
+    echo "  runs in), then start a new session - a running one cannot pick"
+    echo "  it up. See docs/SEOUL_MIGRATION.md."
+    return 0
+  fi
+
+  local body code region
+  body="$(curl -s -m 20 -w '\n%{http_code}' \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H 'User-Agent: curl/8.5.0' \
+            "https://api.supabase.com/v1/projects/$want" 2>/dev/null || true)"
+  code="$(printf '%s' "$body" | tail -1)"
+
+  case "$code" in
+    200)
+      region="$(printf '%s' "$body" | sed -n 's/.*"region":"\([^"]*\)".*/\1/p')"
+      echo "  CONNECTED. region: ${region:-unknown}"
+      # site/privacy.html tells Play and every reader that the database is in
+      # Korea. ap-northeast-2 is Seoul; ap-northeast-1 is Tokyo and would make
+      # that sentence false.
+      if [ -n "$region" ] && [ "$region" != "ap-northeast-2" ]; then
+        echo "  WARNING: site/privacy.html says the database is in 대한민국,"
+        echo "           but this project is in $region. Either the project is"
+        echo "           in the wrong region or that sentence has to change."
+      fi
+      ;;
+    403)
+      echo "  NOT CONNECTED: 403. The project exists, but this token's account"
+      echo "  cannot see it. The token has to be made on the account that owns"
+      echo "  $want. See docs/SEOUL_MIGRATION.md."
+      ;;
+    404)
+      echo "  NOT CONNECTED: 404. No project with this ref. Check"
+      echo "  supabase/project.ref against the dashboard URL."
+      ;;
+    *)
+      echo "  could not reach the Management API (HTTP ${code:-none})."
+      ;;
+  esac
+}
+
+supabase_status || true
