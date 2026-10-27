@@ -56,84 +56,96 @@ class DetailedHomeScreen extends ConsumerWidget {
     // invitation.
     final slots = (apps.length + 1).isEven ? 2 : 1;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: HomeBody(
-                      rowGap: _rowGap,
-                      tiles: [
-                        for (final app in apps)
-                          AppTile(
-                            app: app,
-                            onTap: () => openHomeButton(context, ref, app),
+    // A launcher's home screen is the root: pressing Back on it must do
+    // nothing at all. Without this the route pops, and on a real phone the
+    // whole home slid sideways out of view as the senior watched — which on
+    // the screen the phone *sits* on reads as the app falling over, and
+    // leaves them somewhere they did not ask to be.
+    //
+    // `canPop: false` keeps the system gesture from leaving, and the empty
+    // callback keeps it from doing anything else either.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {},
+      child: Scaffold(
+        body: Stack(
+          children: [
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: HomeBody(
+                        rowGap: _rowGap,
+                        tiles: [
+                          for (final app in apps)
+                            AppTile(
+                              app: app,
+                              onTap: () => openHomeButton(context, ref, app),
+                            ),
+                          _SettingsTile(
+                            onTap: () => context.push(Routes.seniorSettings),
                           ),
-                        _SettingsTile(
-                          onTap: () => context.push(Routes.seniorSettings),
+                          for (var i = 0; i < slots; i++)
+                            _AddSlot(
+                              // Straight to the question, not to the settings
+                              // list. It used to land on 앱 설정 — a list of
+                              // the buttons they already have, with 버튼
+                              // 추가하기 at the bottom — so adding one from the
+                              // home screen took four screens. Two of them
+                              // were there to be passed through, and the step
+                              // a senior gives up at is never the choosing, it
+                              // is getting to the place where they can choose.
+                              onTap: () => addHomeButton(context, ref),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: HomeBody.sectionGap),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: _sosFlex,
+                          child: HomePill(
+                            label: '긴급 구조 요청',
+                            icon: Icons.notifications_active,
+                            light: AppColors.seniorSosLight,
+                            face: AppColors.seniorSos,
+                            deep: AppColors.seniorSosDeep,
+                            wall: AppColors.seniorSosWall,
+                            ink: Colors.white,
+                            onTap: () => context.go(Routes.sos),
+                          ),
                         ),
-                        for (var i = 0; i < slots; i++)
-                          _AddSlot(
-                            // Straight to the question, not to the settings
-                            // list. It used to land on 앱 설정 — a list of
-                            // the buttons they already have, with 버튼
-                            // 추가하기 at the bottom — so adding one from the
-                            // home screen took four screens. Two of them
-                            // were there to be passed through, and the step
-                            // a senior gives up at is never the choosing, it
-                            // is getting to the place where they can choose.
-                            onTap: () => addHomeButton(context, ref),
+                        const SizedBox(width: HomeBody.gutter),
+                        Expanded(
+                          flex: _familyFlex,
+                          child: HomePill(
+                            label: connected ? '가족' : '가족 연결',
+                            icon: Icons.family_restroom,
+                            light: AppColors.seniorFamilyLight,
+                            face: AppColors.seniorFamily,
+                            deep: AppColors.seniorFamilyDeep,
+                            wall: AppColors.seniorFamilyWall,
+                            // Amber is too light to carry white lettering.
+                            ink: AppColors.seniorInk,
+                            onTap: () => context.push(Routes.familyLink),
                           ),
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: HomeBody.sectionGap),
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: _sosFlex,
-                        child: HomePill(
-                          label: '긴급 구조 요청',
-                          icon: Icons.notifications_active,
-                          light: AppColors.seniorSosLight,
-                          face: AppColors.seniorSos,
-                          deep: AppColors.seniorSosDeep,
-                          wall: AppColors.seniorSosWall,
-                          ink: Colors.white,
-                          onTap: () => context.go(Routes.sos),
-                        ),
-                      ),
-                      const SizedBox(width: HomeBody.gutter),
-                      Expanded(
-                        flex: _familyFlex,
-                        child: HomePill(
-                          label: connected ? '가족' : '가족 연결',
-                          icon: Icons.family_restroom,
-                          light: AppColors.seniorFamilyLight,
-                          face: AppColors.seniorFamily,
-                          deep: AppColors.seniorFamilyDeep,
-                          wall: AppColors.seniorFamilyWall,
-                          // Amber is too light to carry white lettering.
-                          ink: AppColors.seniorInk,
-                          onTap: () => context.push(Routes.familyLink),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SeniorNoticeLayer(),
-          // Above the consent cards: a ring is urgent and over in a
-          // minute, and a senior cannot be asked to answer a question
-          // while their phone is screaming at them.
-          const SeniorRingLayer(),
-        ],
+            const SeniorNoticeLayer(),
+            // Above the consent cards: a ring is urgent and over in a
+            // minute, and a senior cannot be asked to answer a question
+            // while their phone is screaming at them.
+            const SeniorRingLayer(),
+          ],
+        ),
       ),
     );
   }

@@ -123,6 +123,16 @@ extension AppCategoryStyle on AppCategory {
     AppCategory.installed => '앱',
   };
 
+  /// Whether a home screen may hold more than one of these.
+  ///
+  /// Six of the kinds are *the* dialer, *the* gallery, *the* messenger — a
+  /// second one opens the same app and is a duplicate the senior cannot tell
+  /// from the first. 사람 and 폰에 있는 앱 are the opposite: a family has
+  /// several people in it and a phone has eighty apps, and offering one of
+  /// each would make the whole feature useless after the first use.
+  bool get repeatable =>
+      this == AppCategory.contact || this == AppCategory.installed;
+
   /// What the 어떤 버튼인가요? sheet calls this kind.
   ///
   /// Separate from [defaultLabel], which prefills the name dialog: an

@@ -37,76 +37,88 @@ class EasyHomeScreen extends ConsumerWidget {
     final connected =
         (ref.watch(seniorGuardiansProvider).value ?? const []).isNotEmpty;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: HomeBody(
-                      rowGap: _rowGap,
-                      tiles: [
-                        for (final app in apps)
-                          AppTile(
-                            app: app,
-                            onTap: () => openHomeButton(context, ref, app),
+    // A launcher's home screen is the root: pressing Back on it must do
+    // nothing at all. Without this the route pops, and on a real phone the
+    // whole home slid sideways out of view as the senior watched — which on
+    // the screen the phone *sits* on reads as the app falling over, and
+    // leaves them somewhere they did not ask to be.
+    //
+    // `canPop: false` keeps the system gesture from leaving, and the empty
+    // callback keeps it from doing anything else either.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {},
+      child: Scaffold(
+        body: Stack(
+          children: [
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: HomeBody(
+                        rowGap: _rowGap,
+                        tiles: [
+                          for (final app in apps)
+                            AppTile(
+                              app: app,
+                              onTap: () => openHomeButton(context, ref, app),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: HomeBody.sectionGap),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: HomePill(
+                            label: connected ? '가족' : '가족 연결',
+                            icon: Icons.family_restroom,
+                            light: AppColors.seniorFamilyLight,
+                            face: AppColors.seniorFamily,
+                            deep: AppColors.seniorFamilyDeep,
+                            wall: AppColors.seniorFamilyWall,
+                            // Amber is too light to carry white lettering, so this
+                            // one is written in ink. Blue and teal are gone from
+                            // the senior's screens entirely: short-wavelength
+                            // colours are the first an ageing eye loses.
+                            ink: AppColors.seniorInk,
+                            onTap: () => context.push(Routes.familyLink),
                           ),
+                        ),
+                        const SizedBox(width: HomeBody.gutter),
+                        Expanded(
+                          child: HomePill(
+                            label: '더 보기',
+                            icon: Icons.apps,
+                            light: AppColors.seniorMoreLight,
+                            face: AppColors.seniorMore,
+                            deep: AppColors.seniorMoreDeep,
+                            wall: AppColors.seniorMoreWall,
+                            ink: Colors.white,
+                            // Straight to 설정. The screen that used to sit in
+                            // between held one button and a line saying apps
+                            // cannot be added yet, which is a screen that exists
+                            // to be passed through.
+                            onTap: () => context.push(Routes.seniorSettings),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: HomeBody.sectionGap),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: HomePill(
-                          label: connected ? '가족' : '가족 연결',
-                          icon: Icons.family_restroom,
-                          light: AppColors.seniorFamilyLight,
-                          face: AppColors.seniorFamily,
-                          deep: AppColors.seniorFamilyDeep,
-                          wall: AppColors.seniorFamilyWall,
-                          // Amber is too light to carry white lettering, so this
-                          // one is written in ink. Blue and teal are gone from
-                          // the senior's screens entirely: short-wavelength
-                          // colours are the first an ageing eye loses.
-                          ink: AppColors.seniorInk,
-                          onTap: () => context.push(Routes.familyLink),
-                        ),
-                      ),
-                      const SizedBox(width: HomeBody.gutter),
-                      Expanded(
-                        child: HomePill(
-                          label: '더 보기',
-                          icon: Icons.apps,
-                          light: AppColors.seniorMoreLight,
-                          face: AppColors.seniorMore,
-                          deep: AppColors.seniorMoreDeep,
-                          wall: AppColors.seniorMoreWall,
-                          ink: Colors.white,
-                          // Straight to 설정. The screen that used to sit in
-                          // between held one button and a line saying apps
-                          // cannot be added yet, which is a screen that exists
-                          // to be passed through.
-                          onTap: () => context.push(Routes.seniorSettings),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: HomeBody.sectionGap),
-                  SosButton(onTap: () => context.go(Routes.sos)),
-                ],
+                    const SizedBox(height: HomeBody.sectionGap),
+                    SosButton(onTap: () => context.go(Routes.sos)),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SeniorNoticeLayer(),
-          // Above the consent cards: a ring is urgent and over in a
-          // minute, and a senior cannot be asked to answer a question
-          // while their phone is screaming at them.
-          const SeniorRingLayer(),
-        ],
+            const SeniorNoticeLayer(),
+            // Above the consent cards: a ring is urgent and over in a
+            // minute, and a senior cannot be asked to answer a question
+            // while their phone is screaming at them.
+            const SeniorRingLayer(),
+          ],
+        ),
       ),
     );
   }

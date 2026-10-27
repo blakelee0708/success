@@ -196,7 +196,10 @@ class _Editor extends ConsumerWidget {
     // parent cannot (knowing a button should exist, and putting it on the
     // home screen) and the parent does the part only they can (choosing from
     // a list only their phone can see).
-    final category = await askForCategory(context);
+    final category = await askForCategory(
+      context,
+      alreadyOn: ref.read(guardianHomeAppsProvider).value ?? const [],
+    );
     if (category == null || !context.mounted) return;
 
     // Nothing to ask. Naming it would be naming an app nobody has chosen,

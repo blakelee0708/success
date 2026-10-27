@@ -151,7 +151,7 @@ void main() {
 
     await tester.tap(find.byKey(GuardianLauncherKeys.add));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(CategoryPickerKeys.option(AppCategory.kakao)));
+    await tester.tap(find.byKey(CategoryPickerKeys.option(AppCategory.camera)));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '딸');
     await tester.tap(find.text('저장'));
@@ -201,7 +201,7 @@ void main() {
 
     await tester.tap(find.byKey(GuardianLauncherKeys.add));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(CategoryPickerKeys.option(AppCategory.kakao)));
+    await tester.tap(find.byKey(CategoryPickerKeys.option(AppCategory.camera)));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '딸');
     await tester.tap(find.text('저장'));
@@ -256,5 +256,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('버튼 추가하기'), findsWidgets);
+  });
+
+  testWidgets('a kind the screen already holds is not offered again', (
+    tester,
+  ) async {
+    // Offering 카카오톡 to a screen that already has 카카오톡 is offering a
+    // second button that opens the same app — a duplicate the senior cannot
+    // tell from the first, on the one screen they cannot fix themselves.
+    await _pumpTab(tester);
+
+    await tester.tap(find.byKey(GuardianLauncherKeys.add));
+    await tester.pumpAndSettle();
+
+    for (final taken in [AppCategory.phone, AppCategory.message, AppCategory.kakao]) {
+      expect(
+        find.byKey(CategoryPickerKeys.option(taken)),
+        findsNothing,
+        reason: '$taken is already on the parent\'s home screen',
+      );
+    }
+    expect(find.byKey(CategoryPickerKeys.option(AppCategory.camera)), findsOneWidget);
+  });
+
+  testWidgets('사람 and 폰에 있는 앱 are always offered', (tester) async {
+    // A family has several people in it and a phone has eighty apps. Hiding
+    // these after the first use would make the whole feature a one-shot.
+    await _pumpTab(tester, apps: [
+      ..._apps,
+      const LauncherApp(
+        id: 'daughter',
+        label: '딸',
+        category: AppCategory.contact,
+        phoneNumber: '01012345678',
+      ),
+      const LauncherApp(
+        id: 'game',
+        label: '고스톱',
+        category: AppCategory.installed,
+        packageName: 'com.game.gostop',
+      ),
+    ]);
+
+    await tester.tap(find.byKey(GuardianLauncherKeys.add));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(CategoryPickerKeys.option(AppCategory.contact)), findsOneWidget);
+    expect(find.byKey(CategoryPickerKeys.option(AppCategory.installed)), findsOneWidget);
   });
 }

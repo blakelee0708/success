@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/clay_pad.dart';
 import '../../../../domain/app_category.dart';
+import '../../../../domain/launcher_app.dart';
 
 /// Keys the tests drive.
 class CategoryPickerKeys {
@@ -23,6 +24,15 @@ class CategoryPickerKeys {
 /// Drawn as the tiles themselves rather than as a list of names: the senior,
 /// or the son choosing on their behalf, is picking the thing they are about
 /// to see on the home screen.
+/// Kinds the home screen already holds are left out, unless they are
+/// [AppCategoryStyle.repeatable].
+///
+/// Offering 전화 to a screen that already has 전화 is offering a second
+/// button that opens the same app — a duplicate the senior cannot tell from
+/// the first, on the one screen they cannot fix themselves. 사람 and 폰에
+/// 있는 앱 stay, because a family has several people and a phone has eighty
+/// apps.
+///
 /// [offer] is what the caller can actually follow through on.
 ///
 /// The guardian's half passes a list without [AppCategory.installed]: picking
@@ -32,6 +42,7 @@ class CategoryPickerKeys {
 Future<AppCategory?> askForCategory(
   BuildContext context, {
   List<AppCategory> offer = AppCategory.values,
+  List<LauncherApp> alreadyOn = const [],
 }) =>
     showDialog<AppCategory>(
       context: context,
@@ -62,7 +73,10 @@ Future<AppCategory?> askForCategory(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              for (final category in offer) _Option(category: category),
+              for (final category in offer)
+                if (category.repeatable ||
+                    !alreadyOn.any((a) => a.category == category))
+                  _Option(category: category),
             ],
           ),
         ),

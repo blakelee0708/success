@@ -92,7 +92,7 @@ void main() {
 
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('그만두기'));
+    await tester.tap(find.text('아니요'));
     await tester.pumpAndSettle();
 
     expect(launcher.homeSettingsOpened, 0);
@@ -108,7 +108,7 @@ void main() {
 
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('돌아가기'));
+    await tester.tap(find.text('네, 돌아갈래요'));
     await tester.pumpAndSettle();
 
     expect(launcher.homeSettingsOpened, 1);
@@ -124,7 +124,7 @@ void main() {
 
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('돌아가기'));
+    await tester.tap(find.text('네, 돌아갈래요'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(SeniorSettingsScreen.stopUsingManual), findsOneWidget);
@@ -143,5 +143,22 @@ void main() {
 
     expect(find.textContaining('그대로'), findsWidgets);
     expect(find.textContaining('다시'), findsWidgets);
+  });
+
+  testWidgets('neither button reads as the other one', (tester) async {
+    // They both used to. `그만두기` is the word in the row that opens this —
+    // 잘보이네 사용하지 않기 — so it read as the confirm; `돌아가기` in a
+    // dialog reads as *go back*, which is the cancel. Two buttons each
+    // saying the opposite of what they did, on the screen that hands a
+    // senior their phone back.
+    await _openSettings(tester, isHome: true);
+    await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
+    await tester.pumpAndSettle();
+
+    // `아니요` cannot be mistaken for a confirm in any reading.
+    expect(find.text('아니요'), findsOneWidget);
+    expect(find.text('그만두기'), findsNothing);
+    // And the confirm repeats the question's own verb, after 네.
+    expect(find.text('네, 돌아갈래요'), findsOneWidget);
   });
 }

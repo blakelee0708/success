@@ -82,7 +82,7 @@ class HomeStrip extends ConsumerWidget {
                   Text(
                     koreanDate(now),
                     style: const TextStyle(
-                      fontSize: 19,
+                      fontSize: 20,
                       height: 1.3,
                       fontWeight: FontWeight.w500,
                       color: AppColors.seniorInkMuted,
@@ -91,8 +91,18 @@ class HomeStrip extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     koreanTime(now),
+                    // One line, always. `오후 7:14` broke after 오후 and came
+                    // out two lines tall, and because the band is wrapped in
+                    // a `FittedBox` the whole thing was then scaled to 0.79
+                    // to fit — so the clock rendered at 43px while the code
+                    // said 54 and nothing overflowed to say so. Raising the
+                    // sizes could not help: every increase was absorbed by
+                    // the same scaling. The third time this wrapper has
+                    // hidden a fault in this file.
+                    maxLines: 1,
+                    softWrap: false,
                     style: const TextStyle(
-                      fontSize: 54,
+                      fontSize: 60,
                       height: 1.05,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1.5,
@@ -133,8 +143,13 @@ class _Connect extends StatelessWidget {
         const Expanded(
           child: Text(
             '가족을 연결해 보세요',
+            // Wrapped too, for the same reason and with the same cost. Its
+            // sibling in `_Family` already had this; this one was missed.
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: FontWeight.w700,
               color: AppColors.seniorInk,
             ),
@@ -171,7 +186,7 @@ class _Family extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: AppColors.seniorInk,
                 ),
@@ -182,7 +197,7 @@ class _Family extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 21,
                   fontWeight: FontWeight.w500,
                   color: Color(0xFF5E5A54),
                 ),

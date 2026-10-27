@@ -33,6 +33,7 @@ import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/care/application/senior_ring_controller.dart';
 import 'package:app/features/care/presentation/care_consent_prompt.dart';
 import 'package:app/features/family/presentation/primary_guardian_prompt.dart';
+import 'package:app/features/launcher/presentation/app_settings_screen.dart';
 import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
 import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
 import 'package:app/features/guardian/presentation/guardian_login_screen.dart';
@@ -679,14 +680,16 @@ void main() {
     await tester.tap(find.byKey(SeniorSettingsScreen.stopUsingRow));
     await tester.pumpAndSettle();
     await _capture(tester, '21c-stop-using');
-    await tester.tap(find.text('그만두기'));
+    // `아니요`, because `그만두기` is the row that opened this and read as the
+    // confirm — see the note on that dialog.
+    await tester.tap(find.text('아니요'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('앱 설정하기'));
     await tester.pumpAndSettle();
     await _capture(tester, '22-app-settings');
 
-    await tester.tap(find.text('버튼 추가하기'));
+    await tester.tap(find.byKey(AppSettingsKeys.add));
     await tester.pumpAndSettle();
     await _capture(tester, '22b-add-button-kind');
     await tester.tap(find.text('그만두기'));

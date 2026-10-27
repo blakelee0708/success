@@ -16,7 +16,11 @@ import 'widgets/name_dialog.dart';
 ///
 /// Returns the label added, or null if the senior backed out at any step.
 Future<String?> addHomeButton(BuildContext context, WidgetRef ref) async {
-  final category = await askForCategory(context);
+  final category = await askForCategory(
+    context,
+    alreadyOn:
+        ref.read(seniorSettingsControllerProvider).value?.apps ?? const [],
+  );
   if (category == null || !context.mounted) return null;
 
   // An app already on the phone brings its own name and its own icon, so

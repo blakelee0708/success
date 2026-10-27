@@ -213,4 +213,52 @@ void _noticeCardTests() {
       );
     });
   }
+
+  group('the band is not quietly scaled away', () {
+    // The third time this wrapper has hidden a fault in this file, and the
+    // one that survived a fix: the sizes inside the band were raised and the
+    // band looked exactly the same afterwards, because `오후 7:14` was
+    // breaking after 오후 and the two-line result was then scaled to 0.79 to
+    // fit. The code said 54px and the phone drew 43.
+    //
+    // Nothing throws when this happens. The only way to catch it is to ask
+    // the `FittedBox` what it did.
+    for (final (name, mode) in [
+      ('easy', ScreenMode.easy),
+      ('detailed', ScreenMode.detailed),
+    ]) {
+      testWidgets('$name: at the default size it is drawn 1:1', (tester) async {
+        await _pumpHome(tester, mode, FontSize.normal);
+
+        final box = tester.renderObject<RenderBox>(
+          find
+              .descendant(
+                of: find.byKey(HomeStrip.stripKey),
+                matching: find.byType(FittedBox),
+              )
+              .first,
+        );
+        final child = (box as dynamic).child as RenderBox;
+        expect(
+          box.size.height / child.size.height,
+          closeTo(1.0, 0.001),
+          reason: 'the band is being shrunk, so its type sizes are a fiction',
+        );
+      });
+
+      testWidgets('$name: the clock is one line, not two', (tester) async {
+        // Korean glyphs are about as wide as the type size, so a line has to
+        // be counted rather than eyeballed — the date above it learnt this
+        // first, in the same card.
+        await _pumpHome(tester, mode, FontSize.normal);
+
+        final clock = tester.getSize(find.textContaining(':'));
+        expect(
+          clock.height,
+          lessThan(90),
+          reason: 'the clock has wrapped; the band will be scaled to absorb it',
+        );
+      });
+    }
+  });
 }

@@ -199,6 +199,31 @@ phone:
 and the terracotta came back as a muddy brown on every filled button. Both
 themes now set `primary` and `onPrimary` outright.
 
+## The band's type was a fiction for one commit
+
+Raised on 2026-10-27 after it was called too small on a phone — and the first
+attempt **changed nothing**, because the sizes were not what was wrong.
+
+`오후 7:14` was breaking after 오후. Two lines tall, the band's content came
+to 228px against a 160px budget, and the `FittedBox` answered by scaling the
+whole band to **0.79** — so the code said 54px and the phone drew 43. Raising
+the numbers could not help: every increase was absorbed by the same scaling,
+which is why the first fix looked identical on the phone. `가족을 연결해
+보세요` was wrapping too, for 17px where the code said 22.
+
+The fix is `maxLines: 1, softWrap: false` on both, not more height. With them
+one line each the content is 166px, the band draws 1:1 at 212, and the clock
+renders at **63px against 43 before**. The date's own note three paragraphs
+down had already recorded that Korean glyphs are about as wide as the type
+size and a line has to be measured — it just never reached the clock beside
+it.
+
+**This is the third fault this `FittedBox` has hidden in this file**, and the
+first to survive a fix. `home_fits_test.dart` now asks the box what scale it
+used and fails below 1.0 at the default size, which is the only question that
+catches it: nothing throws, nothing overflows, and the screenshots look
+plausible at any scale.
+
 ## The band across the top of both home screens
 
 `HomeStrip`. It exists because square tiles could not fill the screen: stretched
@@ -1538,6 +1563,44 @@ This is not the screen that was removed for saying 첫 화면으로 정하기 th
 times before doing what the row does on tap. A test holds that line: the step
 has to contain `잘보이네` and must **not** contain the label of the row that
 opened it.
+
+## Back does nothing on the home screens
+
+A launcher's home is the root. Without `PopScope(canPop: false)` the route
+popped and the whole home **slid sideways out of view** — on a real phone,
+watched. On the screen a phone *sits* on that reads as the app falling over,
+and it leaves the senior somewhere they did not ask to be with no way back
+they would know. Both homes carry it; `home_is_root_test.dart` fails if
+either loses it, and also checks that a screen opened *off* the home still
+closes, so the root refusing Back does not make the rest of the app a trap.
+
+## The picker hides kinds the screen already has
+
+Offering 전화 to a home screen that already has 전화 is offering a second
+button that opens the same app — a duplicate the senior cannot tell from the
+first, on the one screen they cannot fix themselves.
+
+`AppCategoryStyle.repeatable` is the exception and it is two: **사람** and
+**폰에 있는 앱**. A family has several people in it and a phone has eighty
+apps, so hiding those after the first use would make both features one-shot.
+Both halves pass what is already on the screen, because the guardian is
+looking at the same home.
+
+## Two buttons that each said the opposite
+
+`원래 화면으로 돌아갈까요?` was answered by `그만두기` and `돌아가기`, and
+**both read as the other one**. `그만두기` is the word in the row that opens
+it — 잘보이네 사용하지 않기 — so it reads as the confirm; `돌아가기` in a
+dialog reads as *go back*, which is the cancel. On the screen that hands a
+senior their phone back.
+
+It is `아니요` and `네, 돌아갈래요` now: the first cannot be mistaken for a
+confirm under any reading, and the second repeats the question's own verb
+after 네. That is the pattern the two consent cards already used
+(`아니요` / `허락합니다`) and it was simply never carried across.
+
+The other pairs were left alone. `그만두기` beside `저장` is not ambiguous —
+그만두기 only misreads where the screen itself is about stopping something.
 
 ## Conventions
 

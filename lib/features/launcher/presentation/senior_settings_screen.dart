@@ -184,11 +184,21 @@ class SeniorSettingsScreen extends ConsumerWidget {
             HomeAppCoach(direction: HomeAppDirection.give),
           ],
         ),
+        // **Both of these used to read as the other one.** `그만두기` is the
+        // word in the row that opened this — 잘보이네 사용하지 않기 — so it
+        // read as the confirm; and `돌아가기` in a dialog reads as *go back*,
+        // which is the cancel. A senior had two buttons that each said the
+        // opposite of what they did, on the screen that gives their phone
+        // back.
+        //
+        // `아니요` cannot be mistaken for a confirm in any reading, and the
+        // other one repeats the question's own verb after 네. It is the
+        // pattern the two consent cards already use.
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text(
-              '그만두기',
+              '아니요',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -199,7 +209,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text(
-              '돌아가기',
+              '네, 돌아갈래요',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
