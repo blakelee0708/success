@@ -14,7 +14,10 @@ import 'conversation_view.dart';
 /// can be built or verified from this environment, so it is absent rather than
 /// present-and-broken.
 class GuardianMessageTab extends ConsumerWidget {
-  const GuardianMessageTab({super.key});
+  const GuardianMessageTab({super.key, this.onOpenTab});
+
+  /// Lets the 안심 케어 offer under the counter reach 돌봄.
+  final ValueChanged<int>? onOpenTab;
 
   static const emptyKey = Key('guardian-message-no-parent');
 
@@ -49,7 +52,12 @@ class GuardianMessageTab extends ConsumerWidget {
             child: GuardianHeading(title: profile.displayName),
           ),
         ),
-        Expanded(child: ConversationView(title: profile.displayName)),
+        Expanded(
+          child: ConversationView(
+            title: profile.displayName,
+            onOpenCare: onOpenTab == null ? null : () => onOpenTab!(3),
+          ),
+        ),
       ],
     );
   }

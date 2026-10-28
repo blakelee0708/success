@@ -77,7 +77,7 @@ than all at once.
   `## 가족 메시지 and its allowance
 
 `supabase/migrations/20260801000000_phase7_messages.sql`. The PRD prices it at
-월 50회 / 이미지 10개 free, unlimited with 안심 케어, and two decisions in the
+월 30회 / 사진 5장 free, unlimited with 안심 케어, and two decisions in the
 counting are load-bearing:
 
 - **The quota counts guardian messages only.** A senior replying to their child
@@ -161,9 +161,10 @@ runtime dialog but a system settings screen the senior has to find and switch
 on — the same ask as the home-app chooser, which this app exists because they
 cannot make. The stronger reason is that the guardian installs this because
 **엄마가 전화를 안 받아**, and a phone left on silent is the first cause of
-that. Handing that family the way back into it is not a feature. So the
-manifest still declares **no `uses-permission` at all**, which
-`privacy_policy_test` holds in place.
+that. Handing that family the way back into it is not a feature. So **this repository's**
+manifest still declares no `uses-permission` at all, which
+`privacy_policy_test` holds in place - the APK itself carries four, merged in
+by `firebase_messaging`; see `## 개인정보처리방침`.
 
 인터넷 does not switch anything — it opens the phone's own panel, which is
 what Google gave when it took the toggle away. A system sheet arriving
@@ -1211,7 +1212,7 @@ actually guards the data. The secret key is not there and must not be.
 ## 가족 메시지 and its allowance
 
 `supabase/migrations/20260801000000_phase7_messages.sql`. The PRD prices it at
-월 50회 / 이미지 10개 free, unlimited with 안심 케어, and two decisions in the
+월 30회 / 사진 5장 free, unlimited with 안심 케어, and two decisions in the
 counting are load-bearing:
 
 - **The quota counts guardian messages only.** A senior replying to their child
@@ -1448,6 +1449,122 @@ independent search summaries quoting them, and the policy as enforced plainly
 differs from the policy as written — Life360 and its like track adult family
 members and are published. Read the primary pages before acting on this.
 
+## 무료와 안심 케어의 경계, and the four refusals it created
+
+Settled with the owner 2026-10-28. `01_PRODUCT_PRD` had said 무료는 부모님
+폰이 편해지는 것, 유료는 보호자의 안심 수요 - and **the three things that
+reassure the child were all free**: 안부 신호, the battery and ringer
+reading, and the dashboard that shows them. What was left to sell was two
+alerts, which is why the tier looked thin.
+
+The line now: **무료는 부모님 폰을 편하게 만드는 것, 유료는 부모님이 어떻게
+지내시는지 아는 것.**
+
+One rule runs through every part of it, and it is the one to check any change
+against: **the senior is never the one charged.** Their own phone edits its
+own buttons without limit, their replies are never counted, and nothing
+priced can stop them reaching their family.
+
+| | 무료 | 안심 케어 5,900원 |
+|---|---|---|
+| 런처 전체, 사람 버튼, 폰에 있는 앱 | O | O |
+| 어르신이 자기 폰에서 고치기 | 무제한 | 무제한 |
+| 긴급 연락, 읽어드리기, 빠른 답장 | O | O |
+| 가족 연결, 형제 초대 | O | O |
+| 가족 메시지 | 월 30회 / 사진 5장 | 무제한 |
+| 자녀 폰에서 홈 화면 정리 | 평생 2회 | 무제한 |
+| 안부 신호, 배터리·소리 | 첫 1주일 | O |
+| 배터리 부족·폰 미사용 알림, 읽음 확인 | X | O |
+
+`20261028020000_pricing.sql` carries all of it, and
+`tool/verify_supabase_pricing.py` walks 25 checks against the live project.
+**One of them matters more than the rest**: the senior's own phone keeps
+saving after the guardian's two are spent. A parent whose home screen froze
+because their child used up a quota would be the app failing the person it
+exists for.
+
+Three decisions in the SQL are easy to get wrong:
+
+- **The trial runs from the first link, not from the guardian's sign-up.** A
+  child who installs in March and connects their mother in June gets the week
+  in June.
+- **Withheld readings come back as nulls, not as a missing row.** 말할 수 없음
+  and 이 폰은 한 번도 켜진 적이 없음 need different sentences, and one of them
+  is a sales line. Rounding the first into the second would have the dashboard
+  telling a guardian their parent never set the phone up.
+- **읽음 확인 writes nothing rather than writing and hiding.** Gated on the
+  *senior's* call, which is the one that produces the receipt; the guardian's
+  own marking clears their unread badge and stays free. Nothing then exists to
+  leak through a direct query, and a family that subscribes later starts from
+  the next message rather than being handed a history nobody paid for.
+
+**`mark_conversation_read` had no gate at all**, which was a defect rather
+than a pricing decision: 읽음 확인 has been in the 5,900원 list since the PRD
+and the function checked nothing, so it worked for free while the other three
+paid capabilities all checked.
+
+### Every refusal is an offer, and none of them is an error
+
+Four places can now say no, and the shape of each is the same: **say the
+number before the save, and when it runs out make an offer rather than report
+a fault.**
+
+- **홈 화면 정리** carries a band above the list - blue while there is room,
+  amber once spent - and a spent edit raises a sheet rather than the snackbar
+  reading `바꾸지 못했어요. 인터넷 연결을 확인하고`, which is a fault, about
+  the wrong thing, and sends the guardian to check their wifi.
+- **가족 메시지** counted down to `메시지 0번, 사진 0장 더 보낼 수 있어요` -
+  a sentence contradicting its own numbers. Spent, it says so, and the offer
+  becomes a **button** instead of grey text beside an error.
+- **안부 신호** goes to `안심 케어로 볼 수 있어요` with the green dot unlit,
+  and the free week is **counted down while it runs**. A trial that simply
+  stops on the eighth day reads as the app breaking, and the guardian never
+  connects the two because nobody told them there was a week. The last day
+  says `오늘까지`, never `0일 남음`, which reads as already over.
+- **읽음 확인** says why there is no mark, once, under the counter. Not on
+  every bubble: an 안심 케어 badge beside each message would be an
+  advertisement printed through somebody's conversation with their mother.
+
+Two of these check **before** the write, which is the part worth keeping. The
+server refuses either way; what it saves is a guardian who has already
+arranged their parent's screen, or typed a message, watching it vanish and
+then reading a failure. There is nothing to roll back and nothing to explain.
+
+And every one of them says what still works before it says what costs money.
+`부모님 폰에서는 언제든 바꾸실 수 있어요` is true, it is the rule the whole
+line rests on, and a guardian who reads only the price reads it as their
+mother's home screen being locked. There is a test asserting that sentence
+sits above the paid one.
+
+### What moved in `careCapabilities`
+
+**`5분 주기 상태 갱신` is gone.** It needed a foreground service, which on
+Android 14 means a Play Console submission with a description, a user-impact
+statement and a demo video - and the review standard is work the user started
+or can perceive, which reading a battery every five minutes is neither. It
+would also have left a permanent notification on the senior's status bar.
+Selling it while it could not be built was the thing worth stopping.
+
+**가족 메시지 무제한 and 홈 화면 정리 무제한 arrived**, and both were already
+enforced on the server while appearing on no screen - so a guardian paying
+5,900원 could not see two of the things they were buying.
+
+`CareCapability.aboutTheSenior` is new, and those two are the `false` ones:
+they collect nothing, so they are not on the consent card. Padding that
+screen is the opposite of what makes it worth reading, and asking somebody to
+agree to their family being allowed to write to them more often is a question
+with one decent answer.
+
+**`CareReadiness.free` is empty now, and that is the result rather than an
+oversight.** Everything in that file is 어떻게 지내시는지 아는 것 by
+definition, so it empties. What is free is the launcher, and the launcher is
+not a care capability.
+
+Eleven tests broke on the repricing and every one of them had a number or a
+title typed into it. They read the constants and the list now - nine tests
+failing on a one-line change says nothing about the change and everything
+about the number living in ten places.
+
 ## One list decides what 안심 케어 is, on both screens
 
 `lib/features/care/data/care_capabilities.dart`. The guardian's 돌봄 tab and
@@ -1504,11 +1621,13 @@ therefore the part most worth checking, and it is checked where it can be:
 `tool/verify_supabase_alerts.py` walks unpaid → paid-without-consent → paid-
 and-agreed against the live project, 19 checks.
 
-That same PRD reading settled something else. 무료 includes
-**`폰 상태 앱 실행 시 1회 갱신`** in as many words — which is exactly what the
-check-in does, so 기기 상태 as built is the *free* half and what 안심 케어 adds
-is the **5분 주기** refresh. The 돌봄 tab names that now, instead of selling
-the family back a feature they already have.
+That same PRD reading once settled something else, and **it was reversed on
+2026-10-28** - see `## 무료와 안심 케어의 경계`. 무료 had included
+`폰 상태 앱 실행 시 1회 갱신` in as many words, so 기기 상태 as built was the
+free half and what 안심 케어 added was the 5분 주기 refresh. That arrangement
+gave away the three things that reassure the child and left two alerts to
+sell; the reading is paid now, free for the first week, and the 5분 주기 is
+out of the product because it cannot be built.
 
 The two need opposite machinery, which is the whole interest of them:
 
@@ -1627,8 +1746,16 @@ Four decisions, and the first two are the same mistake made twice:
   `DeviceStatusLines` says so in words. 배터리 0% is the most alarming reading
   the card can show and nothing may invent it.
 - **인터넷 is gone from the row rather than left as a third 준비 중.**
-  Reporting it means `ACCESS_NETWORK_STATE` for a fact the check-in already
-  proves: a reading that arrived is a reading that got through.
+  The reason written here was `ACCESS_NETWORK_STATE`, and that half no longer
+  holds - `firebase_messaging` merges it into the APK anyway, which
+  `## 개인정보처리방침` records finding. The other half does: a reading that
+  arrived is a reading that got through, so the check-in already proves it.
+
+**The reading is paid as of 2026-10-28.** It still rides on the check-in and
+is still a column on the device row; what changed is who may read it.
+`activeDevice` no longer selects `last_seen_at`, the battery or the ringer,
+and the dashboard asks `senior_readings` instead - see
+`## 무료와 안심 케어의 경계`.
 
 The ringer is a **mode**, not the `ringerPercent` the Phase 6 sketch declared.
 The question a guardian is asking is 왜 전화를 안 받으시지, and a phone can sit

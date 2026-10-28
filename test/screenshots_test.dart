@@ -284,6 +284,39 @@ void main() {
     expect(find.text('12%'), findsOneWidget);
     expect(find.text('3일 전'), findsOneWidget);
     await _capture(tester, '18c-dashboard-status-quiet');
+
+    // The two states the 2026-10-28 pricing line created, and the pair worth
+    // looking at together: the same card inside the free week and after it.
+    // Withheld it must not fall back to 연결되기 전이에요 - that would be the
+    // card telling a guardian their parent never set the phone up.
+    links.trialEndsAt = DateTime(2026, 10, 23, 9, 0);
+    await pumpApp(
+      tester,
+      overrides: [
+        nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 15, 10)),
+        guardianAuthRepositoryProvider.overrideWithValue(auth),
+        seniorLinkRepositoryProvider.overrideWithValue(links),
+        homeAppsRepositoryProvider.overrideWithValue(homeApps),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('무료 기간이'), findsOneWidget);
+    await _capture(tester, '30-dashboard-trial-running');
+
+    links.readingsVisible = false;
+    await pumpApp(
+      tester,
+      overrides: [
+        nowProvider.overrideWithValue(() => DateTime(2026, 10, 25, 15, 10)),
+        guardianAuthRepositoryProvider.overrideWithValue(auth),
+        seniorLinkRepositoryProvider.overrideWithValue(links),
+        homeAppsRepositoryProvider.overrideWithValue(homeApps),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('안심 케어로 볼 수 있어요'), findsOneWidget);
+    expect(find.textContaining('연결되기 전'), findsNothing);
+    await _capture(tester, '31-dashboard-readings-locked');
   });
 
   testWidgets('the guardian dashboard renders every tab', (tester) async {

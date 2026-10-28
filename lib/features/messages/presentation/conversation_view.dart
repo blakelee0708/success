@@ -5,6 +5,7 @@ import '../../../data/remote/message_repository.dart';
 import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/family_message.dart';
 import '../../family/application/senior_pairing_controller.dart';
+import '../../care/application/care_controller.dart';
 import '../application/message_controller.dart';
 import '../data/photo_picker.dart';
 import '../data/speech_reader.dart';
@@ -19,6 +20,8 @@ class ConversationKeys {
   static const quota = Key('conversation-quota');
   static const error = Key('conversation-error');
   static const empty = Key('conversation-empty');
+  static const quotaOffer = Key('conversation-quota-offer');
+  static const readHint = Key('conversation-read-hint');
 
   /// The 읽어드리기 target on one received message, on the parent's phone.
   static Key read(String messageId) => Key('conversation-read-$messageId');
@@ -51,6 +54,7 @@ class ConversationView extends ConsumerStatefulWidget {
     required this.title,
     this.large = false,
     this.showQuota = true,
+    this.onOpenCare,
   });
 
   final String title;
@@ -72,6 +76,10 @@ class ConversationView extends ConsumerStatefulWidget {
   /// how many times their family may write to them would be unkind and useless
   /// — their own replies are never counted anyway.
   final bool showQuota;
+
+  /// Opens 돌봄 from here. The guardian's half passes it; the senior's does
+  /// not, and nothing on their screen offers to sell them anything.
+  final VoidCallback? onOpenCare;
 
   @override
   ConsumerState<ConversationView> createState() => _ConversationViewState();
@@ -97,6 +105,7 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
   /// every failure below sets an error line rather than returning quietly.
   Future<void> _sendPhoto() async {
     if (_busy) return;
+    if (!widget.large && _quotaStops(text: false)) return;
     final picked = await ref.read(photoPickerProvider).pick();
     if (picked == null || !mounted) return;
     setState(() {
@@ -118,9 +127,33 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
     }
   }
 
+  /// True when the allowance is spent, having said so on screen.
+  ///
+  /// Sets the same line the server would have returned, so the two cannot
+  /// drift into saying different things about the same refusal - and the
+  /// 안심 케어 button is already under the counter, so this does not have to
+  /// carry one.
+  bool _quotaStops({required bool text}) {
+    final quota = ref.read(messageQuotaProvider).value;
+    if (quota == null) return false;
+    if (text ? quota.canSendText : quota.canSendImage) return false;
+    setState(
+      () => _error = text
+          ? '이번 달 무료 메시지를 다 쓰셨어요.'
+          : '이번 달 무료 사진을 다 쓰셨어요.',
+    );
+    return true;
+  }
+
   Future<void> _send([String? preset]) async {
     final text = (preset ?? _controller.text).trim();
     if (text.isEmpty || _busy) return;
+    // Asked before the round trip, the same way the guardian's home-screen
+    // allowance is. The server refuses either way; what this saves is a
+    // guardian watching their own message vanish and then reading a failure.
+    // Never on the senior's phone: their replies are not counted and the
+    // quota is not loaded there.
+    if (!widget.large && _quotaStops(text: true)) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -168,6 +201,13 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
   Widget build(BuildContext context) {
     final messages = ref.watch(conversationProvider).value ?? const [];
     final quota = ref.watch(messageQuotaProvider).value;
+    // Watched only on the guardian's half. `careStateProvider` reads the
+    // guardian's own subscriptions, and building it on the parent's phone is
+    // the trap this codebase has walked into twice - `large` is final for an
+    // instance, so the dependency set is stable.
+    final careOn = widget.large
+        ? true
+        : ref.watch(careStateProvider).value?.stage == CareStage.active;
     // Only when more than one person writes into this thread. With a single
     // child a name over every bubble is clutter on a screen already scaled
     // up for an ageing eye; with two it is the whole difference.
@@ -180,7 +220,25 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
 
     return Column(
       children: [
-        if (widget.showQuota && quota != null) _Quota(quota: quota),
+        if (widget.showQuota && quota != null)
+          _Quota(quota: quota, onOpenCare: widget.onOpenCare),
+        // Why there is no 읽음 mark. It is paid, and until this line the
+        // guardian simply never saw one and had no way to learn why -
+        // which is the same defect as a capability they bought and cannot
+        // find, pointing the other way.
+        //
+        // **Once, under the counter, not on every bubble.** A mark beside
+        // each message saying 안심 케어 would be an advertisement printed
+        // through somebody's conversation with their mother.
+        if (!widget.large && widget.onOpenCare != null && !careOn)
+          Padding(
+            key: ConversationKeys.readHint,
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
+            child: Text(
+              '안심 케어를 시작하시면 부모님이 읽으신 때를 알려 드려요.',
+              style: TextStyle(fontSize: 13, color: _muted(context)),
+            ),
+          ),
         Expanded(
           child: messages.isEmpty
               ? _Empty(large: widget.large, title: widget.title)
@@ -339,9 +397,12 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
 }
 
 class _Quota extends StatelessWidget {
-  const _Quota({required this.quota});
+  const _Quota({required this.quota, this.onOpenCare});
 
   final MessageQuota quota;
+
+  /// Null on the senior's phone, where nothing offers to sell them anything.
+  final VoidCallback? onOpenCare;
 
   @override
   Widget build(BuildContext context) {
@@ -370,8 +431,11 @@ class _Quota extends StatelessWidget {
             // the server. Showing only the text one meant a guardian whose
             // photos had run out was told they had 46 sends left and then
             // refused, with nothing on screen having warned them.
-            '이번 달 메시지 ${quota.textLeft}번, 사진 ${quota.imageLeft}장 '
-            '더 보낼 수 있어요',
+            //
+            // **Spent, it stops counting and says so.** It read
+            // `메시지 0번, 사진 0장 더 보낼 수 있어요`, which is a sentence
+            // that contradicts its own numbers.
+            _quotaLine(quota),
             style: TextStyle(
               fontSize: 13,
               fontWeight: quota.isRunningLow
@@ -380,9 +444,33 @@ class _Quota extends StatelessWidget {
               color: _muted(context),
             ),
           ),
-          // Offered when it starts to matter rather than only once they are
-          // stuck — and phrased as what it buys, not as a wall.
-          if (quota.isRunningLow)
+          // A line while it still matters; a **button** once they are stuck.
+          // Spent, the old screen printed the offer in grey next to an error
+          // and left the guardian to work out where 안심 케어 lives.
+          if (_spent(quota) && onOpenCare != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  key: ConversationKeys.quotaOffer,
+                  onPressed: onOpenCare,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    '안심 케어 알아보기',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            )
+          else if (quota.isRunningLow)
             Text(
               '안심 케어를 시작하시면 제한 없이 보낼 수 있어요.',
               style: TextStyle(fontSize: 13, color: _muted(context)),
@@ -627,4 +715,28 @@ class _PhotoFailed extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Whether either allowance has run out.
+///
+/// Either, not both: the two are counted apart on the server, so a guardian
+/// whose photos are gone is stuck on photos while the text count still looks
+/// healthy - which is the case that made the line name both numbers in the
+/// first place.
+bool _spent(MessageQuota quota) =>
+    !quota.unlimited && (!quota.canSendText || !quota.canSendImage);
+
+/// What the counter says, including when there is nothing left to count.
+String _quotaLine(MessageQuota quota) {
+  if (!quota.canSendText && !quota.canSendImage) {
+    return '이번 달 무료 메시지와 사진을 다 쓰셨어요';
+  }
+  if (!quota.canSendText) {
+    return '이번 달 메시지를 다 쓰셨어요. 사진은 ${quota.imageLeft}장 남았어요';
+  }
+  if (!quota.canSendImage) {
+    return '이번 달 사진을 다 쓰셨어요. 메시지는 ${quota.textLeft}번 남았어요';
+  }
+  return '이번 달 메시지 ${quota.textLeft}번, 사진 ${quota.imageLeft}장 '
+      '더 보낼 수 있어요';
 }

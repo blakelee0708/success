@@ -78,7 +78,9 @@ class _GuardianDashboardScreenState
               GuardianLauncherTab(
                 onOpenTab: (i) => setState(() => _index = i),
               ),
-              const GuardianMessageTab(),
+              GuardianMessageTab(
+                onOpenTab: (i) => setState(() => _index = i),
+              ),
               const GuardianCareTab(),
               const GuardianFamilyTab(),
             ],

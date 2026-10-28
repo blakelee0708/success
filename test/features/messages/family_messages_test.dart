@@ -223,7 +223,10 @@ void main() {
             '사진 ${MessageQuota.free.imageLimit}장 더 보낼 수 있어요'),
         findsOneWidget,
       );
-      expect(find.textContaining('안심 케어를 시작하시면'), findsOneWidget);
+      // The tail rather than the opening: the 읽음 확인 hint added on
+      // 2026-10-28 begins with the same four words, and this test is
+      // about the allowance.
+      expect(find.textContaining('제한 없이 보낼 수 있어요'), findsOneWidget);
     });
 
     testWidgets('says so plainly when the allowance is spent', (tester) async {
