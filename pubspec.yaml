@@ -56,6 +56,30 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  # Writes the mipmaps and `ic_launcher.xml` from the three PNGs under
+  # `assets/icon/`. Those PNGs are rendered by `tool/icon/build_app_icon.js`,
+  # so the icon has one source and no step in the chain is a binary somebody
+  # drew once.
+  flutter_launcher_icons: ^0.14.4
+
+# `background.png` and `foreground.png` are the two layers Android composes
+# itself; `icon.png` is the flattened one, for the phones that predate
+# adaptive icons and for the Play listing. None of the three is declared under
+# `flutter.assets` - they are read at build time and have no business being
+# shipped inside the APK a second time.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/icon/icon.png
+  adaptive_icon_background: assets/icon/background.png
+  adaptive_icon_foreground: assets/icon/foreground.png
+  # **The inset is ours, not the tool's.** `build_app_icon.js` already scales
+  # the magnifier into the centre 66% from the drawing's own measurements, and
+  # the tool's default 16% would inset it a second time - 0.66 x 0.68, so the
+  # art would land at 45% of the canvas and read as a small mark in a large
+  # white square.
+  adaptive_icon_foreground_inset: 0
+  min_sdk_android: 23
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

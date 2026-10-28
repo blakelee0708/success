@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<!--
+  The launcher icon, drawn from `tube.js` in the colourway the gallery chose.
+
+  **It renders the same `build()` the gallery did**, so the icon that ships is
+  the drawing that was picked rather than a second copy of it that has to be
+  kept in step by hand.
+-->
+<style>
+  @font-face { font-family:'NotoKR'; src:url('../../assets/fonts/NotoSansKR-Bold.ttf') format('truetype'); font-weight:700; }
+  html, body { margin:0; background:transparent; }
+  svg { display:block; }
+  text { font-family:'NotoKR'; font-weight:700; }
+</style>
+<body>
+<svg id="art" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"></svg>
+<script src="tube.js"></script>
+<script>
+// B — 테라코타 한 색, 흰 바탕. One colour, chosen 2026-10-28 out of six.
+const chosen = {
+  ...common, id: 'i',
+  bgLit: '#FFFFFF', bg: '#F1F2F4',
+  lit: '#FF8E66', base: '#E0481C', deep: '#93280D',
+  grip: '#E0481C', gripLit: '#FF8E66', gripDeep: '#93280D',
+  glass: '#FFF1E4', glassLit: '#FFFFFF', ink: '#352F29',
+  castColor: '#7A3318',
+};
+
+// `build()` puts the background rect and the art in one flat list. The two
+// layers of an adaptive icon are separate files, so they are wrapped here and
+// named - the build script removes one or the other rather than drawing the
+// shape twice.
+document.getElementById('art').innerHTML = `
+  ${defs(chosen)}
+  <rect id="bg" width="1024" height="1024" fill="url(#bg${chosen.id})"/>
+  <g id="fg">
+    <g filter="url(#cast${chosen.id})">
+      ${handle(chosen)}
+      ${lens(chosen)}
+      ${ring(chosen)}
+    </g>
+    <text x="${chosen.cx}" y="${chosen.cy + 4}" font-size="${chosen.glyph}"
+          fill="${chosen.ink}" text-anchor="middle"
+          dominant-baseline="central">잘</text>
+  </g>`;
+</script>
+</body>

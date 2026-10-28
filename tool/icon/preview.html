@@ -1,35 +1,46 @@
 <!doctype html>
 <meta charset="utf-8">
+<!--
+  The masks a phone applies, at the sizes a phone draws.
+
+  The **adaptive** rows are the ones that matter: a phone composes the two
+  layers itself, so looking only at the flattened `icon.png` would not show
+  whether the art survives the safe-zone scaling.
+-->
 <style>
   body {
     margin: 0; padding: 28px 30px; background: #F2F3F5;
     font-family: -apple-system, system-ui, sans-serif; color: #333;
+    width: 980px;
   }
   h2 { font-size: 15px; margin: 0 0 14px; color: #666; font-weight: 600; }
   .row { display: flex; align-items: flex-end; gap: 26px; margin-bottom: 26px; }
   .cell { text-align: center; }
   .cell small { display: block; margin-top: 7px; font-size: 11px; color: #888; }
-  .mask { overflow: hidden; background: #fff; }
+  .mask { overflow: hidden; background: #fff; position: relative; }
   .circle { border-radius: 50%; }
   .squircle { border-radius: 26%; }
   .square { border-radius: 0; }
   img { display: block; width: 100%; height: 100%; }
+  .mask img + img { position: absolute; inset: 0; }
   .dark { background: #111; padding: 18px 20px; border-radius: 14px; }
+  .dark small { color: #999; }
 </style>
 <body>
-  <h2>폰이 자르는 모양 — 192px</h2>
+  <h2>폰이 자르는 모양 — 어댑티브 두 장을 겹쳐서</h2>
   <div class="row">
-    <div class="cell"><div class="mask circle" style="width:192px;height:192px"><img src="../../assets/icon/icon.png"></div><small>동그라미</small></div>
-    <div class="cell"><div class="mask squircle" style="width:192px;height:192px"><img src="../../assets/icon/icon.png"></div><small>둥근 사각 (삼성)</small></div>
-    <div class="cell"><div class="mask square" style="width:192px;height:192px"><img src="../../assets/icon/icon.png"></div><small>사각</small></div>
+    <div class="cell"><div class="mask circle" style="width:192px;height:192px"><img src="../../assets/icon/background.png"><img src="../../assets/icon/foreground.png"></div><small>동그라미</small></div>
+    <div class="cell"><div class="mask squircle" style="width:192px;height:192px"><img src="../../assets/icon/background.png"><img src="../../assets/icon/foreground.png"></div><small>둥근 사각 (삼성)</small></div>
+    <div class="cell"><div class="mask square" style="width:192px;height:192px"><img src="../../assets/icon/background.png"><img src="../../assets/icon/foreground.png"></div><small>사각</small></div>
+    <div class="cell"><div class="mask squircle" style="width:192px;height:192px"><img src="../../assets/icon/icon.png"></div><small>납작한 한 장</small></div>
   </div>
 
   <h2>홈 화면에서 보이는 실제 크기</h2>
   <div class="row dark">
-    <div class="cell"><div class="mask squircle" style="width:144px;height:144px"><img src="../../assets/icon/icon.png"></div><small>144</small></div>
-    <div class="cell"><div class="mask squircle" style="width:96px;height:96px"><img src="../../assets/icon/icon.png"></div><small>96</small></div>
-    <div class="cell"><div class="mask squircle" style="width:72px;height:72px"><img src="../../assets/icon/icon.png"></div><small>72</small></div>
-    <div class="cell"><div class="mask squircle" style="width:48px;height:48px"><img src="../../assets/icon/icon.png"></div><small>48</small></div>
-    <div class="cell"><div class="mask circle" style="width:48px;height:48px"><img src="../../assets/icon/icon.png"></div><small>48 동그라미</small></div>
+    <div class="cell"><div class="mask squircle" style="width:144px;height:144px"><img src="../../assets/icon/background.png"><img src="../../assets/icon/foreground.png"></div><small>144</small></div>
+    <div class="cell"><div class="mask squircle" style="width:96px;height:96px"><img src="../../assets/icon/background.png"><img src="../../assets/icon/foreground.png"></div><small>96</small></div>
+    <div class="cell"><div class="mask squircle" style="width:72px;height:72px"><img src="../../assets/icon/background.png"><img src="../../assets/icon/foreground.png"></div><small>72</small></div>
+    <div class="cell"><div class="mask squircle" style="width:48px;height:48px"><img src="../../assets/icon/background.png"><img src="../../assets/icon/foreground.png"></div><small>48</small></div>
+    <div class="cell"><div class="mask circle" style="width:48px;height:48px"><img src="../../assets/icon/background.png"><img src="../../assets/icon/foreground.png"></div><small>48 동그라미</small></div>
   </div>
 </body>

@@ -56,3 +56,7 @@ app.*.map.json
 # Supabase Edge Function secrets as FCM_SERVICE_ACCOUNT.
 *-firebase-adminsdk-*.json
 **/service-account*.json
+
+# The icon preview is rendered from the three PNGs beside it; it is a thing
+# to look at while choosing, not a thing the app or the build reads.
+tool/icon/preview.png

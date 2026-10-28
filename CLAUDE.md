@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 628 tests, all passing
+flutter test             # currently 748 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -2693,7 +2693,77 @@ there was nothing to tap. The screen has had a third button, 이메일로
 guardian actually walks. `screenshots_test.dart` was walking the dead path
 too.
 
-628 passing, 0 failing, about 3 minutes.
+628 passing when that was written; 748 now, 0 failing, about 3 minutes.
+
+## The app icon is a document, not a drawing
+
+`tool/icon/`. There is no image editor in this environment and no designer in
+the loop, so the icon is rendered rather than drawn once into a binary nobody
+can open again - the same Chromium and Playwright that let `site/privacy.html`
+be looked at rather than guessed about.
+
+**One source for the shape.** `tube.js` holds `ring`, `handle`, `lens`,
+`defs` and `build`, and both the gallery that chose the colourway
+(`tube.html`, six of them side by side at 210, 96, 64 and 48px) and the build
+that writes the launcher files (`icon.html` + `build_app_icon.js`) call it.
+Two copies of a drawing is two drawings, and the one nobody is looking at is
+the one that drifts.
+
+It is a **tube**, not a stroke with a shadow under it. The reference the owner
+brought was a 3D render: the ring is a fat doughnut whose cross-section is
+round, so a narrow band of light runs along it and the far side falls away.
+Four earlier attempts were a thick circle with a drop shadow and none of them
+read as anything but flat.
+
+Two things in the drawing are load-bearing:
+
+- **Everything that makes the roundness is masked to the tube itself.** The
+  first version let the highlight bleed over the lens edge and past the rim,
+  and the ring came out a ball. The hole is what says 돋보기, so nothing may
+  soften its edge.
+- **Every gradient id carries the variant's own suffix.** These SVGs sit in
+  one document and an id resolves across all of them: three icons once shared
+  a background and came out the same colour.
+
+**The amber was dropped before the colourways were drawn at all.** Terracotta
+sits at 13 degrees, the amber at 32 and the cream between them, so three warm
+oranges were competing and none of them won - the same thing this repository
+already records about the warm band on the home screen, where anything fitted
+between those hues is indistinguishable at arm's length. What was offered
+instead was one strong colour against a neutral or against a hue far enough
+away to be a different colour rather than a shade of the first.
+
+**B is the one chosen**: terracotta throughout, ink 잘 in the lens, on a white
+ground. The cost was stated before it was picked and it stands - at 48px the
+handle is the same colour as the ring and nearly merges into it, so **the 잘
+is what tells this icon from a circle** at the size a home screen actually
+draws.
+
+Four files come out of `node tool/icon/build_app_icon.js`:
+`assets/icon/foreground.png` and `background.png` (the two layers Android
+composes itself), `icon.png` (flattened, for pre-adaptive phones and the Play
+listing) and `tool/icon/preview.png`, which is the only way to see the thing
+at 48dp under the three masks a phone might apply. The preview is **not
+committed** and reads the generated files rather than the SVG, so it cannot
+show something the build did not write.
+
+**The safe-zone inset is ours, and `adaptive_icon_foreground_inset: 0` is why
+that works.** `build_app_icon.js` computes the fit from the drawing's own
+numbers - the ring's radius and wall, where the handle ends - and scales the
+art into the centre 66%, so changing the shape moves the scale with it instead
+of silently pushing the handle out of the zone. `flutter_launcher_icons`
+insets a further 16% by default, which would have landed the art at 0.66 x
+0.68 of the canvas: a small mark in a large white square, and nothing would
+have failed.
+
+None of the three PNGs is declared under `flutter.assets`. They are read at
+build time; shipping them inside the APK as well would be a second copy of
+the icon that nothing reads.
+
+**No monochrome layer.** Android 13's themed icons want a single-colour
+drawable, and this icon's whole argument is that one warm colour on white is
+what a senior's eye finds. Adding one is a drawing decision rather than a
+build step, and it was not made.
 
 ## Conventions
 
