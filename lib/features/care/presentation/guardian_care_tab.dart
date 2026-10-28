@@ -7,6 +7,7 @@ import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/subscription.dart';
 import '../../guardian/application/guardian_home_apps_controller.dart';
 import '../application/care_controller.dart';
+import '../../guardian/presentation/guardian_family_tab.dart';
 import '../../guardian/presentation/widgets/guardian_surfaces.dart';
 
 /// Widget keys the tests drive.
@@ -66,6 +67,12 @@ class GuardianCareTab extends ConsumerWidget {
         const _Card(child: _Features()),
         _Card(child: _FamilyPlan()),
         if (profile != null) _Card(child: _Alerts(seniorProfileId: profile.id)),
+        // 가족 was a fifth destination and is not any more. What it held that
+        // a guardian needs on day one - 부모님 연결하기 - is on 홈 now, under
+        // the sentence saying no parent is connected. The rest is
+        // once-in-a-while work, so it rides at the bottom of the one tab
+        // that already scrolls.
+        const GuardianFamilySection(),
       ],
     );
   }

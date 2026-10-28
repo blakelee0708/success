@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/pairing_repository.dart';
@@ -51,14 +52,19 @@ Future<Harness> _pumpFamilyTab(
     ],
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('가족'));
-  await tester.pumpAndSettle();
+  // 부모님 연결하기 is on 홈 while there is nobody to connect to, under the
+  // line that says so; 연결 관리, at the bottom of 안심 케어, is where the
+  // parent-specific cards are and where a second parent is added.
+  if (withParent) {
+    await tester.tap(find.byKey(GuardianNavKeys.destination('안심 케어')));
+    await tester.pumpAndSettle();
+  }
 
   // The tab is a ListView and its cards are lazily built, so a phone-sized
   // viewport would leave the ones below the fold out of the tree entirely.
   // Taller viewport rather than scrolling in each case: what is being tested
   // is the content, not the scrolling.
-  tester.view.physicalSize = const Size(390, 2600);
+  tester.view.physicalSize = const Size(390, 5200);
   await tester.pumpAndSettle();
 
   return (store: store, pairing: pairing);
@@ -71,14 +77,18 @@ void main() {
     await _pumpFamilyTab(tester);
 
     expect(find.text('설치 문자 보내기'), findsOneWidget);
-    expect(find.text('번호 입력하기'), findsOneWidget);
+    expect(find.text('불러주신 번호 넣기'), findsOneWidget);
   });
 
   testWidgets('the invite never claims the message was sent', (tester) async {
     // The app can only hand the text to the messaging app, and cannot see what
     // happens next. Same rule as SOS: never claim an action the user still has
     // to take themselves.
-    final h = await _pumpFamilyTab(tester);
+    // With a parent already linked, so the form under test is 연결 관리's.
+    // On 홈 the first invite creates the profile, which takes that tab out of
+    // its empty state and the card with it - the code is re-shown from
+    // 연결 관리 instead.
+    final h = await _pumpFamilyTab(tester, withParent: true);
 
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
@@ -87,7 +97,9 @@ void main() {
     expect(find.text('문자 앱에 내용을 채워 두었어요. 보내기는 직접 눌러 주세요.'), findsOneWidget);
     expect(find.textContaining('문자를 보냈'), findsNothing);
     expect(find.textContaining('발송'), findsNothing);
-    expect(h.pairing.issued.single.code, isNotEmpty);
+    // Not `single`: the parent this test starts with was linked by a code
+    // of their own, so this is the second one issued.
+    expect(h.pairing.issued.last.code, isNotEmpty);
   });
 
   testWidgets('the invite also shows the code, for a link that did not survive', (
@@ -95,7 +107,7 @@ void main() {
   ) async {
     // Path A depends on the Play install referrer, which only survives a store
     // install — so the fallback has to be in front of the guardian, not buried.
-    await _pumpFamilyTab(tester);
+    await _pumpFamilyTab(tester, withParent: true);
 
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
@@ -136,10 +148,9 @@ void main() {
       ],
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('가족'));
-    await tester.pumpAndSettle();
 
-    await tester.tap(find.text('번호 입력하기'));
+    // No parent yet, so the form is the one on 홈.
+    await tester.tap(find.text('불러주신 번호 넣기'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(GuardianFamilyKeys.codeField),
@@ -157,7 +168,7 @@ void main() {
   testWidgets('a wrong code says so', (tester) async {
     await _pumpFamilyTab(tester);
 
-    await tester.tap(find.text('번호 입력하기'));
+    await tester.tap(find.text('불러주신 번호 넣기'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(GuardianFamilyKeys.codeField), '9999');
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '어머니');

@@ -32,22 +32,53 @@ class GuardianFamilyKeys {
   static const requestPrimary = Key('guardian-family-request-primary');
 }
 
-/// 가족 관리 — connecting a parent, getting a replaced phone back, and who else
-/// is looking after them.
-class GuardianFamilyTab extends ConsumerWidget {
-  const GuardianFamilyTab({super.key});
+/// 부모님 연결하기, on its own, for the one screen that needs it alone.
+///
+/// **The 홈 tab says 아직 연결된 부모님이 없어요 and then had to send them
+/// somewhere else to fix it** - 가족 탭에서 부모님을 추가하면, on a tab the
+/// guardian had not opened and had no reason to. The thing to do goes
+/// directly under the sentence saying it has not been done.
+class GuardianConnectParentCard extends StatelessWidget {
+  const GuardianConnectParentCard({super.key, this.heading = true});
+
+  /// The 홈 tab's own title is already 부모님 연결하기, so the card repeats it
+  /// there and says it once in the 연결 관리 block, where nothing else does.
+  final bool heading;
+
+  @override
+  Widget build(BuildContext context) =>
+      GuardianCard(child: _ConnectParent(heading: heading));
+}
+
+/// 연결 관리 — who else is looking after them, inviting a sibling, getting a
+/// replaced phone back, and signing out.
+///
+/// **It was its own tab and is not any more.** Five destinations with 가족
+/// last meant the only route to 로그아웃, and to inviting a sibling, was a
+/// tab nobody opened; connecting a parent - the one thing on it a new
+/// guardian needs - now sits on 홈 where the app says it is missing. What
+/// is left is the once-in-a-while half, so it is a block at the bottom of a
+/// page that already scrolls rather than a destination of its own.
+class GuardianFamilySection extends ConsumerWidget {
+  const GuardianFamilySection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(selectedSeniorProfileProvider);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, GuardianHeading.crown, 20, 32),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const GuardianHeading(title: '가족 관리'),
-        const SizedBox(height: GuardianHeading.gap),
-        const _Card(child: _ConnectParent()),
+        const SizedBox(height: 10),
+        const GuardianHeading(title: '연결 관리'),
+        const SizedBox(height: 14),
+        // **Only once there is a parent.** With none, 홈 carries this card
+        // under its own 아직 연결된 부모님이 없어요, and the two would be the
+        // same form twice in one tree - an `IndexedStack` keeps every tab
+        // built, so they would be two widgets wearing one key. Here it is
+        // for adding a second parent.
         if (profile != null) ...[
+          const _Card(child: _ConnectParent()),
           _Card(child: _Guardians(seniorProfileId: profile.id)),
           _Card(
             child: _CodeCard(
@@ -151,7 +182,9 @@ class _SignOut extends ConsumerWidget {
 
 /// The two paths from `07_PHASE_PLAN`, side by side.
 class _ConnectParent extends ConsumerStatefulWidget {
-  const _ConnectParent();
+  const _ConnectParent({this.heading = true});
+
+  final bool heading;
 
   @override
   ConsumerState<_ConnectParent> createState() => _ConnectParentState();
@@ -181,7 +214,7 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
       return;
     }
     if (_byCode && _code.text.trim().length < 4) {
-      setState(() => _error = '부모님 폰에 나온 4자리 번호를 넣어 주세요.');
+      setState(() => _error = '부모님이 불러주신 4자리 번호를 넣어 주세요.');
       return;
     }
     setState(() {
@@ -220,20 +253,22 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '부모님 연결하기',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.4,
-            color: AppColors.guardianInk,
+        if (widget.heading) ...[
+          const Text(
+            '부모님 연결하기',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.4,
+              color: AppColors.guardianInk,
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
+        ],
         GuardianSwitcher(
           options: const [
             ('설치 문자 보내기', Icons.sms_rounded),
-            ('번호 입력하기', Icons.dialpad_rounded),
+            ('불러주신 번호 넣기', Icons.dialpad_rounded),
           ],
           selected: _byCode ? 1 : 0,
           onSelected: (i) => setState(() {
@@ -245,7 +280,8 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
         const SizedBox(height: 14),
         Text(
           _byCode
-              ? '부모님 폰의 가족 연결 화면에 나온 4자리 번호를 넣어 주세요. '
+              ? '부모님 폰의 가족 연결 화면에 4자리 번호가 나옵니다. '
+                    '그 번호를 불러 주시면 여기에 넣어 주세요. '
                     '번호로는 전화번호를 알 수 없어서, 이름과 번호는 여기서 받습니다.'
               : '설치 링크가 담긴 문자를 문자 앱에 채워 드립니다. '
                     '보내기는 직접 눌러 주세요.',
@@ -272,7 +308,7 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
               letterSpacing: 8,
               fontWeight: FontWeight.w700,
             ),
-            decoration: guardianField(label: '부모님 폰에 나온 번호'),
+            decoration: guardianField(label: '부모님이 불러주신 번호'),
           ),
           const SizedBox(height: 12),
         ],
@@ -280,9 +316,10 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
           key: GuardianFamilyKeys.nameField,
           controller: _name,
           enabled: !_busy,
-          // The contact's own name is the parent's; what goes on the senior's
-          // home screen is the name they will recognise.
-          decoration: guardianField(label: '부모님 이름', hint: '어머니'),
+          // **Nobody saves their mother under her name.** The label asked
+          // for 부모님 이름 and this is what the senior reads on their own
+          // home screen, so 엄마 and 아빠 are the answers it should invite.
+          decoration: guardianField(label: '부모님 이름 또는 애칭', hint: '엄마, 아빠, 어머니'),
         ),
         const SizedBox(height: 12),
         TextField(

@@ -151,7 +151,8 @@ void main() {
     expect(find.byType(GuardianActionCard), findsNWidgets(4));
     expect(find.textContaining('홈 버튼'), findsOneWidget);
     expect(find.textContaining('메시지'), findsWidgets);
-    expect(find.textContaining('안심 케어'), findsOneWidget);
+    // Twice: the action card and the tab it opens, which is named for it.
+    expect(find.textContaining('안심 케어'), findsWidgets);
     expect(find.textContaining('초대하기'), findsOneWidget);
     // Read off the parent's real home screen, not a guess.
     expect(find.text('버튼 3개'), findsOneWidget);
@@ -165,7 +166,7 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byKey(GuardianNavKeys.bar), findsOneWidget);
     // Still five destinations, still reachable.
-    for (final label in ['홈', '홈 화면', '메시지', '돌봄', '가족']) {
+    for (final label in ['홈', '부모님 화면', '메시지', '안심 케어']) {
       expect(find.text(label), findsWidgets, reason: '$label is missing');
     }
   });
@@ -181,7 +182,7 @@ void main() {
     final home = tester.getRect(find.text('어머니')).top;
     expect(home, greaterThanOrEqualTo(GuardianHeading.crown));
 
-    await tester.tap(find.byKey(GuardianNavKeys.destination('홈 화면')));
+    await tester.tap(find.byKey(GuardianNavKeys.destination('부모님 화면')));
     await tester.pumpAndSettle();
     final launcher = tester.getRect(find.text('어머니 홈 화면')).top;
 
@@ -191,11 +192,11 @@ void main() {
   testWidgets('the tabs still open from the new bar', (tester) async {
     await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 20, 14, 30));
 
-    await tester.tap(find.byKey(GuardianNavKeys.destination('홈 화면')));
+    await tester.tap(find.byKey(GuardianNavKeys.destination('부모님 화면')));
     await tester.pumpAndSettle();
     expect(find.text('어머니 홈 화면'), findsOneWidget);
 
-    await tester.tap(find.byKey(GuardianNavKeys.destination('가족')));
+    await tester.tap(find.byKey(GuardianNavKeys.destination('안심 케어')));
     await tester.pumpAndSettle();
     expect(find.byKey(GuardianHomeKeys.hero), findsNothing);
   });

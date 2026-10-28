@@ -244,7 +244,7 @@ void main() {
     // The tab the 홈 버튼 정리하기 card opens, under the same conditions. Only
     // the home tab was rebuilt, so this is where the new ground and the old
     // contents meet, and it is the kind of seam only a render shows.
-    await tester.tap(find.byKey(GuardianNavKeys.destination('홈 화면')));
+    await tester.tap(find.byKey(GuardianNavKeys.destination('부모님 화면')));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await _capture(tester, '19-dashboard-launcher-linked');
@@ -339,12 +339,15 @@ void main() {
     expect(find.byKey(GuardianNavKeys.bar), findsOneWidget);
     await _capture(tester, '05-dashboard-home');
 
+    // Four destinations now: 가족 was a fifth and what it held moved onto 홈
+    // and the bottom of 안심 케어. By key rather than by text, because
+    // 안심 케어 is the tab's own heading as well as its label.
     for (final (tab, name) in [
-      ('홈 화면', '06-dashboard-launcher'),
-      ('돌봄', '07-dashboard-care'),
-      ('가족', '08-dashboard-family'),
+      ('부모님 화면', '06-dashboard-launcher'),
+      ('메시지', '07-dashboard-messages'),
+      ('안심 케어', '08-dashboard-care'),
     ]) {
-      await tester.tap(find.text(tab));
+      await tester.tap(find.byKey(GuardianNavKeys.destination(tab)));
       await tester.pumpAndSettle();
       await _capture(tester, name);
     }

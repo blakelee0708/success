@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/core/supabase/supabase_providers.dart';
@@ -31,7 +33,13 @@ Future<InMemoryGuardianAuthRepository> _openFamilyTab(
     ],
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(GuardianNavKeys.destination('가족')));
+  await tester.tap(find.byKey(GuardianNavKeys.destination('안심 케어')));
+  await tester.pumpAndSettle();
+  // 로그아웃 is the last thing on a tab that now carries 안심 케어's own
+  // cards above the 연결 관리 block, and a `ListView` does not build what is
+  // far below the fold. Taller viewport rather than scrolling: what is being
+  // tested is the row, not the scrolling.
+  tester.view.physicalSize = const Size(390, 5200);
   await tester.pumpAndSettle();
   return auth;
 }

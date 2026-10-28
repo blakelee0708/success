@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/home_apps_repository.dart';
@@ -85,7 +86,7 @@ Future<void> _pumpCareTab(WidgetTester tester, Harness h) async {
     ],
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('돌봄'));
+  await tester.tap(find.byKey(GuardianNavKeys.destination('안심 케어')));
   await tester.pumpAndSettle();
   // Lazily built cards need room, or the ones below the fold never enter the
   // tree at all.

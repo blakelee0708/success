@@ -79,10 +79,10 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClayPad(
       key: ManualScreen.row(topic.key),
-      light: AppColors.seniorMoreLight,
-      face: AppColors.seniorMore,
-      deep: AppColors.seniorMoreDeep,
-      wall: AppColors.seniorMoreWall,
+      light: topic.tone.light,
+      face: topic.tone.face,
+      deep: topic.tone.deep,
+      wall: topic.tone.wall,
       radius: 20,
       onTap: () => openManualCard(context, topic),
       child: Padding(
@@ -96,19 +96,19 @@ class _Row extends StatelessWidget {
                 child: Text(
                   topic.title,
                   maxLines: 1,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: topic.tone.ink,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 10),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 26,
-              color: Colors.white,
+              color: topic.tone.ink.withValues(alpha: 0.8),
             ),
           ],
         ),

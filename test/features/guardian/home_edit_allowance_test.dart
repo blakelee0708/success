@@ -70,7 +70,7 @@ Future<void> _pumpLauncherTab(WidgetTester tester, Harness h) async {
     ],
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(GuardianNavKeys.destination('홈 화면')));
+  await tester.tap(find.byKey(GuardianNavKeys.destination('부모님 화면')));
   await tester.pumpAndSettle();
 }
 

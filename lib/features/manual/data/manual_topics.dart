@@ -17,12 +17,89 @@ import '../presentation/widgets/manual_sketches.dart';
 /// **No swiping and no scrolling.** Both are the gestures this app's readers
 /// fail at most, so the list fits one screen at every text size and a card is
 /// one card with one button.
+/// The four clay colours of one row, and what it can be lettered in.
+///
+/// **Seven identical brown bars made the list unreadable to the one person
+/// who opens it.** Somebody reaching for a manual is stuck on exactly one
+/// thing, and with every row the same they have to *read* to find it - which
+/// is the task this app exists because its users cannot do easily. A colour
+/// is remembered where a line of text is not: 그 초록색 줄.
+///
+/// Same argument that split 긴급 연락's three tiles, which were all one red
+/// and left the digits as the only thing telling 119 from 112.
+///
+/// **No blue.** Short-wavelength colours are the first an ageing eye loses,
+/// which is the rule the whole senior palette follows.
+class ManualTone {
+  const ManualTone(this.light, this.face, this.deep, this.wall, this.ink);
+
+  final Color light;
+  final Color face;
+  final Color deep;
+  final Color wall;
+
+  /// White needs 3:1 against the face, and the two yellows cannot hold it -
+  /// the same test `AppCategory.letteringColor` applies everywhere else.
+  final Color ink;
+
+  static const terracotta = ManualTone(
+    AppColors.seniorButtonRedLight,
+    AppColors.seniorButtonRed,
+    AppColors.seniorButtonRedDeep,
+    AppColors.seniorButtonRedWall,
+    Colors.white,
+  );
+  static const green = ManualTone(
+    AppColors.seniorButtonGreenLight,
+    AppColors.seniorButtonGreen,
+    AppColors.seniorButtonGreenDeep,
+    AppColors.seniorButtonGreenWall,
+    Colors.white,
+  );
+  static const purple = ManualTone(
+    AppColors.seniorButtonPurpleLight,
+    AppColors.seniorButtonPurple,
+    AppColors.seniorButtonPurpleDeep,
+    AppColors.seniorButtonPurpleWall,
+    Colors.white,
+  );
+  static const yellow = ManualTone(
+    AppColors.seniorButtonYellowLight,
+    AppColors.seniorButtonYellow,
+    AppColors.seniorButtonYellowDeep,
+    AppColors.seniorButtonYellowWall,
+    AppColors.seniorInk,
+  );
+  static const amber = ManualTone(
+    AppColors.seniorFamilyLight,
+    AppColors.seniorFamily,
+    AppColors.seniorFamilyDeep,
+    AppColors.seniorFamilyWall,
+    AppColors.seniorInk,
+  );
+  static const pink = ManualTone(
+    AppColors.seniorButtonPinkLight,
+    AppColors.seniorButtonPink,
+    AppColors.seniorButtonPinkDeep,
+    AppColors.seniorButtonPinkWall,
+    Colors.white,
+  );
+  static const brown = ManualTone(
+    AppColors.seniorMoreLight,
+    AppColors.seniorMore,
+    AppColors.seniorMoreDeep,
+    AppColors.seniorMoreWall,
+    Colors.white,
+  );
+}
+
 class ManualTopic {
   const ManualTopic({
     required this.key,
     required this.title,
     required this.lines,
     required this.drawing,
+    required this.tone,
   });
 
   /// Names the row and the card, for tests.
@@ -39,6 +116,9 @@ class ManualTopic {
 
   /// A depiction of the real screen, with the numbers the lines refer to.
   final Widget drawing;
+
+  /// What the row is drawn in.
+  final ManualTone tone;
 }
 
 const _red = AppColors.seniorSos;
@@ -50,6 +130,7 @@ const _green = AppColors.seniorButtonGreen;
 final manualTopics = <ManualTopic>[
   ManualTopic(
     key: 'home',
+    tone: ManualTone.terracotta,
     title: '첫 화면으로 돌아가기',
     // The one thing seniors get stuck on more than anything else: they go
     // somewhere and cannot get out. It is first for that reason.
@@ -77,6 +158,7 @@ final manualTopics = <ManualTopic>[
   ),
   ManualTopic(
     key: 'font',
+    tone: ManualTone.green,
     title: '글씨 크게 하기',
     lines: const [
       '설정에서',
@@ -104,6 +186,7 @@ final manualTopics = <ManualTopic>[
   ),
   ManualTopic(
     key: 'rename',
+    tone: ManualTone.purple,
     title: '버튼 이름과 색 바꾸기',
     lines: const [
       '설정에서',
@@ -127,6 +210,7 @@ final manualTopics = <ManualTopic>[
   ),
   ManualTopic(
     key: 'add',
+    tone: ManualTone.yellow,
     title: '버튼 더하기, 지우기',
     // Cut to fit 제일 크게, where the first draft ran 113px past the card.
     // The floor stayed and the preamble went: 같은 화면에서 합니다 is
@@ -158,6 +242,7 @@ final manualTopics = <ManualTopic>[
   ),
   ManualTopic(
     key: 'family',
+    tone: ManualTone.amber,
     title: '가족에게 연락하기',
     // Seniors fail at finding *people* far more than at finding apps - 연락처
     // and scrolling is where they give up. This button is the whole answer.
@@ -184,6 +269,7 @@ final manualTopics = <ManualTopic>[
   ),
   ManualTopic(
     key: 'sound',
+    tone: ManualTone.pink,
     title: '전화벨이 안 울릴 때',
     // 엄마가 전화를 안 받아 is why the family installs this app, and a phone
     // left on vibrate is the first cause of it.
@@ -217,6 +303,7 @@ final manualTopics = <ManualTopic>[
   ),
   ManualTopic(
     key: 'support',
+    tone: ManualTone.brown,
     title: '잘 안 될 때',
     // The one route that needs nobody. Every other way out of 설정 assumes a
     // child at the other end.

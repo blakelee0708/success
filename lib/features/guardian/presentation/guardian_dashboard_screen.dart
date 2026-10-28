@@ -78,7 +78,6 @@ class _GuardianDashboardScreenState
               GuardianLauncherTab(onOpenTab: (i) => setState(() => _index = i)),
               GuardianMessageTab(onOpenTab: (i) => setState(() => _index = i)),
               const GuardianCareTab(),
-              const GuardianFamilyTab(),
             ],
           ),
         ),
@@ -93,7 +92,7 @@ class _GuardianDashboardScreenState
             activeIcon: Icons.home_rounded,
           ),
           GuardianDestination(
-            label: '홈 화면',
+            label: '부모님 화면',
             icon: Icons.grid_view_outlined,
             activeIcon: Icons.grid_view_rounded,
           ),
@@ -109,14 +108,9 @@ class _GuardianDashboardScreenState
             badge: ref.watch(unreadFromSeniorProvider),
           ),
           GuardianDestination(
-            label: '돌봄',
+            label: '안심 케어',
             icon: Icons.favorite_outline,
             activeIcon: Icons.favorite_rounded,
-          ),
-          GuardianDestination(
-            label: '가족',
-            icon: Icons.people_outline,
-            activeIcon: Icons.people_rounded,
           ),
         ],
       ),
@@ -190,6 +184,10 @@ class _HomeTab extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (profile == null) {
+      // **The thing to do sits under the sentence saying it has not been
+      // done.** This card used to read 가족 탭에서 부모님을 추가하면, which
+      // is an instruction to go and find a tab - on the first screen a new
+      // guardian sees, about the one thing the app cannot work without.
       return const _TabScaffold(
         title: '부모님 연결하기',
         children: [
@@ -209,8 +207,8 @@ class _HomeTab extends ConsumerWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  '가족 탭에서 부모님을 추가하면 연결 번호가 나옵니다. '
-                  '그 번호를 부모님 폰의 가족 연결 화면에 넣으면 연결돼요.',
+                  '아래에서 부모님을 연결해 주세요. '
+                  '연결되면 홈 화면 정리와 메시지를 쓰실 수 있어요.',
                   style: TextStyle(
                     fontSize: 14.5,
                     height: 1.55,
@@ -220,6 +218,7 @@ class _HomeTab extends ConsumerWidget {
               ],
             ),
           ),
+          GuardianConnectParentCard(heading: false),
         ],
       );
     }
@@ -349,7 +348,7 @@ class _HomeTab extends ConsumerWidget {
               icon: Icons.people_rounded,
               tint: AppColors.guardianTintAmber,
               tintInk: AppColors.guardianTintAmberInk,
-              onTap: () => onOpenTab(4),
+              onTap: () => onOpenTab(3),
             ),
           ],
         ),

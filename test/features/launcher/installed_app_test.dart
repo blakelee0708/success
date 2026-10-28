@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/home_app_mapping.dart';
@@ -86,7 +87,7 @@ _pumpGuardianTab(WidgetTester tester) async {
     ],
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('홈 화면'));
+  await tester.tap(find.byKey(GuardianNavKeys.destination('부모님 화면')));
   await tester.pumpAndSettle();
   return (homeApps: homeApps, launcher: launcher, profileId: profile.id);
 }

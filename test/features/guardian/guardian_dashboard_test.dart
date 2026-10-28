@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/features/guardian/presentation/guardian_dashboard_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_family_tab.dart';
 import 'package:app/features/guardian/presentation/guardian_launcher_tab.dart';
@@ -23,8 +24,10 @@ Future<void> _gotoDashboard(WidgetTester tester) async {
   await agreeToTerms(tester);
 }
 
+/// By the bar's own key rather than by text: 안심 케어 is the tab's heading
+/// as well as its label, so `find.text` matches twice once it is open.
 Future<void> _openTab(WidgetTester tester, String label) async {
-  await tester.tap(find.text(label));
+  await tester.tap(find.byKey(GuardianNavKeys.destination(label)));
   await tester.pumpAndSettle();
 }
 
@@ -62,24 +65,28 @@ void main() {
   testWidgets('all four tabs are reachable without a backend', (tester) async {
     await _gotoDashboard(tester);
 
-    await _openTab(tester, '홈 화면');
+    await _openTab(tester, '부모님 화면');
     expect(find.byKey(GuardianLauncherKeys.empty), findsOneWidget);
 
-    await _openTab(tester, '돌봄');
+    await _openTab(tester, '안심 케어');
     expect(find.text('안심 케어'), findsWidgets);
 
-    await _openTab(tester, '가족');
-    expect(find.text('부모님 연결하기'), findsOneWidget);
+    await _openTab(tester, '메시지');
 
+    // Four, not five. 가족 was a destination and is not any more: what a new
+    // guardian needs from it is on 홈, and the rest rides at the bottom of
+    // 안심 케어.
     await _openTab(tester, '홈');
     expect(find.byKey(GuardianHomeKeys.noParent), findsOneWidget);
+    expect(find.text('부모님 연결하기'), findsOneWidget);
+    expect(find.byKey(GuardianNavKeys.destination('가족')), findsNothing);
   });
 
   testWidgets('the care tab drops what the PRD puts outside the MVP', (
     tester,
   ) async {
     await _gotoDashboard(tester);
-    await _openTab(tester, '돌봄');
+    await _openTab(tester, '안심 케어');
 
     // 약 알림 / 복약 기록 are listed under Out Of MVP, and call-content
     // analysis is explicitly excluded, so neither may be advertised here.
@@ -90,7 +97,7 @@ void main() {
 
   testWidgets('the care tab sells no location at all', (tester) async {
     await _gotoDashboard(tester);
-    await _openTab(tester, '돌봄');
+    await _openTab(tester, '안심 케어');
 
     // The rule used to be 실시간 추적이라고 표현하지 않는다, and it still
     // holds — but location left the product entirely on 2026-10-26, so the
@@ -103,19 +110,19 @@ void main() {
 
   testWidgets('both ways of connecting a parent are offered', (tester) async {
     await _gotoDashboard(tester);
-    await _openTab(tester, '가족');
 
+    // On 홈 now, under the line saying no parent is connected - a guardian
+    // with none lands here and the thing to do is on the same screen.
     // 07_PHASE_PLAN has two paths, and path A depends on the Play install
     // referrer surviving — so path B is not an advanced option to hide.
     expect(find.text('설치 문자 보내기'), findsOneWidget);
-    expect(find.text('번호 입력하기'), findsOneWidget);
+    expect(find.text('불러주신 번호 넣기'), findsOneWidget);
   });
 
   testWidgets('nothing that needs a parent is offered before there is one', (
     tester,
   ) async {
     await _gotoDashboard(tester);
-    await _openTab(tester, '가족');
 
     // Recovery, the family invite and the guardian list all belong to a
     // specific parent. The cases that need one live in
@@ -132,7 +139,7 @@ void main() {
     // claimed they reached the parent's phone. With nobody linked there is
     // nothing to edit, and saying so beats showing someone else's home screen.
     await _gotoDashboard(tester);
-    await _openTab(tester, '홈 화면');
+    await _openTab(tester, '부모님 화면');
 
     expect(find.byKey(GuardianLauncherKeys.empty), findsOneWidget);
     expect(find.byKey(GuardianLauncherKeys.add), findsNothing);
