@@ -4,6 +4,7 @@ import '../../../core/supabase/supabase_providers.dart';
 import 'home_edit_allowance.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
+import '../../../domain/senior_settings.dart';
 import '../../../domain/senior_device.dart';
 import '../../../domain/senior_readings.dart';
 import '../../../domain/senior_profile.dart';
@@ -71,6 +72,11 @@ enum HomeEditOutcome {
 
   /// The write did not reach the server.
   failed,
+
+  /// The parent's home screen is already down to [minimumHomeButtons]. Not a
+  /// failure either: the screen says the number and offers the way round it,
+  /// which is adding a button before taking one off.
+  atFloor,
 }
 
 class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
@@ -96,8 +102,74 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
     ],
   );
 
-  Future<HomeEditOutcome> remove(String id) =>
-      _write((apps) => [for (final app in apps) if (app.id != id) app]);
+  /// Removes a button, or takes a slot button off the home screen.
+  ///
+  /// A slot button's row **stays** and the kind is recorded as removed: the
+  /// name and colour the family gave it have to survive, or putting it back
+  /// hands the senior a button called 가족 where theirs said 영희. The record
+  /// lives on the profile rather than in `home_apps`, because what is being
+  /// recorded is the absence of a row.
+  Future<HomeEditOutcome> remove(String id) {
+    final slot = _slotKindOf(id);
+    if (slot != null) {
+      return _write(
+        (apps) => apps,
+        slots: (removed) => {...removed, slot},
+      );
+    }
+    return _write((apps) => [for (final app in apps) if (app.id != id) app]);
+  }
+
+  /// Puts a slot button back, with whatever the family had called it.
+  Future<HomeEditOutcome> restoreSlot(AppCategory category) => _write(
+    (apps) => apps.any((a) => a.category == category)
+        ? apps
+        : [
+            ...apps,
+            fixedSlotApps.firstWhere((a) => a.category == category),
+          ],
+    slots: (removed) => {...removed}..remove(category),
+  );
+
+  /// Renames or recolours a slot button, putting its row in the list the
+  /// first time anybody does. Until then there is no row to edit - the
+  /// senior's phone draws the default.
+  Future<HomeEditOutcome> editSlot(
+    AppCategory category, {
+    String? label,
+    ButtonColor? color,
+    bool clearColor = false,
+  }) => _write((apps) {
+    final next = [...apps];
+    final at = next.indexWhere((a) => a.category == category);
+    var app = at >= 0
+        ? next[at]
+        : fixedSlotApps.firstWhere((a) => a.category == category);
+    if (label != null) app = app.copyWith(label: label);
+    if (clearColor || color != null) app = app.withColor(color);
+    if (at >= 0) {
+      next[at] = app;
+    } else {
+      next.add(app);
+    }
+    return next;
+  });
+
+  AppCategory? _slotKindOf(String id) {
+    for (final app in [...?state.value, ...fixedSlotApps]) {
+      if (app.id == id && app.category.fixedSlot) return app.category;
+    }
+    return null;
+  }
+
+  /// What the parent's home screen holds right now, as the senior's own half
+  /// sees it. One type decides what is on the screen, so the two phones
+  /// cannot disagree about whether 긴급 구조 요청 is there.
+  SeniorSettings get settings => SeniorSettings(
+    apps: state.value ?? const [],
+    removedSlots:
+        ref.read(selectedSeniorProfileProvider)?.removedSlots ?? const {},
+  );
 
   Future<HomeEditOutcome> add({
     required String label,
@@ -147,10 +219,22 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
   /// 부모님 폰에 닿지 않았어요, and one of those is an offer while the other
   /// is a fault.
   Future<HomeEditOutcome> _write(
-    List<LauncherApp> Function(List<LauncherApp>) transform,
-  ) async {
+    List<LauncherApp> Function(List<LauncherApp>) transform, {
+    Set<AppCategory> Function(Set<AppCategory>)? slots,
+  }) async {
     final profile = ref.read(selectedSeniorProfileProvider);
     if (profile == null) return HomeEditOutcome.failed;
+
+    // Four is the floor, and the guard is on both halves because the
+    // senior's 앱 설정 and this screen are two ways to the same list. A
+    // floor that lived on one of them would not be a floor.
+    final removing = slots != null
+        ? slots(profile.removedSlots).length > profile.removedSlots.length
+        : transform(state.value ?? const []).length <
+              (state.value ?? const []).length;
+    if (removing && !settings.canRemoveButton) {
+      return HomeEditOutcome.atFloor;
+    }
 
     // Asked **before** the write, not after. The server refuses either way,
     // but a guardian who learns it from an error has already made the
@@ -167,6 +251,16 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
     state = AsyncData(after);
     try {
       await ref.read(homeAppsRepositoryProvider).replace(profile.id, after);
+      if (slots != null) {
+        // The profile carries what is *off* the screen. `home_apps` can only
+        // hold buttons that exist, so a removal has nowhere else to live.
+        await ref
+            .read(seniorLinkRepositoryProvider)
+            .updateProfileSettings(
+              profile.id,
+              removedSlots: slots(profile.removedSlots),
+            );
+      }
       // The count lives on the profile row, and the server has just moved it.
       // Without this the screen goes on saying 2번 남았어요 until something
       // else happens to reload.

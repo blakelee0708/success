@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
+import '../../../domain/senior_settings.dart';
 import '../../launcher/presentation/widgets/category_picker.dart';
 import '../../launcher/presentation/widgets/contact_dialog.dart';
 import '../application/guardian_home_apps_controller.dart';
@@ -17,6 +18,13 @@ class GuardianLauncherKeys {
   static const empty = Key('guardian-launcher-empty');
   static const list = Key('guardian-launcher-list');
   static const add = Key('guardian-launcher-add');
+
+  /// The card that says why a removal did nothing.
+  static const floorNotice = Key('guardian-launcher-floor');
+
+  /// One of the four slot buttons, in the group under the app rows.
+  static Key slot(AppCategory category) =>
+      Key('guardian-launcher-slot-${category.name}');
 
   static Key rename(String id) => Key('guardian-launcher-rename-$id');
   static Key colour(String id) => Key('guardian-launcher-colour-$id');
@@ -63,7 +71,13 @@ class GuardianLauncherTab extends ConsumerWidget {
       ),
       AsyncData(:final value) => _Editor(
         profile: profile.displayName,
-        apps: value,
+        // One type decides what is on the parent's screen, so the two phones
+        // cannot disagree about whether 긴급 구조 요청 is there. The removals
+        // ride on the profile; `home_apps` can only carry buttons that exist.
+        settings: SeniorSettings(
+          apps: value,
+          removedSlots: profile.removedSlots,
+        ),
         onOpenTab: onOpenTab,
       ),
       _ => const Center(child: CircularProgressIndicator()),
@@ -74,12 +88,12 @@ class GuardianLauncherTab extends ConsumerWidget {
 class _Editor extends ConsumerWidget {
   const _Editor({
     required this.profile,
-    required this.apps,
+    required this.settings,
     this.onOpenTab,
   });
 
   final String profile;
-  final List<LauncherApp> apps;
+  final SeniorSettings settings;
 
   /// Carried down so the 안심 케어 offer can reach the 돌봄 tab from here.
   final ValueChanged<int>? onOpenTab;
@@ -94,6 +108,11 @@ class _Editor extends ConsumerWidget {
     // the list, 버튼 추가하기 is simply the next thing after the last button,
     // and adding one pushes it down.
     final allowance = ref.watch(homeEditAllowanceProvider);
+    // The grid buttons only. A slot button joins the saved list the moment
+    // anybody renames or recolours it, and it is never drawn in the grid - so
+    // listing them here would draw a renamed 인터넷 twice and put every drag
+    // index after it off by one.
+    final apps = seniorGridApps(settings.apps);
     return ReorderableListView(
       key: GuardianLauncherKeys.list,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
@@ -142,6 +161,34 @@ class _Editor extends ConsumerWidget {
               onPressed: () => _add(context, ref),
             ),
           ),
+          // 가족, 소리, 인터넷, 긴급 구조 요청. Under the apps because they
+          // are the furniture around what the senior actually uses, and out
+          // of the reorderable list because each has a place of its own on
+          // the home screen and is never dragged into the grid.
+          //
+          // They are here at all because a parent asked: 엄마가 SOS 빼
+          // 달라고 했으니 빼 줘야지. Until 2026-10-28 these four were the
+          // only buttons on a senior's phone that nobody could take off.
+          const Padding(
+            padding: EdgeInsets.fromLTRB(4, 26, 4, 10),
+            child: Text(
+              '자리 버튼',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.guardianInkFaint,
+              ),
+            ),
+          ),
+          for (final app in fixedSlotApps)
+            if (settings.slot(app.category) case final on?)
+              _AppRow(
+                key: GuardianLauncherKeys.slot(app.category),
+                app: on,
+                onRename: () => _rename(context, ref, on),
+                onRecolour: () => _recolour(context, ref, on),
+                onDelete: () => _confirmDelete(context, ref, on),
+              ),
         ],
       ),
       onReorder: (oldIndex, newIndex) =>
@@ -177,6 +224,26 @@ class _Editor extends ConsumerWidget {
       // guardian would try again and again.
       case HomeEditOutcome.allowanceSpent:
         await _offerCare(context, onOpenTab);
+      // Not a failure either. Four is where a home screen stops being one,
+      // and the way round it is to add a button before taking one off.
+      case HomeEditOutcome.atFloor:
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            key: GuardianLauncherKeys.floorNotice,
+            title: const Text('버튼은 $minimumHomeButtons개까지만 줄일 수 있어요'),
+            content: const Text(
+              '부모님 홈 화면에 버튼이 $minimumHomeButtons개 남았어요.\n'
+              '하나 빼시려면 먼저 다른 버튼을 추가해 주세요.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('알겠어요'),
+              ),
+            ],
+          ),
+        );
       case HomeEditOutcome.failed:
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
@@ -301,7 +368,18 @@ class _Editor extends ConsumerWidget {
       initial: app.label,
     );
     if (name == null || !context.mounted) return;
-    await _run(context, ref, (c) => c.rename(app.id, name), onOpenTab: onOpenTab);
+    // A slot button may have no row yet: one is written the first time
+    // anybody renames or recolours it, and until then the parent's phone
+    // draws the default. `rename` maps over rows that exist, so it would
+    // quietly change nothing.
+    await _run(
+      context,
+      ref,
+      onOpenTab: onOpenTab,
+      app.category.fixedSlot
+          ? (c) => c.editSlot(app.category, label: name)
+          : (c) => c.rename(app.id, name),
+    );
   }
 
   /// The kind comes first, then the name.
@@ -320,11 +398,28 @@ class _Editor extends ConsumerWidget {
     // parent cannot (knowing a button should exist, and putting it on the
     // home screen) and the parent does the part only they can (choosing from
     // a list only their phone can see).
+    final current = ref.read(guardianHomeAppsProvider.notifier).settings;
     final category = await askForCategory(
       context,
-      alreadyOn: ref.read(guardianHomeAppsProvider).value ?? const [],
+      alreadyOn: [
+        ...current.apps.where((a) => !a.category.fixedSlot),
+        for (final app in fixedSlotApps) ?current.slot(app.category),
+      ],
     );
     if (category == null || !context.mounted) return;
+
+    // Back where it was, carrying the name and colour the family gave it.
+    // Minting a fresh button would put a second 가족 in the grid, which is
+    // the one place these four never go.
+    if (category.fixedSlot) {
+      await _run(
+        context,
+        ref,
+        onOpenTab: onOpenTab,
+        (c) => c.restoreSlot(category),
+      );
+      return;
+    }
 
     // Nothing to ask. Naming it would be naming an app nobody has chosen,
     // and the label becomes the app's own name the moment they do.
@@ -411,7 +506,18 @@ class _Editor extends ConsumerWidget {
       ),
     );
     if (chosen == null || !context.mounted) return;
-    await _run(context, ref, (c) => c.setColor(app.id, chosen.colour), onOpenTab: onOpenTab);
+    await _run(
+      context,
+      ref,
+      onOpenTab: onOpenTab,
+      app.category.fixedSlot
+          ? (c) => c.editSlot(
+              app.category,
+              color: chosen.colour,
+              clearColor: chosen.colour == null,
+            )
+          : (c) => c.setColor(app.id, chosen.colour),
+    );
   }
 
   Future<void> _confirmDelete(

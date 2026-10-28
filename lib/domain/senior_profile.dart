@@ -154,7 +154,14 @@ class SeniorProfile {
       other.fontSize == fontSize &&
       other.paidConsentStatus == paidConsentStatus &&
       other.pendingPrimaryGuardianId == pendingPrimaryGuardianId &&
-      other.guardianHomeEdits == guardianHomeEdits;
+      other.guardianHomeEdits == guardianHomeEdits &&
+      // Part of equality, and it has to be: `selectedSeniorProfileProvider`
+      // is a plain Provider, so a new profile that compares equal to the old
+      // one is suppressed. Leaving this out meant a guardian took 긴급 구조
+      // 요청 off their parent's screen, the server took it, and the row
+      // stayed on their own screen until something else forced a reload.
+      other.removedSlots.length == removedSlots.length &&
+      other.removedSlots.containsAll(removedSlots);
 
   @override
   int get hashCode => Object.hash(
@@ -167,6 +174,7 @@ class SeniorProfile {
     paidConsentStatus,
     pendingPrimaryGuardianId,
     guardianHomeEdits,
+    Object.hashAllUnordered(removedSlots),
   );
 }
 

@@ -451,6 +451,19 @@ row at the same 48px; both gone and `HomeBody` draws no row at all and the
 grid takes the height. 긴급 구조 요청 or 가족 gone and the other has the width;
 both gone and that row goes too.
 
+**The guardian's 홈 화면 carries the four too**, under the app rows and out
+of the reorderable list, with the same 이름 / 색깔 / 지우기. That is the half
+the request came from - 엄마가 SOS 빼 달라고 했으니 빼 줘야지 - and a removal
+there writes the profile as well as `home_apps`, because a removal has
+nowhere else to live. Restoring one goes through 버튼 추가하기, which offers
+only the kinds that are off.
+
+One bug in it is worth keeping: `SeniorProfile.==` did not count
+`removedSlots`, and `selectedSeniorProfileProvider` is a plain `Provider` -
+so a new profile compared equal to the old one and Riverpod suppressed the
+update. The guardian took 긴급 구조 요청 off, the server took it, and the row
+stayed on their screen until something else forced a reload.
+
 One pre-existing bug fell out of it: 앱 설정 listed `settings.apps` verbatim,
 and a slot button joins that list the moment somebody renames or recolours it
 - so a renamed 인터넷 was drawn twice, once as a draggable app row and once in

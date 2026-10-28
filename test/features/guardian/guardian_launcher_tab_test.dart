@@ -28,7 +28,14 @@ final _manyApps = [
 
 /// A guardian already signed in, with one parent linked and that parent's home
 /// screen already on the server.
-Future<({InMemoryHomeAppsRepository homeApps, String profileId})> _pumpTab(
+Future<
+  ({
+    InMemoryHomeAppsRepository homeApps,
+    InMemorySeniorLinkRepository links,
+    String profileId,
+  })
+>
+_pumpTab(
   WidgetTester tester, {
   List<LauncherApp> apps = _apps,
 }) async {
@@ -56,7 +63,7 @@ Future<({InMemoryHomeAppsRepository homeApps, String profileId})> _pumpTab(
   await tester.tap(find.text('홈 화면'));
   await tester.pumpAndSettle();
 
-  return (homeApps: homeApps, profileId: profile.id);
+  return (homeApps: homeApps, links: links, profileId: profile.id);
 }
 
 void main() {
@@ -69,7 +76,13 @@ void main() {
     // that came out of the senior palette and had no business here either.
     await _pumpTab(tester);
 
-    expect(find.byType(GuardianCard), findsNWidgets(_apps.length));
+    // The app rows plus the four slot buttons - 가족, 소리, 인터넷,
+    // 긴급 구조 요청 - which this tab started carrying on 2026-10-28 so the
+    // guardian can take one off when their parent asks.
+    expect(
+      find.byType(GuardianCard),
+      findsNWidgets(_apps.length + fixedSlotApps.length),
+    );
   });
 
   testWidgets('the tab shows the parent\'s buttons, not the guardian\'s', (
@@ -303,5 +316,96 @@ void main() {
 
     expect(find.byKey(CategoryPickerKeys.option(AppCategory.contact)), findsOneWidget);
     expect(find.byKey(CategoryPickerKeys.option(AppCategory.installed)), findsOneWidget);
+  });
+
+  /// Presses 지우기 on one of the four slot rows, through the screen.
+  Future<void> removeSlot(WidgetTester tester, AppCategory category) async {
+    await tester.scrollUntilVisible(
+      find.byKey(GuardianLauncherKeys.slot(category)),
+      200,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(GuardianLauncherKeys.slot(category)),
+        matching: find.byIcon(Icons.delete_outline),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('지우기'));
+    await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('the guardian can take 긴급 구조 요청 off their parent\'s home', (
+    tester,
+  ) async {
+    // 엄마가 SOS 빼 달라고 했으니 빼 줘야지. Until 2026-10-28 these four were
+    // the only buttons on a senior's phone that nobody could remove - not the
+    // senior and not their family - on the half of the app whose whole job is
+    // that the family can arrange that screen.
+    final tab = await _pumpTab(tester);
+
+    await removeSlot(tester, AppCategory.sos);
+
+    // On the profile rather than in `home_apps`: what is recorded is the
+    // absence of a button, and that table holds rows.
+    expect(
+      tab.links.profiles[tab.profileId]!.removedSlots,
+      contains(AppCategory.sos),
+    );
+    expect(find.byKey(GuardianLauncherKeys.slot(AppCategory.sos)), findsNothing);
+  });
+
+  testWidgets('and it comes back from 버튼 추가하기', (tester) async {
+    // A kind that can be taken off and never offered back is a one-way door.
+    final tab = await _pumpTab(tester);
+    await removeSlot(tester, AppCategory.sos);
+
+    await tester.scrollUntilVisible(find.byKey(GuardianLauncherKeys.add), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(GuardianLauncherKeys.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(CategoryPickerKeys.option(AppCategory.sos)));
+    await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
+
+    expect(
+      tab.links.profiles[tab.profileId]!.removedSlots,
+      isNot(contains(AppCategory.sos)),
+    );
+    expect(
+      find.byKey(GuardianLauncherKeys.slot(AppCategory.sos)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a parent\'s screen is never cut below four buttons', (
+    tester,
+  ) async {
+    // The floor is on the controller, because the senior's 앱 설정 and this
+    // screen are two ways to the same list. The refusal says the number and
+    // offers the way round it rather than reporting a fault.
+    final tab = await _pumpTab(
+      tester,
+      apps: const [
+        LauncherApp(id: 'phone', label: '전화', category: AppCategory.phone),
+      ],
+    );
+
+    // One app and four slot buttons is five. One may go; the next may not.
+    await removeSlot(tester, AppCategory.sound);
+    expect(
+      tab.links.profiles[tab.profileId]!.removedSlots,
+      contains(AppCategory.sound),
+    );
+
+    await removeSlot(tester, AppCategory.internet);
+
+    expect(find.byKey(GuardianLauncherKeys.floorNotice), findsOneWidget);
+    expect(
+      tab.links.profiles[tab.profileId]!.removedSlots,
+      isNot(contains(AppCategory.internet)),
+    );
   });
 }
