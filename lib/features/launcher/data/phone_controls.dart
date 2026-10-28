@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/device_status.dart';
+import '../../../domain/internet_status.dart';
 import 'app_launcher.dart';
 
 /// The two things about their own phone a senior can change from the launcher.
@@ -37,6 +38,20 @@ abstract interface class PhoneControls {
 
   /// The phone's own internet sheet. False when the phone has none to open.
   Future<bool> openInternetPanel();
+
+  /// Wi-Fi and mobile data are **two destinations, not one**, which was
+  /// learnt from a photograph of a real Galaxy: the panel above arrived there
+  /// as Settings > 연결, where Wi-Fi is a switch at the top and mobile data
+  /// is not on the screen at all - two taps further in, behind 모바일
+  /// 네트워크 or 데이터 사용. A senior sent there to turn their data on never
+  /// finds it. Which door they need is decided on our own card instead.
+  Future<bool> openWifiSettings();
+  Future<bool> openMobileDataSettings();
+
+  /// What the phone is on right now, so the card can say something true
+  /// before it offers a door. [InternetStatus.unknown] is the honest answer
+  /// on a phone that would not say, and the card treats it as *offer both*.
+  Future<InternetStatus> internetStatus();
 }
 
 class MethodChannelPhoneControls implements PhoneControls {
@@ -53,6 +68,27 @@ class MethodChannelPhoneControls implements PhoneControls {
 
   @override
   Future<bool> openInternetPanel() => _call('openInternetPanel', null);
+
+  @override
+  Future<bool> openWifiSettings() => _call('openWifiSettings', null);
+
+  @override
+  Future<bool> openMobileDataSettings() =>
+      _call('openMobileDataSettings', null);
+
+  @override
+  Future<InternetStatus> internetStatus() async {
+    try {
+      final name = await MethodChannelAppLauncher.channel.invokeMethod<String>(
+        'internetStatus',
+      );
+      return InternetStatus.fromName(name);
+    } on PlatformException {
+      return InternetStatus.unknown;
+    } on MissingPluginException {
+      return InternetStatus.unknown;
+    }
+  }
 
   Future<bool> _call(String method, Map<String, Object?>? args) async {
     try {
@@ -90,6 +126,12 @@ class FakePhoneControls implements PhoneControls {
 
   final ringerCalls = <RingerMode>[];
   int panelCalls = 0;
+  int wifiCalls = 0;
+  int dataCalls = 0;
+
+  /// What the fake phone is on. Tests set it to drive the card's three
+  /// sentences.
+  InternetStatus status = InternetStatus.wifi;
 
   @override
   Future<bool> setRinger(RingerMode mode) {
@@ -103,6 +145,26 @@ class FakePhoneControls implements PhoneControls {
     panelCalls++;
     if (hangs) return Completer<bool>().future;
     return Future.value(accepts);
+  }
+
+  @override
+  Future<bool> openWifiSettings() {
+    wifiCalls++;
+    if (hangs) return Completer<bool>().future;
+    return Future.value(accepts);
+  }
+
+  @override
+  Future<bool> openMobileDataSettings() {
+    dataCalls++;
+    if (hangs) return Completer<bool>().future;
+    return Future.value(accepts);
+  }
+
+  @override
+  Future<InternetStatus> internetStatus() {
+    if (hangs) return Completer<InternetStatus>().future;
+    return Future.value(status);
   }
 }
 

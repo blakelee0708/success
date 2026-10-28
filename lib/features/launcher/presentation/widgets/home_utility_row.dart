@@ -9,9 +9,8 @@ import '../../../../domain/app_category.dart';
 import '../../../../domain/launcher_app.dart';
 import '../../application/senior_settings_controller.dart';
 import '../../application/ringer_controller.dart';
-import '../../data/phone_controls.dart';
+import 'internet_card.dart';
 import 'home_pill.dart';
-import 'internet_coach.dart';
 
 /// 소리 and 인터넷, on both home screens, under the tiles.
 ///
@@ -125,7 +124,7 @@ class HomeUtilityRow extends ConsumerWidget {
             height: height,
             iconSize: 21,
             fontSize: 17,
-            onTap: () => openInternetPanel(context, ref),
+            onTap: () => openInternetCard(context, ref),
           ),
         ),
       ],
@@ -171,49 +170,4 @@ class HomeUtilityRow extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Said first, then opened. Shared by the home screens and 설정, because the
-/// senior arriving from either is about to meet the same system sheet.
-///
-/// **The panel is told, never awaited.** A channel that never answers throws
-/// nothing at all, so a senior who pressed this would be left on a screen
-/// that had stopped responding. The dialog closes on its own answer, not on
-/// the phone's.
-Future<void> openInternetPanel(BuildContext context, WidgetRef ref) async {
-  final go = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      key: const Key('internet-coach'),
-      backgroundColor: AppColors.seniorSurface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      content: const InternetCoach(),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text(
-            '아니요',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: AppColors.seniorInkMuted,
-            ),
-          ),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text(
-            '알겠어요',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: AppColors.seniorPrimary,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-  if (go != true) return;
-  unawaited(ref.read(phoneControlsProvider).openInternetPanel());
 }

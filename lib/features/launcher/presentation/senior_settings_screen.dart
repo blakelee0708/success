@@ -9,7 +9,7 @@ import '../../../core/widgets/clay_pad.dart';
 import '../../support/presentation/support_card.dart';
 import '../data/app_launcher.dart';
 import 'widgets/home_app_coach.dart';
-import 'widgets/home_utility_row.dart';
+import 'widgets/internet_card.dart';
 import '../application/ringer_controller.dart';
 import '../../../domain/device_status.dart';
 
@@ -459,7 +459,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
               light: AppColors.seniorMoreLight,
               deep: AppColors.seniorMoreDeep,
               wall: AppColors.seniorMoreWall,
-              onTap: () => openInternetPanel(context, ref),
+              onTap: () => openInternetCard(context, ref),
             ),
             const SizedBox(height: 26),
             // Its own group, and the only one on the senior's phone that does

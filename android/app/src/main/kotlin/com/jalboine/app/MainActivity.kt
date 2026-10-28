@@ -16,6 +16,8 @@ import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.speech.tts.TextToSpeech
 import java.util.Locale
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
@@ -60,6 +62,9 @@ class MainActivity : FlutterActivity() {
                     "openHomeSettings" -> result.success(openHomeSettings())
                     "setRingerMode" -> result.success(setRingerMode(call.argument<String>("mode")))
                     "openInternetPanel" -> result.success(openInternetPanel())
+                    "openWifiSettings" -> result.success(openWifiSettings())
+                    "openMobileDataSettings" -> result.success(openMobileDataSettings())
+                    "internetStatus" -> result.success(internetStatus())
                     else -> result.notImplemented()
                 }
             }
@@ -220,6 +225,71 @@ class MainActivity : FlutterActivity() {
         true
     } catch (e: ActivityNotFoundException) {
         false
+    }
+
+    /**
+     * Wi-Fi and mobile data are **two destinations, not one**, and that was
+     * learnt from a photograph of a real Galaxy. The panel above was supposed
+     * to be a sheet carrying both; on that phone it arrived as Settings >
+     * 연결, where Wi-Fi is a switch at the top and mobile data is not on the
+     * screen at all - it is two taps further in, behind 모바일 네트워크 or
+     * 데이터 사용. A senior sent there to turn their data on never finds it.
+     *
+     * So the app stops pretending one door covers both. Which one the senior
+     * needs is decided on our own card, in our own words, and this takes them
+     * to that one.
+     *
+     * Each tries the specific screen first and falls back outward, because
+     * what a manufacturer's Settings app answers to is not something this
+     * repository can check: there is no Android SDK here and the Kotlin has
+     * never been compiled, let alone run.
+     */
+    private fun openWifiSettings(): Boolean =
+        startFirst(listOf(Settings.ACTION_WIFI_SETTINGS, Settings.ACTION_WIRELESS_SETTINGS))
+
+    private fun openMobileDataSettings(): Boolean = startFirst(
+        listOf(
+            // Samsung's 데이터 사용 carries the 모바일 데이터 switch at the top.
+            Settings.ACTION_DATA_USAGE_SETTINGS,
+            Settings.ACTION_NETWORK_OPERATOR_SETTINGS,
+            Settings.ACTION_WIRELESS_SETTINGS,
+        )
+    )
+
+    private fun startFirst(actions: List<String>): Boolean {
+        for (action in actions) {
+            try {
+                startActivity(Intent(action))
+                return true
+            } catch (e: ActivityNotFoundException) {
+                // The next one down.
+            }
+        }
+        return false
+    }
+
+    /**
+     * What the phone is on, for the card that is about to offer the two doors
+     * above. `wifi`, `mobile`, `other` (ethernet, a dock), or `none`.
+     *
+     * **`ACCESS_NETWORK_STATE` is not declared by this repository's manifest**
+     * - `firebase_messaging` brings it and Gradle merges it in, which is
+     * recorded in `## 개인정보처리방침`. If that plugin ever goes, this reads
+     * `unknown` rather than throwing, and the card falls back to offering both
+     * doors, which is the answer it would give anyway.
+     */
+    private fun internetStatus(): String = try {
+        val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = manager.activeNetwork
+        val caps = if (network == null) null else manager.getNetworkCapabilities(network)
+        when {
+            caps == null -> "none"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "mobile"
+            else -> "other"
+        }
+    } catch (e: SecurityException) {
+        "unknown"
     }
 
     private fun deviceStatus(): Map<String, Any> {

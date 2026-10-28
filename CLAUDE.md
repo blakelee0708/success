@@ -168,10 +168,36 @@ manifest still declares no `uses-permission` at all, which
 `privacy_policy_test` holds in place - the APK itself carries four, merged in
 by `firebase_messaging`; see `## 개인정보처리방침`.
 
-인터넷 does not switch anything — it opens the phone's own panel, which is
-what Google gave when it took the toggle away. A system sheet arriving
-unannounced is the same problem as the home-app chooser, so `InternetCoach`
-is said first. Both coaches share `CoachLines`.
+인터넷 does not switch anything - it opens the phone's own settings, which is
+what Google left when it took the toggle away.
+
+**Wi-Fi and mobile data are two doors, and that was learnt from a photograph
+of a real Galaxy.** The card that used to stand in front of this announced one
+system sheet carrying both, on the strength of
+`Settings.Panel.ACTION_INTERNET_CONNECTIVITY` being a sheet with a mobile-data
+row and a Wi-Fi list. What arrived on the phone was Settings > 연결: Wi-Fi a
+switch at the top, and mobile data **not on that screen at all** - two taps
+further in, behind 모바일 네트워크 or 데이터 사용. A senior sent there to turn
+their data on never finds it.
+
+So `InternetCard` does the choosing, in words, and hands the phone exactly one
+job: `openWifiSettings` or `openMobileDataSettings`, each trying its specific
+screen and falling back outward. It says what the phone is on first
+(`internetStatus`, which needs only the `ACCESS_NETWORK_STATE` that
+`firebase_messaging` already merges in) and then offers the door that is not
+already open - with the reason being money, not connection, when there is
+already internet.
+
+**`unknown` is not `none`.** A phone that will not say gets both doors and no
+sentence about being connected. Telling a senior their internet is off while a
+page is loading is worse than saying nothing specific, and `flutter test` is
+such a phone.
+
+**None of the destinations can be checked here.** There is no Android SDK in
+this environment and the Kotlin has never been compiled, let alone run, so
+which screen a manufacturer's Settings app answers each intent with is a
+question only a real handset answers - exactly as with the home-app chooser,
+which was wrong in this repository for weeks.
 
 **They are not tiles, and the shape is what makes them affordable.** Every app
 button is an icon above a label in a category colour; these lie down at 48px.
