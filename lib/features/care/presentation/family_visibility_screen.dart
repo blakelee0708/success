@@ -17,10 +17,12 @@ import '../data/family_visibility.dart';
 /// This answers *what do they see*, so it names everything, and there is
 /// nothing on it to press.
 ///
-/// **보지 못합니다 is why it is worth opening.** The first two sections alone
-/// are a list of worries. The third is the reassurance, and every line in it
-/// is a decision recorded elsewhere in this repository rather than a promise
-/// written for a settings page.
+/// **보지 못합니다 is gone**, on the owner's call. It was five true lines -
+/// 어디 계신지, 통화 내용과 통화 기록, 연락처, 어떤 앱을 쓰시는지, 사진첩 -
+/// and the argument against them is that a list of things that are **not**
+/// happening plants worries in a reader who did not arrive with them. This
+/// reader is on their own phone, not reading a policy; the page that owes
+/// the complete answer is `site/privacy.html`, which a reviewer reads.
 class FamilyVisibilityScreen extends StatelessWidget {
   const FamilyVisibilityScreen({super.key});
 
@@ -68,13 +70,6 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 보지 못합니다 is drawn in the app's own terracotta rather than in the
-    // muted ink the other two use. It is the answer a worried person came for,
-    // and the quietest thing on the screen is the wrong place for it.
-    final accent = sees == FamilySees.never
-        ? AppColors.seniorPrimary
-        : AppColors.seniorInk;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -84,7 +79,7 @@ class _Section extends StatelessWidget {
             fontSize: 22,
             fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
-            color: accent,
+            color: AppColors.seniorInk,
           ),
         ),
         const SizedBox(height: 12),
@@ -96,12 +91,10 @@ class _Section extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(top: 3),
-                  child: Icon(
-                    sees == FamilySees.never
-                        ? Icons.block_rounded
-                        : Icons.check_circle_rounded,
+                  child: const Icon(
+                    Icons.check_circle_rounded,
                     size: 22,
-                    color: accent,
+                    color: AppColors.seniorInk,
                   ),
                 ),
                 const SizedBox(width: 10),

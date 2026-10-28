@@ -1621,6 +1621,17 @@ so a capability cannot be sold on one and missing from the other, and
 | nothing free is on it | implies 아니요 stops it |
 | nothing planned is on it | asked once, switched on much later |
 
+**자녀가 보는 것 lost its 보지 못합니다 block** on 2026-10-28, on the owner's
+call. It was five true lines - 어디 계신지, 통화 내용과 통화 기록, 연락처,
+어떤 앱을 쓰시는지, 사진첩 - and each is a decision recorded elsewhere in this
+repository rather than a promise written for a settings page. The argument
+that took it off is that a list of things that are **not** happening plants
+worries in a reader who did not arrive with them, and this reader is on their
+own phone rather than reading a policy. The page that owes the complete answer
+is `site/privacy.html`, which a reviewer reads and `privacy_policy_test` holds
+to it. A test now asserts those four phrases appear nowhere on the screen, so
+the block cannot creep back a line at a time.
+
 It also counts the glyphs — sixteen at 20px in a 318px card — because that is
 the screen where a wrapped line once left 은 alone.
 

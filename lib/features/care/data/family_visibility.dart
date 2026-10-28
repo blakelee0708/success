@@ -10,12 +10,6 @@ enum FamilySees {
 
   /// Only once 안심 케어 is bought **and** agreed to.
   withCare,
-
-  /// Never, and this is the part worth opening the screen for. The first two
-  /// sections on their own are a list of worries; the third is what makes it
-  /// a screen that reassures. Each line here is a decision recorded elsewhere
-  /// in this repository, not a promise invented for a settings page.
-  never,
 }
 
 /// One line on 자녀가 보는 것.
@@ -41,13 +35,22 @@ class FamilyVisibility {
   final String? capabilityKey;
 }
 
-/// What the senior's family can and cannot see, in one list.
+/// What the senior's family can see, in one list.
 ///
 /// A different question from the consent card's, which is why it is a
 /// different list. The card asks **may we turn this on**, so it names only
 /// what is paid and built. This answers **what do they see**, so it names the
-/// free readings too - and the things nobody sees, which the card has no
-/// reason to mention and a senior has every reason to want.
+/// free readings too.
+///
+/// **보지 못합니다 is gone, and it was five lines long.** 어디 계신지, 통화
+/// 내용과 통화 기록, 연락처, 어떤 앱을 쓰시는지, 사진첩 - every one a
+/// decision recorded elsewhere in this repository rather than a promise
+/// written for a settings page, and all five true. It came off on the owner's
+/// call, and the argument for it is sound: a list of things that are **not**
+/// happening plants worries in a reader who did not arrive with them, and
+/// this reader is on their own phone rather than reading a policy. The page
+/// that owes a complete answer is `site/privacy.html`, which a reviewer
+/// reads; this screen owes the senior the short one.
 const familyVisibility = <FamilyVisibility>[
   // --- 늘 보입니다 ---------------------------------------------------------
   // Two lines, and it used to be five. 마지막으로 폰 쓰신 때, 배터리 and
@@ -79,21 +82,6 @@ const familyVisibility = <FamilyVisibility>[
     line: '메시지를 읽으신 때',
     capabilityKey: 'message_read',
   ),
-
-  // --- 보지 못합니다 -------------------------------------------------------
-  // 위치 is out of the product entirely - see `## 위치 is out of the product`.
-  FamilyVisibility(sees: FamilySees.never, line: '어디 계신지'),
-  // The manifest asks for no call permission, and 전화 opens the dialer
-  // rather than placing a call.
-  FamilyVisibility(sees: FamilySees.never, line: '통화 내용과 통화 기록'),
-  // 사람 버튼's numbers are typed by the guardian on their own phone, which
-  // is exactly so this stays true.
-  FamilyVisibility(sees: FamilySees.never, line: '연락처'),
-  // 폰에 있는 앱 sends the one app the senior picked and never the list, and
-  // the icon bytes never leave the handset.
-  FamilyVisibility(sees: FamilySees.never, line: '어떤 앱을 쓰시는지'),
-  // The photo picker returns one chosen file. Nothing reads the album.
-  FamilyVisibility(sees: FamilySees.never, line: '사진첩'),
 ];
 
 Iterable<FamilyVisibility> familySees(FamilySees sees) =>
@@ -103,14 +91,10 @@ Iterable<FamilyVisibility> familySees(FamilySees sees) =>
 String familySeesTitle(FamilySees sees) => switch (sees) {
   FamilySees.always => '늘 보입니다',
   FamilySees.withCare => '안심 케어를 허락하시면',
-  FamilySees.never => '보지 못합니다',
 };
 
-/// Which `CareReadiness` a section has to agree with, where it has one.
-///
-/// `FamilySees.never` has none: nothing unseen is a capability.
-CareReadiness? readinessFor(FamilySees sees) => switch (sees) {
+/// Which `CareReadiness` a section has to agree with.
+CareReadiness readinessFor(FamilySees sees) => switch (sees) {
   FamilySees.always => CareReadiness.free,
   FamilySees.withCare => CareReadiness.live,
-  FamilySees.never => null,
 };

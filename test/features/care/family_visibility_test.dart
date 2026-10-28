@@ -115,20 +115,23 @@ void main() {
   });
 
   group('what the screen says', () {
-    test('all three sections have something in them', () {
-      // 보지 못합니다 emptying out is the one that would pass unnoticed: the
-      // screen would still look complete and would have stopped being the
-      // reassurance it exists to be.
+    test('both sections have something in them', () {
       for (final sees in FamilySees.values) {
         expect(familySees(sees), isNotEmpty, reason: '$sees');
       }
     });
 
-    test('location is named as something nobody sees', () {
-      // 위치 is out of the product. A senior asking what their children can
-      // see is asking this first, whether or not they say so.
-      final never = familySees(FamilySees.never).map((v) => v.line).join();
-      expect(never, contains('어디 계신지'));
+    test('nothing on it is a list of what is not collected', () {
+      // 보지 못합니다 came off on the owner's call. Its five lines were true
+      // and every one is a decision recorded elsewhere in this repository,
+      // but a list of things that are **not** happening plants worries in a
+      // reader who did not arrive with them - and this reader is on their own
+      // phone, not reading a policy. `site/privacy.html` is the page that
+      // owes the complete answer, and `privacy_policy_test` holds it to that.
+      final said = familyVisibility.map((v) => v.line).join();
+      for (final absent in ['어디 계신지', '통화 기록', '연락처', '사진첩']) {
+        expect(said, isNot(contains(absent)), reason: absent);
+      }
     });
 
     test('every line fits one line of the list', () {
