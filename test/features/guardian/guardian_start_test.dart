@@ -55,18 +55,23 @@ void main() {
     expect(tester.getTopLeft(google).dy, lessThan(tester.getTopLeft(email).dy));
   });
 
-  testWidgets('email goes straight to the form, with no sheet in between', (
+  testWidgets('email needs no 준비 중 sheet, only the terms one', (
     tester,
   ) async {
-    // Kakao and Google have to explain themselves first because neither has
-    // an OAuth client configured. Email has nothing to explain and nothing to
+    // Kakao and Google have to explain themselves because neither has an
+    // OAuth client configured. Email has nothing to explain and nothing to
     // wait for, so a sheet saying so would be a screen that exists to be
     // passed through — the same fault 더 보기 and 첫 화면으로 정하기 were
     // both rewritten to remove.
+    //
+    // 약관 동의 is not that sheet. It is in front of all three because an
+    // account must not exist before it is answered, and it is gone for good
+    // once answered.
     await _gotoGuardianStart(tester);
 
     await tester.tap(find.text('이메일로 시작하기'));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
 
     expect(find.byKey(GuardianLoginKeys.email), findsOneWidget);
     expect(find.byKey(GuardianLoginKeys.submit), findsOneWidget);
@@ -92,10 +97,17 @@ void main() {
     expect(find.text('이메일로 가입하기'), findsNothing);
   });
 
-  testWidgets('guardian start states the terms consent', (tester) async {
+  testWidgets('guardian start no longer claims consent already happened', (
+    tester,
+  ) async {
+    // It said 시작하면 서비스 이용약관과 개인정보 처리방침에 동의하게 됩니다
+    // as plain text, with no link, naming a 이용약관 that did not exist in
+    // this repository. Passing a screen is not an act of agreement, and
+    // 개인정보보호법 asks for an act.
     await _gotoGuardianStart(tester);
 
-    expect(find.text('시작하면 서비스 이용약관과\n개인정보 처리방침에 동의하게 됩니다'), findsOneWidget);
+    expect(find.textContaining('동의하게 됩니다'), findsNothing);
+    expect(find.textContaining('동의하는 화면이 나옵니다'), findsOneWidget);
   });
 
   testWidgets('both providers open the dashboard on a build with no project', (
@@ -105,6 +117,7 @@ void main() {
 
     await tester.tap(find.text('카카오로 시작하기'));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
 
     // With a Supabase project attached these buttons explain that the provider
     // is being prepared and offer the email route. With none attached the old

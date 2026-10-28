@@ -7,6 +7,7 @@ import '../../../core/supabase/supabase_providers.dart';
 import '../../../data/remote/guardian_auth_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import 'widgets/guardian_surfaces.dart';
+import 'widgets/signup_consent_sheet.dart';
 
 /// Widget keys the tests drive.
 class GuardianStartKeys {
@@ -163,8 +164,14 @@ class GuardianStartScreen extends StatelessWidget {
                         destination: Routes.guardianLogin,
                       ),
                       const SizedBox(height: 22),
+                      // It used to say 시작하면 ... 동의하게 됩니다 here, as
+                      // plain text with no link, naming a 이용약관 that did
+                      // not exist. Agreeing now happens in a sheet with the
+                      // items apart and both documents readable, so this line
+                      // says where it is rather than claiming it has
+                      // already happened.
                       const Text(
-                        '시작하면 서비스 이용약관과\n개인정보 처리방침에 동의하게 됩니다',
+                        '버튼을 누르면 약관을 확인하고\n동의하는 화면이 나옵니다',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 11.5,
@@ -470,9 +477,20 @@ class _ProviderButton extends ConsumerWidget {
                 : BorderSide(color: borderColor!, width: 1.4),
           ),
         ),
-        onPressed: () => destination == null
-            ? _start(context, ref, provider!, supabaseConfigured: configured)
-            : context.go(destination!),
+        // **Every way in goes through the sheet first**, including the two
+        // that dead-end in 준비 중 today. A consent asked after the provider
+        // screen is a consent asked after the account exists, and one asked
+        // only on the email route would be missing from the two a guardian
+        // is most likely to press.
+        onPressed: () async {
+          if (!await SignupConsentSheet.ensure(context, ref)) return;
+          if (!context.mounted) return;
+          if (destination == null) {
+            await _start(context, ref, provider!, supabaseConfigured: configured);
+          } else {
+            context.go(destination!);
+          }
+        },
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

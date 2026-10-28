@@ -48,6 +48,7 @@ void main() {
 
     await tester.tap(find.text('카카오로 시작하기'));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
 
     expect(find.byKey(GuardianNavKeys.bar), findsOneWidget);
     expect(auth.oauthAttempts, isEmpty);
@@ -58,6 +59,7 @@ void main() {
 
     await tester.tap(find.text('카카오로 시작하기'));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
 
     expect(auth.oauthAttempts, [GuardianOAuthProvider.kakao]);
   });
@@ -70,6 +72,7 @@ void main() {
 
     await tester.tap(find.text('구글로 시작하기'));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
 
     expect(auth.oauthAttempts, [GuardianOAuthProvider.google]);
   });
@@ -88,6 +91,7 @@ void main() {
 
     await tester.tap(find.text('카카오로 시작하기'));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
 
     // The screen names the provider; the rest is the server's own words.
     expect(
@@ -107,6 +111,7 @@ void main() {
 
     await tester.tap(find.text('카카오로 시작하기'));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
     await tester.tap(find.byKey(GuardianStartKeys.emailFallback));
     await tester.pumpAndSettle();
 
@@ -118,6 +123,7 @@ void main() {
 
     await tester.tap(find.text('카카오로 시작하기'));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
 
     expect(auth.oauthAttempts, isNotEmpty);
     expect(find.byKey(GuardianStartKeys.emailFallback), findsNothing);

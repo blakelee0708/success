@@ -20,6 +20,7 @@ Future<void> _gotoDashboard(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.text('카카오로 시작하기'));
   await tester.pumpAndSettle();
+  await agreeToTerms(tester);
 }
 
 Future<void> _openTab(WidgetTester tester, String label) async {

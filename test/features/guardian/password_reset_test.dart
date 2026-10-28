@@ -31,6 +31,7 @@ Future<InMemoryGuardianAuthRepository> _gotoLogin(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.text('이메일로 시작하기'));
   await tester.pumpAndSettle();
+  await agreeToTerms(tester);
   return auth;
 }
 

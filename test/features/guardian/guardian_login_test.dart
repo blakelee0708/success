@@ -47,6 +47,7 @@ Future<void> _gotoLogin(
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(GuardianStartKeys.email));
   await tester.pumpAndSettle();
+  await agreeToTerms(tester);
 }
 
 Future<void> _submit(

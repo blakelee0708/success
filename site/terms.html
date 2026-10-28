@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>서비스 이용약관 · 잘보이네</title>
+<!--
+  The other document the sign-up screen links to.
+
+  `guardian_start_screen.dart` had said 시작하면 서비스 이용약관과 개인정보
+  처리방침에 동의하게 됩니다 since Phase 3 - as plain text, with no link, and
+  **with no 이용약관 anywhere in the repository.** It named a document that
+  did not exist and offered no way to read the one that did.
+
+  The style block is copied from `privacy.html` so the two read as one
+  document set. If either changes, change both.
+
+  THE 「」 FIELDS ARE NOT WRITTEN YET, and they are of two kinds. The 사업자
+  ones are the same six `privacy.html` carries. The others are **product
+  decisions the owner has to make** - the refund window, who answers
+  support, which court - and inventing them would be worse here than on the
+  privacy page, because a term invented in a contract is a term somebody
+  could be held to.
+-->
+<style>
+  :root {
+    --ground-top: #EEF2FF;
+    --ground-mid: #F7F9FF;
+    --ground-end: #FFFFFF;
+    --card-top: #FFFFFF;
+    --card-end: #F4F7FE;
+    --ink: #191F28;
+    --ink-soft: #4E5968;
+    --ink-faint: #5F6B7A;
+    --primary: #0B5FD9;
+    --hero-start: #0B4FC4;
+    --hero-end: #2E6FE8;
+    --rule: #E6EAF2;
+    --todo-face: #FFF4E0;
+    --todo-ink: #8A5A00;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: linear-gradient(185deg, var(--ground-top), var(--ground-mid) 30%, var(--ground-end) 60%);
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
+                 system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    -webkit-text-size-adjust: 100%;
+    padding: 28px 16px 64px;
+    /* Browsers break Korean between syllables by default, so `채워지기`
+       came out as `채워지` / `기` across two lines. `keep-all` breaks at
+       spaces instead, which is how the language is read. The app's consent
+       cards document the same fault from the other side, where a wrapped
+       line left `은` alone. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  main {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 36px 28px 40px;
+    border-radius: 24px;
+    background: linear-gradient(170deg, var(--card-top), var(--card-end));
+    box-shadow: 0 18px 44px rgba(16, 36, 94, 0.12);
+  }
+  .wordmark {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--primary);
+    margin-bottom: 10px;
+  }
+  h1 {
+    margin: 0 0 10px;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    line-height: 1.35;
+  }
+  .lede {
+    margin: 0 0 4px;
+    font-size: 15.5px;
+    line-height: 1.75;
+    color: var(--ink-soft);
+  }
+  h2 {
+    margin: 36px 0 12px;
+    padding-top: 22px;
+    border-top: 1px solid var(--rule);
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    line-height: 1.4;
+  }
+  h3 {
+    margin: 22px 0 8px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  p, li {
+    font-size: 15px;
+    line-height: 1.78;
+    color: var(--ink-soft);
+  }
+  p { margin: 0 0 12px; }
+  ul { margin: 0 0 14px; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--ink); font-weight: 700; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 16px;
+    font-size: 14.5px;
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+    line-height: 1.65;
+  }
+  th {
+    color: var(--ink);
+    font-weight: 700;
+    background: rgba(11, 95, 217, 0.04);
+  }
+  /* No `white-space: nowrap` on these. It was there first, and it made the
+     whole page scroll sideways by 101px at 390px wide: a label like
+     `Google (Firebase Cloud Messaging)` cannot shrink, so `width: 100%` on
+     the table stopped meaning anything. Measured in a real browser at phone
+     width, which is the only way this shows up. */
+  tbody th {
+    width: 30%;
+    min-width: 7.5em;
+    background: transparent;
+    color: var(--ink);
+  }
+  td { color: var(--ink-soft); }
+  .todo {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: var(--todo-face);
+    color: var(--todo-ink);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .notice {
+    margin: 0 0 20px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--todo-face);
+    color: var(--todo-ink);
+    font-size: 14.5px;
+    line-height: 1.7;
+    font-weight: 600;
+  }
+  @media (max-width: 480px) {
+    body { padding: 20px 12px 48px; }
+    main { padding: 28px 18px 32px; border-radius: 18px; }
+    th, td { padding: 9px 8px; font-size: 14px; }
+  }
+  .foot {
+    margin-top: 34px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--ink-faint);
+  }
+</style></head>
+<body>
+<main>
+  <div class="wordmark">잘보이네</div>
+  <h1>서비스 이용약관</h1>
+
+  <p class="notice">
+    이 문서는 아직 공개 전 초안입니다. <span class="todo">「&nbsp;」</span> 로 표시된
+    칸은 사업자 정보와 아직 정하지 않은 조건으로, 채워지기 전에는 Play 심사에
+    제출할 수 없습니다.
+  </p>
+
+  <p class="lede">
+    이 약관은 <span class="todo">「 상호 」</span>(이하 "회사")가 제공하는
+    모바일 앱 <strong>잘보이네</strong>를 이용하실 때의 조건을 적은 것입니다.
+    가입하시면 이 약관에 동의하신 것으로 봅니다.
+  </p>
+
+  <h2>1. 이 앱이 무엇인지</h2>
+  <p>
+    잘보이네는 어르신의 안드로이드 스마트폰 첫 화면을 큰 버튼 중심의 쉬운
+    화면으로 바꾸고, 자녀가 그 화면을 자기 폰에서 정리할 수 있게 하는 앱입니다.
+    한 가족은 <strong>어르신 한 분</strong>과 <strong>자녀 여러 명</strong>으로
+    이루어지며, 자녀를 추가로 초대하는 데에는 요금을 받지 않습니다.
+  </p>
+  <p>
+    이 앱은 <strong>의료기기가 아니며 응급 구조 서비스가 아닙니다.</strong>
+    긴급 연락 화면의 119와 112는 전화 앱에 번호를 넣어 드릴 뿐이고, 통화를
+    거는 것은 이용자 본인입니다. 응급 상황에서는 이 앱이 아니라 119에
+    연락하셔야 합니다.
+  </p>
+
+  <h2>2. 가입과 계정</h2>
+  <ul>
+    <li><strong>자녀</strong>는 이메일, 카카오, 구글 중 하나로 가입합니다.</li>
+    <li><strong>어르신</strong>은 계정을 만들지 않습니다. 어르신 폰은 이름도
+      이메일도 없는 임시 식별자로만 서버에 연결됩니다.</li>
+    <li>계정 하나는 한 사람의 것입니다. 비밀번호를 다른 사람과 나누어 쓰시면
+      그 계정으로 일어난 일에 회사는 책임지지 않습니다.</li>
+    <li>만 14세 미만은 가입할 수 없습니다.</li>
+  </ul>
+
+  <h2>3. 가족 연결</h2>
+  <p>
+    자녀가 어르신 폰에 표시된 4자리 번호를 입력하면 연결됩니다. 연결되면 자녀는
+    어르신 폰의 홈 화면 버튼을 바꾸고, 메시지를 주고받고, 안심 케어를 신청하면
+    폰 상태를 볼 수 있습니다.
+  </p>
+  <p>
+    <strong>어르신 폰에서만 답할 수 있는 것이 두 가지 있습니다.</strong> 안심
+    케어를 켤지 말지, 그리고 대표 보호자를 누구로 할지입니다. 자녀끼리 정할 수
+    없습니다.
+  </p>
+
+  <h2>4. 무료로 쓰실 수 있는 것</h2>
+  <ul>
+    <li>어르신 폰의 홈 화면 전체 - 버튼 추가, 이름과 색 바꾸기, 순서 바꾸기</li>
+    <li>어르신이 <strong>자기 폰에서</strong> 바꾸는 것은 횟수 제한이 없습니다</li>
+    <li>긴급 연락, 읽어드리기, 빠른 답장</li>
+    <li>가족 연결과 형제 초대</li>
+    <li>가족 메시지 <strong>월 30회, 사진 5장</strong></li>
+    <li>자녀 폰에서 홈 화면 정리 <strong>2회</strong></li>
+    <li>연결하신 날부터 <strong>7일 동안</strong> 안부 신호와 배터리·소리 상태</li>
+  </ul>
+
+  <h2>5. 안심 케어 (유료)</h2>
+  <p>
+    월 <strong>5,900원</strong>이며 구글 플레이를 통해 결제됩니다. 신청하시면
+    위 무료 범위가 모두 풀리고, 배터리 부족 알림, 폰 미사용 알림, 읽음 확인이
+    더해집니다.
+  </p>
+  <p>
+    <strong>결제만으로는 켜지지 않습니다.</strong> 어르신 폰에서 어르신이
+    동의하셔야 시작됩니다. 어르신이 동의하지 않으시면
+    <strong>결제는 환불되고</strong> 무료 기능은 그대로 쓰실 수 있습니다.
+  </p>
+  <p>
+    해지는 구글 플레이의 구독 관리에서 하실 수 있고, 남은 기간까지는 계속
+    쓰실 수 있습니다. 환불은 구글 플레이의 정책을 따릅니다. 회사에 직접
+    요청하실 경우의 처리 기준은 <span class="todo">「 환불 기준 」</span>
+    입니다.
+  </p>
+  <p>
+    요금이나 제공 범위가 바뀔 때에는 <strong>최소 30일 전에</strong> 앱 안에서
+    알려 드립니다. 바뀐 조건에 동의하지 않으시면 그 전에 해지하실 수 있습니다.
+  </p>
+
+  <h2>6. 하시면 안 되는 일</h2>
+  <ul>
+    <li>어르신 본인이나 어르신을 실제로 돌보는 가족이 아닌 사람의 폰을 연결하는 것</li>
+    <li>어르신이 모르게 연결해 두고 상태를 지켜보는 것</li>
+    <li>다른 사람을 괴롭히거나 놀라게 하려고 소리 울리기를 쓰는 것</li>
+    <li>앱을 뜯어고치거나, 자동으로 대량 호출하거나, 서버에 부담을 주는 것</li>
+    <li>메시지로 불법적인 내용이나 다른 사람의 권리를 침해하는 것을 보내는 것</li>
+  </ul>
+  <p>
+    이 중 어느 하나라도 확인되면 회사는 해당 계정의 이용을 제한하거나 연결을
+    끊을 수 있습니다. 급하지 않은 경우에는 먼저 알려 드리고, 다른 사람에게
+    피해가 가는 경우에는 먼저 멈춘 뒤 알려 드립니다.
+  </p>
+
+  <h2>7. 회사가 책임지는 범위</h2>
+  <p>
+    회사는 앱이 끊기지 않고 동작하도록 노력하지만, <strong>통신 상태, 단말기
+    설정, 안드로이드 정책 변경, 구글·카카오 등 외부 서비스의 장애</strong>로
+    생긴 일에는 책임을 지지 않습니다.
+  </p>
+  <p>
+    특히 다음은 이 앱이 보장하지 않습니다.
+  </p>
+  <ul>
+    <li>알림이나 메시지가 항상 제때 도착하는 것</li>
+    <li>소리 울리기가 항상 어르신 폰을 울리는 것 - 폰이 꺼져 있거나 방해 금지
+      모드이면 울리지 않을 수 있습니다</li>
+    <li>안부 신호가 어르신의 건강 상태를 알려 주는 것 - 이 값은
+      <strong>폰이 켜졌다는 사실</strong>일 뿐입니다</li>
+  </ul>
+  <p>
+    회사가 배상하는 금액은, 법이 달리 정한 경우를 제외하면 문제가 생긴 달에
+    이용자가 실제로 결제한 금액을 넘지 않습니다.
+  </p>
+
+  <h2>8. 서비스를 그만두실 때</h2>
+  <p>
+    자녀는 앱의 <strong>가족 탭 → 로그아웃</strong>으로 로그아웃하실 수 있고,
+    탈퇴를 원하시면 <span class="todo">「 문의 이메일 」</span> 로 알려
+    주십시오. 탈퇴하시면 계정과 주고받은 메시지는 개인정보처리방침에 적힌
+    기준에 따라 삭제됩니다.
+  </p>
+  <p>
+    어르신 폰에서는 <strong>설정 → 잘보이네 사용하지 않기</strong>로 원래
+    첫 화면으로 돌아가실 수 있습니다. 이때 버튼 설정과 글씨 크기, 가족 연결은
+    그대로 남습니다.
+  </p>
+
+  <h2>9. 약관이 바뀔 때</h2>
+  <p>
+    바뀐 약관은 앱 안이나 <code>app.jalboine.com</code>에 올려 알려 드립니다.
+    이용자에게 불리한 변경은 <strong>시행 30일 전</strong>에 알려 드리고,
+    그 전까지 동의하지 않으신다는 뜻을 밝히지 않으시면 동의하신 것으로 봅니다.
+  </p>
+
+  <h2>10. 분쟁</h2>
+  <p>
+    이 약관은 대한민국 법을 따릅니다. 다툼이 생기면 먼저 서로 이야기해
+    해결하고, 그래도 안 되면 민사소송법이 정한 법원에 소를 제기합니다.
+  </p>
+
+  <div class="foot">
+    <p>
+      <strong>서비스 이용약관 (잘보이네)</strong><br>
+      서비스명: 잘보이네<br>
+      앱 식별자: com.jalboine.app<br>
+      상호: <span class="todo">「 상호 」</span><br>
+      대표자: <span class="todo">「 대표자 」</span><br>
+      주소: <span class="todo">「 사업장 주소 」</span><br>
+      문의: <span class="todo">「 이메일 주소 」</span><br>
+      공고일: <span class="todo">「 YYYY-MM-DD 」</span> ·
+      시행일: <span class="todo">「 YYYY-MM-DD 」</span>
+    </p>
+    <p>
+      개인정보를 어떻게 다루는지는 <a href="privacy.html">개인정보처리방침</a>에
+      따로 적혀 있습니다.
+    </p>
+  </div>
+</main>
+</body>
+</html>

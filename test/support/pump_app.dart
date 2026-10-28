@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:app/features/guardian/presentation/widgets/signup_consent_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/app.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
@@ -85,4 +87,16 @@ Future<void> enterSeniorFlow(WidgetTester tester) async {
   await settleSplashEntrance(tester);
   await tester.tap(find.byKey(SplashScreen.tapTargetKey));
   await settleAfterSplashTap(tester);
+}
+
+/// Walks the 약관 동의 sheet every way in now raises.
+///
+/// Added in bulk rather than per test: the sheet sits in front of **all
+/// three** providers, so every path that reached a provider screen before
+/// 2026-10-28 goes through here now.
+Future<void> agreeToTerms(WidgetTester tester) async {
+  await tester.tap(find.byKey(SignupConsentSheet.allKey));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(SignupConsentSheet.continueKey));
+  await tester.pumpAndSettle();
 }

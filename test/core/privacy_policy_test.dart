@@ -103,6 +103,36 @@ void main() {
     }
   });
 
+  test('the sign-up sheet links to pages that exist', () {
+    // It had said 시작하면 서비스 이용약관과 개인정보 처리방침에 동의하게
+    // 됩니다 since Phase 3 - as text, with no link, naming a 이용약관 that
+    // **was not in this repository at all**. Linking to a 404 from a consent
+    // screen is worse than the line was.
+    for (final page in ['site/privacy.html', 'site/terms.html']) {
+      expect(File(page).existsSync(), isTrue, reason: page);
+    }
+    final sheet = File(
+      'lib/features/guardian/presentation/widgets/signup_consent_sheet.dart',
+    ).readAsStringSync();
+    for (final url in [
+      'https://app.jalboine.com/privacy.html',
+      'https://app.jalboine.com/terms.html',
+    ]) {
+      expect(sheet, contains(url), reason: url);
+    }
+  });
+
+  test('the terms say they are a draft while a field is empty', () {
+    // Same rule as the policy, and it matters more here: a term invented in
+    // a contract is a term somebody could be held to.
+    final terms = File('site/terms.html').readAsStringSync();
+    expect(
+      terms.contains('class="todo"') ? terms.contains('아직 공개 전 초안입니다') : true,
+      isTrue,
+      reason: 'site/terms.html has blanks but no longer says it is a draft',
+    );
+  });
+
   test('the policy is reachable on the host the reset mail points at', () {
     // Not the same page, but the same site, and the same custom domain. If
     // the reset redirect moves to another host the policy URL given to Play

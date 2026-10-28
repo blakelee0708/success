@@ -42,6 +42,7 @@ import 'package:app/features/launcher/presentation/widgets/home_utility_row.dart
 import 'package:app/features/guardian/presentation/guardian_login_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_dashboard_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_start_screen.dart';
+import 'package:app/features/guardian/presentation/widgets/signup_consent_sheet.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
 
 import 'support/pump_app.dart';
@@ -171,6 +172,14 @@ void main() {
 
     expect(find.byKey(GuardianStartKeys.kakao), findsOneWidget);
     await _capture(tester, '03-guardian-start');
+
+    // 약관 동의, which every way in now raises before an account can exist.
+    // The line it replaced said 시작하면 ... 동의하게 됩니다 as plain text,
+    // with no link, naming a 이용약관 that did not exist.
+    await tester.tap(find.byKey(GuardianStartKeys.email));
+    await tester.pumpAndSettle();
+    expect(find.byKey(SignupConsentSheet.sheetKey), findsOneWidget);
+    await _capture(tester, '32-signup-consent');
   });
 
   testWidgets('screen mode choice renders', (tester) async {
@@ -325,6 +334,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('카카오로 시작하기'));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
 
     expect(find.byKey(GuardianNavKeys.bar), findsOneWidget);
     await _capture(tester, '05-dashboard-home');
@@ -368,6 +378,7 @@ void main() {
     // that answers raises no sheet for it to sit in.
     await tester.tap(find.byKey(GuardianStartKeys.email));
     await tester.pumpAndSettle();
+    await agreeToTerms(tester);
 
     expect(find.byKey(GuardianLoginKeys.email), findsOneWidget);
     await _capture(tester, '09-guardian-login');
