@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app/features/guardian/presentation/widgets/signup_consent_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/app.dart';
+import 'package:app/features/launcher/presentation/app_settings_screen.dart';
 import 'package:app/features/onboarding/presentation/splash_screen.dart';
 
 /// Marks the root so a test can rasterise whatever is on screen.
@@ -115,5 +116,19 @@ Future<void> tapInAppSettings(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
+/// Scrolls 앱 설정 down to the 자리 버튼 group.
+///
+/// The four rows sit in the list's footer, under every app row, and each is
+/// two lines tall since the symbols became words - so none of them is on
+/// screen when the list opens. Scrolling to the last one brings the other
+/// three with it.
+Future<void> showSlotRows(WidgetTester tester) async {
+  await tester.scrollUntilVisible(
+    find.byKey(AppSettingsKeys.delete('sos')),
+    200,
+  );
   await tester.pumpAndSettle();
 }

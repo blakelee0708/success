@@ -107,7 +107,7 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
   Future<void> setAppColor(String id, ButtonColor? color) =>
       _mapApps((app) => app.id == id ? app.withColor(color) : app);
 
-  /// Renames or recolours one of the three fixed slots, adding it to the
+  /// Renames or recolours one of the four slot buttons, adding it to the
   /// saved list the first time somebody does.
   ///
   /// They are not in either screen's defaults - seeding them changed the
@@ -137,26 +137,91 @@ class SeniorSettingsController extends AsyncNotifier<SeniorSettings> {
     await _write(current.copyWith(apps: List.unmodifiable(apps)));
   }
 
-  Future<void> removeApp(String id) async {
+  /// Returns false when the home screen is already at [minimumHomeButtons]
+  /// and nothing was removed.
+  ///
+  /// The guard is here rather than only on the screen, because both phones
+  /// call it: the senior's 앱 설정 and the guardian's 홈 화면 are two ways to
+  /// the same list, and a floor that lived on one of them would not be a
+  /// floor.
+  Future<bool> removeApp(String id) async {
     final current = state.value ?? const SeniorSettings();
+    if (!current.canRemoveButton) return false;
+    // A slot button is remembered as removed rather than merely dropped from
+    // the list. Absence has always meant *nobody has edited this yet, use the
+    // default*, which is what still draws all four on a settings file written
+    // before they existed; reading absence as removal would empty those
+    // screens the moment this shipped.
+    final slot = _slotCategoryOf(current, id);
     await _write(
       current.copyWith(
-        apps: current.apps.where((a) => a.id != id).toList(growable: false),
+        // A slot button **stays in the list**, marked removed. Dropping the
+        // row would throw away the name and colour the family gave it, and
+        // putting it back later would hand the senior a button called 가족
+        // where theirs said 영희. Nothing draws it: `slot` answers null while
+        // the kind is in `removedSlots`, and `seniorGridApps` has never let
+        // one into the grid.
+        apps: slot != null
+            ? current.apps
+            : current.apps.where((a) => a.id != id).toList(growable: false),
+        removedSlots: slot == null
+            ? current.removedSlots
+            : {...current.removedSlots, slot},
       ),
+    );
+    return true;
+  }
+
+  /// Which slot kind [id] names, or null for an ordinary button.
+  static AppCategory? _slotCategoryOf(SeniorSettings current, String id) {
+    for (final app in [...current.apps, ...fixedSlotApps]) {
+      if (app.id == id && app.category.fixedSlot) return app.category;
+    }
+    return null;
+  }
+
+  /// Puts a slot button back where it was.
+  ///
+  /// Not [addApp]: that mints a fresh id and appends to the grid, and these
+  /// four are not grid buttons. The canonical button comes back with whatever
+  /// name and colour the family had given it, because removing one was never
+  /// meant to throw that away.
+  Future<void> restoreSlot(AppCategory category) async {
+    final current = state.value ?? const SeniorSettings();
+    if (!category.fixedSlot) return;
+    final removed = {...current.removedSlots}..remove(category);
+    final apps = [...current.apps];
+    if (!apps.any((a) => a.category == category)) {
+      apps.add(fixedSlotApps.firstWhere((a) => a.category == category));
+    }
+    await _write(
+      current.copyWith(apps: List.unmodifiable(apps), removedSlots: removed),
     );
   }
 
   /// Indices follow `ReorderableListView`: [newIndex] is read against the list
   /// as it still stands, before the dragged button is lifted out, so a move
   /// downward has to shed one place once it is.
+  ///
+  /// **The indices are the grid's, not the saved list's.** A slot button
+  /// joins `apps` as soon as somebody renames or recolours it, and it is
+  /// never drawn in the reorderable list - so a saved list holding one would
+  /// have made every index after it off by one, and a drag would have moved
+  /// the wrong button.
   Future<void> reorderApps(int oldIndex, int newIndex) async {
     final current = state.value ?? const SeniorSettings();
-    final apps = [...current.apps];
-    if (oldIndex < 0 || oldIndex >= apps.length) return;
+    final grid = [...seniorGridApps(current.apps)];
+    final slots = [
+      for (final app in current.apps)
+        if (app.category.fixedSlot) app,
+    ];
+    if (oldIndex < 0 || oldIndex >= grid.length) return;
     final target = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    final moved = apps.removeAt(oldIndex);
-    apps.insert(target.clamp(0, apps.length), moved);
-    await _write(current.copyWith(apps: apps));
+    final moved = grid.removeAt(oldIndex);
+    grid.insert(target.clamp(0, grid.length), moved);
+    // The slots go at the end and their order there means nothing: the home
+    // screens look each one up by kind, not by position.
+    await _write(current.copyWith(apps: [...grid, ...slots]));
   }
 
   Future<void> addApp({

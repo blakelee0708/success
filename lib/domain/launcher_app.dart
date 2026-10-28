@@ -287,7 +287,7 @@ const List<LauncherApp> defaultDetailedApps = [
   LauncherApp(id: 'gallery', label: '사진 보기', category: AppCategory.gallery),
 ];
 
-/// The three that are not apps: 가족, 소리, 인터넷.
+/// The four that are not apps: 가족, 소리, 인터넷, 긴급 구조 요청.
 ///
 /// **Not** in either screen's defaults, and that is deliberate. Seeding them
 /// changed the count and the order of `defaultDetailedApps`, which a dozen
@@ -302,6 +302,7 @@ const List<LauncherApp> fixedSlotApps = [
   LauncherApp(id: 'family', label: '가족', category: AppCategory.family),
   LauncherApp(id: 'sound', label: '소리', category: AppCategory.sound),
   LauncherApp(id: 'internet', label: '인터넷', category: AppCategory.internet),
+  LauncherApp(id: 'sos', label: '긴급 구조 요청', category: AppCategory.sos),
 ];
 
 /// The buttons that go in the grid, in order.
@@ -310,7 +311,7 @@ List<LauncherApp> seniorGridApps(List<LauncherApp> apps) =>
 
 /// The saved button for [category], or the default if the senior has none.
 ///
-/// A fallback rather than an assumption: settings saved before these three
+/// A fallback rather than an assumption: settings saved before these four
 /// existed do not carry them, and a sync that drops a row must not take 가족
 /// off the home screen with it.
 LauncherApp fixedSlotApp(List<LauncherApp> apps, AppCategory category) {

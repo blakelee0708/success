@@ -47,6 +47,10 @@ class SeniorSettingsSync {
         profileId,
         screenMode: settings.screenMode,
         fontSize: settings.fontSize,
+        // What is *off* the screen, written whole. The guardian's phone reads
+        // it the same way, which is how 엄마가 SOS 빼 달래 reaches her phone
+        // at all - `home_apps` can only carry buttons that exist.
+        removedSlots: settings.removedSlots,
       );
       return true;
     } on Object {

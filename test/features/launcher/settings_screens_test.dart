@@ -104,6 +104,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('카카오톡'), findsNothing);
+    // Back to the top: the footer carries four slot rows of two lines each
+    // now, so the first app row is above the fold after a delete.
+    await tester.drag(find.byType(ReorderableListView), const Offset(0, 600));
+    await tester.pumpAndSettle();
     expect(find.text('전화'), findsOneWidget);
   });
 

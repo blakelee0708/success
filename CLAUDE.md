@@ -402,6 +402,62 @@ in the spec's order — and they were right to. A saved list holds one only once
 somebody has edited it; until then `fixedSlotApp` returns the default, which
 is also what covers settings written before these existed.
 
+## The four slot buttons can be taken off, and the screen has a floor
+
+`AppCategory.fixedSlot` used to mean *never deleted and never offered*: there
+is one of each of 가족, 소리 and 인터넷, the senior did not put it there, so
+removing one was not a thing to offer. 긴급 구조 요청 was not even a button -
+it was a hard-coded widget on both home screens, which made it the one thing
+on a senior's phone that **nobody** could take off.
+
+That is the opposite of what this half of the app is for, and the case came
+from a parent: a senior who finds a large red emergency bar alarming, or who
+keeps pressing it by accident, asks their child to take it away. All four are
+ordinary buttons now in every respect but where they are drawn - `sos` is an
+`AppCategory` with its own row in `fixedSlotApps` - and each can be removed
+and put back from either phone.
+
+**What it costs is written down rather than hidden.** With 긴급 구조 요청 gone
+there is no route to 119 from the home screen, and the only way back is
+설정 → 앱 설정하기 → 버튼 추가하기.
+
+**Removal is recorded, never inferred from the list.** A slot button absent
+from `apps` has always meant *nobody has edited this one yet, draw the
+default* - which is what still draws all four for a family that has never
+touched them. Reading absence as removal would have emptied every settings
+file written before this shipped, and nothing in the rows tells the two
+apart. `SeniorSettings.removedSlots` is the record, and the removed button
+**stays in `apps`** so its name and colour survive: putting it back must not
+hand a senior a button called 가족 where theirs said 영희.
+
+It syncs on the **profile**, not in `home_apps`
+(`20261028040000_removed_slots.sql`, applied live), because what is being
+recorded is the absence of a row and that table holds rows. The server's copy
+is taken whole rather than merged - a union of the two sides would make
+putting one back from the other phone impossible.
+
+**Four is the floor.** Making the four removable made an empty home screen
+reachable for the first time, and a senior looking at a blank phone cannot be
+told what to press to get their buttons back. The guard is on the controller,
+because the senior's 앱 설정 and the guardian's 홈 화면 are two ways to the
+same list. It is **not** enforced by hiding 지우기 - a button that does
+nothing reads as the phone being broken - so the count is said at the top of
+앱 설정 before anybody reaches the floor, and the refusal names the number and
+offers the way round it. The same rule the message allowance and the
+home-edit allowance already follow.
+
+**Each row closes up on its own.** 소리 or 인터넷 gone and the other keeps the
+row at the same 48px; both gone and `HomeBody` draws no row at all and the
+grid takes the height. 긴급 구조 요청 or 가족 gone and the other has the width;
+both gone and that row goes too.
+
+One pre-existing bug fell out of it: 앱 설정 listed `settings.apps` verbatim,
+and a slot button joins that list the moment somebody renames or recolours it
+- so a renamed 인터넷 was drawn twice, once as a draggable app row and once in
+the footer. The list reads `seniorGridApps` now, and `reorderApps` works on
+the grid's indices, since a saved slot would otherwise have made every index
+after it off by one.
+
 ## Layout under large text
 
 Raising the text size is the point of this app, so anything that only fits at

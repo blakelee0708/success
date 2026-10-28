@@ -124,9 +124,17 @@ void main() {
     // The rows are two lines each since the symbols became words, so both of
     // these are below the fold on a phone.
     await tester.scrollUntilVisible(find.byKey(AppSettingsKeys.add), 200);
+    // Back up far enough that the last app row is laid out too. A row a list
+    // has scrolled past is disposed, not merely off-screen, so there is
+    // nothing to measure.
+    await tester.drag(find.byType(ReorderableListView), const Offset(0, 150));
     await tester.pumpAndSettle();
 
-    final lastRow = tester.getBottomLeft(find.text('사진 보기')).dy;
+    // By key rather than by the label: the list is long enough now that the
+    // row's own text may be scrolled past while the row is still laid out.
+    final lastRow = tester
+        .getBottomLeft(find.byKey(AppSettingsKeys.rename('gallery')))
+        .dy;
     final add = tester.getTopLeft(find.byKey(AppSettingsKeys.add)).dy;
     final out = tester.getTopLeft(find.byKey(AppSettingsKeys.done)).dy;
 

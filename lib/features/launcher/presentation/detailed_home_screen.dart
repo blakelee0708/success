@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
+import '../../../domain/senior_settings.dart';
 import '../application/senior_settings_controller.dart';
 import 'add_home_button.dart';
 import 'open_home_button.dart';
@@ -46,10 +47,15 @@ class DetailedHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Saved buttons rather than the constant defaults, so an edit made in
     // 설정 reaches the home screen.
-    final saved = ref.watch(seniorSettingsControllerProvider).value?.apps;
-    final all = (saved == null || saved.isEmpty) ? defaultDetailedApps : saved;
+    final settings =
+        ref.watch(seniorSettingsControllerProvider).value ??
+        const SeniorSettings();
+    final all = settings.apps.isEmpty ? defaultDetailedApps : settings.apps;
     final apps = seniorGridApps(all);
-    final familyButton = fixedSlotApp(all, AppCategory.family);
+    // Null when the family took it off. With both gone the row goes too and
+    // the grid takes its height; with one gone the other has the width.
+    final familyButton = settings.slot(AppCategory.family);
+    final sosButton = settings.slot(AppCategory.sos);
     final connected =
         (ref.watch(seniorGuardiansProvider).value ?? const []).isNotEmpty;
 
@@ -105,54 +111,62 @@ class DetailedHomeScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: HomeBody.sectionGap),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: _sosFlex,
-                          child: HomePill(
-                            label: '긴급 구조 요청',
-                            icon: Icons.notifications_active,
-                            light: AppColors.seniorSosLight,
-                            face: AppColors.seniorSos,
-                            deep: AppColors.seniorSosDeep,
-                            wall: AppColors.seniorSosWall,
-                            ink: Colors.white,
-                            onTap: () => context.go(Routes.sos),
-                          ),
-                        ),
-                        const SizedBox(width: HomeBody.gutter),
-                        Expanded(
-                          flex: _familyFlex,
-                          child: HomePill(
-                            // The senior's own words and colour, which the
-                            // family can change from either phone. Before a
-                            // family is attached the button is still an
-                            // invitation, so the label they chose waits.
-                            label: connected
-                                ? familyButton.label
-                                : '가족 연결',
-                            icon: familyButton.category.icon,
-                            light: familyButton.lightColor,
-                            face: familyButton.baseColor,
-                            deep: familyButton.deepColor,
-                            wall: familyButton.wallColor,
-                            // Amber is too light to carry white lettering.
-                            ink: AppColors.seniorInk,
-                            // The band used to carry the newest message and
-                            // open the conversation. With the band down to a
-                            // clock, this button takes that back - which is
-                            // what `04_SCREEN_SPEC` asked of it in the first
-                            // place. Without this the conversation has no
-                            // route from the senior's home at all: 가족 연결
-                            // only ever reaches a 연결되었어요 notice.
-                            onTap: () => context.push(
-                              connected ? Routes.familyMessages : Routes.familyLink,
+                    if (familyButton != null || sosButton != null) ...[
+                      const SizedBox(height: HomeBody.sectionGap),
+                      Row(
+                        children: [
+                          if (sosButton case final sos?) ...[
+                            Expanded(
+                              flex: _sosFlex,
+                              child: HomePill(
+                                label: sos.label,
+                                icon: sos.category.icon,
+                                light: sos.lightColor,
+                                face: sos.baseColor,
+                                deep: sos.deepColor,
+                                wall: sos.wallColor,
+                                ink: sos.letteringColor,
+                                onTap: () => context.go(Routes.sos),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
+                            if (familyButton != null)
+                              const SizedBox(width: HomeBody.gutter),
+                          ],
+                          if (familyButton case final family?)
+                            Expanded(
+                              flex: _familyFlex,
+                              child: HomePill(
+                                // The senior's own words and colour, which
+                                // the family can change from either phone.
+                                // Before a family is attached the button is
+                                // still an invitation, so the label they
+                                // chose waits.
+                                label: connected ? family.label : '가족 연결',
+                                icon: family.category.icon,
+                                light: family.lightColor,
+                                face: family.baseColor,
+                                deep: family.deepColor,
+                                wall: family.wallColor,
+                                // Amber is too light to carry white lettering.
+                                ink: family.letteringColor,
+                                // The band used to carry the newest message
+                                // and open the conversation. With the band
+                                // down to a clock, this button takes that
+                                // back - which is what `04_SCREEN_SPEC` asked
+                                // of it in the first place. Without it the
+                                // conversation has no route from the senior's
+                                // home at all: 가족 연결 only ever reaches a
+                                // 연결되었어요 notice.
+                                onTap: () => context.push(
+                                  connected
+                                      ? Routes.familyMessages
+                                      : Routes.familyLink,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

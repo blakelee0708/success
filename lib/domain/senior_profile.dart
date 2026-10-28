@@ -1,3 +1,4 @@
+import 'app_category.dart';
 import 'senior_settings.dart';
 
 /// Whether the senior has agreed to the paid 안심 케어 features.
@@ -25,6 +26,7 @@ class SeniorProfile {
     this.paidConsentStatus = PaidConsentStatus.none,
     this.pendingPrimaryGuardianId,
     this.guardianHomeEdits = 0,
+    this.removedSlots = const {},
   });
 
   final String id;
@@ -60,6 +62,14 @@ class SeniorProfile {
   /// is what lets the screen say the number *before* a save is refused.
   final int guardianHomeEdits;
 
+  /// Which of 가족, 소리, 인터넷 and 긴급 구조 요청 the family has taken off
+  /// the home screen.
+  ///
+  /// On the profile rather than in `home_apps` because what is recorded is
+  /// the *absence* of a button, and that table holds rows. Absence there has
+  /// always meant *nobody has edited this one yet, draw the default*.
+  final Set<AppCategory> removedSlots;
+
   /// Folds the server's copy into what this phone already has.
   ///
   /// The button list is not touched here — it syncs through `home_apps`, and
@@ -68,6 +78,10 @@ class SeniorProfile {
   SeniorSettings applyTo(SeniorSettings settings) => settings.copyWith(
     screenMode: screenMode ?? settings.screenMode,
     fontSize: fontSize ?? settings.fontSize,
+    // Taken as the server's, not merged. A guardian removing 긴급 구조 요청
+    // for their mother has to reach her phone, and a union of the two sides
+    // would make putting one back impossible from the other phone.
+    removedSlots: removedSlots,
   );
 
   /// Added because the in-memory twin rebuilt this by hand in two places and
@@ -81,6 +95,7 @@ class SeniorProfile {
     FontSize? fontSize,
     PaidConsentStatus? paidConsentStatus,
     int? guardianHomeEdits,
+    Set<AppCategory>? removedSlots,
   }) => SeniorProfile(
     id: id,
     displayName: displayName ?? this.displayName,
@@ -91,6 +106,7 @@ class SeniorProfile {
     paidConsentStatus: paidConsentStatus ?? this.paidConsentStatus,
     pendingPrimaryGuardianId: pendingPrimaryGuardianId,
     guardianHomeEdits: guardianHomeEdits ?? this.guardianHomeEdits,
+    removedSlots: removedSlots ?? this.removedSlots,
   );
 
   static SeniorProfile? fromRow(Map<String, Object?> row) {
@@ -115,6 +131,14 @@ class SeniorProfile {
         final int n => n,
         final num n => n.toInt(),
         _ => 0,
+      },
+      // A name this version does not know is ignored rather than rejected: a
+      // newer phone in the family must not stop an older one syncing at all.
+      removedSlots: switch (row['removed_slots']) {
+        final List names => {
+          for (final name in names) ?_byName(AppCategory.values, name),
+        },
+        _ => const <AppCategory>{},
       },
     );
   }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/app_category.dart';
+import '../../../domain/launcher_app.dart';
+import '../../../domain/senior_settings.dart';
 import '../application/senior_settings_controller.dart';
 import 'widgets/category_picker.dart';
 import 'widgets/contact_dialog.dart';
@@ -16,12 +18,36 @@ import 'widgets/name_dialog.dart';
 ///
 /// Returns the label added, or null if the senior backed out at any step.
 Future<String?> addHomeButton(BuildContext context, WidgetRef ref) async {
+  final settings =
+      ref.read(seniorSettingsControllerProvider).value ?? const SeniorSettings();
   final category = await askForCategory(
     context,
-    alreadyOn:
-        ref.read(seniorSettingsControllerProvider).value?.apps ?? const [],
+    // What the screen already holds, which is what the picker hides. A slot
+    // button counts as held unless it has been taken off - `slot` is the one
+    // place that decides, so the picker cannot offer 가족 to a screen that
+    // still has it.
+    alreadyOn: [
+      ...settings.apps.where((a) => !a.category.fixedSlot),
+      for (final app in fixedSlotApps) ?settings.slot(app.category),
+    ],
   );
   if (category == null || !context.mounted) return null;
+
+  // Back where it was, with the name and colour the family had given it.
+  // Minting a fresh button instead would put a second 가족 in the grid, which
+  // is the one place these four never go.
+  if (category.fixedSlot) {
+    await ref
+        .read(seniorSettingsControllerProvider.notifier)
+        .restoreSlot(category);
+    return settings.apps
+            .firstWhere(
+              (a) => a.category == category,
+              orElse: () =>
+                  fixedSlotApps.firstWhere((a) => a.category == category),
+            )
+            .label;
+  }
 
   // An app already on the phone brings its own name and its own icon, so
   // there is nothing left to ask. Two presses and no keyboard.

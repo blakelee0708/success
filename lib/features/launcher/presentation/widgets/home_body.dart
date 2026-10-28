@@ -2,6 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../domain/senior_settings.dart';
+import '../../application/senior_settings_controller.dart';
 import 'home_strip.dart';
 import 'home_utility_row.dart';
 
@@ -17,7 +20,7 @@ import 'home_utility_row.dart';
 /// the same app.
 ///
 /// Place it inside an [Expanded]: it sizes itself from the space it is given.
-class HomeBody extends StatelessWidget {
+class HomeBody extends ConsumerWidget {
   const HomeBody({super.key, required this.tiles, required this.rowGap});
 
   /// The cells of the grid, in order, two to a row.
@@ -57,8 +60,16 @@ class HomeBody extends StatelessWidget {
   static const minRow = 92.0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final rows = (tiles.length / 2).ceil();
+    // Both of 소리 and 인터넷 can be taken off now, and when they are this
+    // row takes no height rather than leaving a 48px band of nothing. The
+    // grid gets that height back, which is the same arithmetic the band and
+    // the grid already share.
+    final utility = HomeUtilityRow.visibleFor(
+      ref.watch(seniorSettingsControllerProvider).value ??
+          const SeniorSettings(),
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -67,8 +78,9 @@ class HomeBody extends StatelessWidget {
         // band was invented to fix.
         final tile = (constraints.maxWidth - gutter) / 2;
         final square = rows * tile + (rows - 1) * rowGap;
-        final available =
-            constraints.maxHeight - sectionGap - 14 - HomeUtilityRow.height;
+        final available = constraints.maxHeight -
+            14 -
+            (utility ? HomeUtilityRow.height + sectionGap : 0);
 
         // The band is laid out at its drawn height and the grid takes what is
         // left. The other way round — which is what this did at first — let
@@ -91,8 +103,10 @@ class HomeBody extends StatelessWidget {
             // Directly under the clock, above the apps: these change the
             // phone rather than open anything, and the band is the part of
             // the screen that is about the phone itself.
-            const HomeUtilityRow(),
-            const SizedBox(height: sectionGap),
+            if (utility) ...[
+              const HomeUtilityRow(),
+              const SizedBox(height: sectionGap),
+            ],
             SizedBox(
               height: grid,
               child: GridView.count(

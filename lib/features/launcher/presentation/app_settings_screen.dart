@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
+import '../../../domain/senior_settings.dart';
 import '../application/senior_settings_controller.dart';
 
 import 'add_home_button.dart';
@@ -30,6 +31,12 @@ abstract final class AppSettingsKeys {
   static Key colour(String id) => Key('colour-$id');
   static Key delete(String id) => Key('delete-$id');
   static const deleteConfirm = Key('app-settings-delete-confirm');
+
+  /// The card that says why 지우기 did nothing.
+  static const floorNotice = Key('app-settings-floor');
+
+  /// The line that says how many buttons there are.
+  static const count = Key('app-settings-count');
 }
 
 /// 앱 설정하기 — the senior's own view of their home buttons: reorder, rename,
@@ -43,7 +50,16 @@ class AppSettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final apps = ref.watch(seniorSettingsControllerProvider).value?.apps ?? [];
+    final settings =
+        ref.watch(seniorSettingsControllerProvider).value ??
+        const SeniorSettings();
+    // The grid buttons only. A slot button joins `settings.apps` the moment
+    // somebody renames or recolours it - that is how it is saved at all - so
+    // listing `apps` verbatim drew a renamed 인터넷 twice: once as a
+    // draggable app row and once in the footer. It has been that way since
+    // the three became buttons; adding a fourth and a 지우기 is what made it
+    // visible.
+    final apps = seniorGridApps(settings.apps);
     final controller = ref.read(seniorSettingsControllerProvider.notifier);
 
     return Scaffold(
@@ -54,6 +70,25 @@ class AppSettingsScreen extends ConsumerWidget {
             child: ReorderableListView(
               padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
               onReorder: controller.reorderApps,
+              // The number before the save, which is the rule every refusal
+              // in this product follows: a senior who reaches the floor
+              // should already know where it is rather than meeting it as a
+              // card that stops them.
+              header: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+                child: Text(
+                  settings.canRemoveButton
+                      ? '지금 버튼 ${settings.homeButtonCount}개.'
+                            ' $minimumHomeButtons개까지 줄일 수 있어요.'
+                      : '버튼이 $minimumHomeButtons개예요. 더 줄일 수 없어요.',
+                  key: AppSettingsKeys.count,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.seniorInkMuted,
+                  ),
+                ),
+              ),
               // In the list rather than pinned to the bottom, which is where
               // the guardian's half already puts it: pinned, it leaves a
               // field of nothing between the last row and the button and
@@ -65,18 +100,30 @@ class AppSettingsScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _AddRow(onTap: () => addHomeButton(context, ref)),
-                  // 가족, 소리 and 인터넷 - the three that are not apps. Below
-                  // the apps rather than above them, because they are the
-                  // furniture around what the senior actually chose, and in
-                  // the footer rather than the list because there is exactly
-                  // one of each: nothing here is reordered or deleted.
-                  const _GroupTitle('이 화면에 늘 있는 버튼'),
-                  for (final category in AppCategory.values)
-                    if (category.fixedSlot)
+                  // 가족, 소리, 인터넷, 긴급 구조 요청 - the four that are
+                  // not apps. Below the apps rather than above them, because
+                  // they are the furniture around what the senior actually
+                  // chose, and in the footer rather than the list because
+                  // there is exactly one of each and none of them is dragged
+                  // into a different order.
+                  //
+                  // **지우기 is here now.** The heading used to say 늘 있는,
+                  // which was the rule: one of each, nobody put them there,
+                  // so taking one away was not a thing to offer. What that
+                  // missed is the senior who finds a large red emergency bar
+                  // alarming, or who keeps pressing it by accident, and the
+                  // child asked to take it off. Removed, each goes back into
+                  // 버튼 추가하기 with the name and colour it had.
+                  const _GroupTitle('이 화면의 자리 버튼'),
+                  for (final app in fixedSlotApps)
+                    if (settings.slot(app.category) case final on?)
                       _FixedRow(
-                        app: fixedSlotApp(apps, category),
-                        onRename: () => _renameFixed(context, ref, category),
-                        onRecolour: () => _recolourFixed(context, ref, category),
+                        app: on,
+                        onRename: () =>
+                            _renameFixed(context, ref, app.category),
+                        onRecolour: () =>
+                            _recolourFixed(context, ref, app.category),
+                        onDelete: () => _confirmDelete(context, ref, on),
                       ),
                   const SizedBox(height: 8),
                 ],
@@ -140,8 +187,11 @@ class AppSettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     AppCategory category,
   ) async {
-    final apps = ref.read(seniorSettingsControllerProvider).value?.apps ?? [];
-    final current = fixedSlotApp(apps, category);
+    final settings =
+        ref.read(seniorSettingsControllerProvider).value ??
+        const SeniorSettings();
+    final current = settings.slot(category);
+    if (current == null) return;
     final name = await askForButtonName(
       context,
       title: '이름 바꾸기',
@@ -158,10 +208,12 @@ class AppSettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     AppCategory category,
   ) async {
-    final apps = ref.read(seniorSettingsControllerProvider).value?.apps ?? [];
+    final settings =
+        ref.read(seniorSettingsControllerProvider).value ??
+        const SeniorSettings();
     final chosen = await _pickColour(
       context,
-      current: fixedSlotApp(apps, category).color,
+      current: settings.slot(category)?.color,
     );
     if (chosen == null) return;
     await ref
@@ -230,6 +282,35 @@ class AppSettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     LauncherApp app,
   ) async {
+    final settings =
+        ref.read(seniorSettingsControllerProvider).value ??
+        const SeniorSettings();
+    // Refused before the confirm, not after. Asking 지울까요 and then saying
+    // no is a question that was never a question, and the senior has already
+    // decided by the time it is taken back.
+    if (!settings.canRemoveButton) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          key: AppSettingsKeys.floorNotice,
+          title: const Text('버튼은 $minimumHomeButtons개까지만 줄일 수 있어요'),
+          content: const Text(
+            '지금 $minimumHomeButtons개예요.\n'
+            '하나 지우시려면 먼저\n'
+            '다른 버튼을 추가해 주세요.',
+            style: TextStyle(fontSize: 19, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('알겠어요', style: TextStyle(fontSize: 20)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -553,33 +634,39 @@ class _GroupTitle extends StatelessWidget {
   );
 }
 
-/// One of 가족, 소리, 인터넷.
+/// One of 가족, 소리, 인터넷, 긴급 구조 요청.
 ///
-/// The same two edits as an app button and neither of the other two: there is
-/// exactly one of each, so nothing here is dragged into a different order or
-/// deleted. A senior who could delete 가족 would lose the only way to their
-/// family from the home screen, and nothing on that screen would say why.
+/// 순서 is the one thing an app row has that this does not: each of these has
+/// a place of its own on both home screens and is never dragged into the
+/// grid. 지우기 is here as of 2026-10-28 - the four used to be the only
+/// buttons on a senior's phone that nobody could take off, which is the
+/// opposite of what this half of the app is for. Removing one costs what it
+/// costs, and the note on `AppCategory.sos` says so for the worst case; it
+/// goes back into 버튼 추가하기 carrying the name and colour it had.
 class _FixedRow extends StatelessWidget {
   const _FixedRow({
     required this.app,
     required this.onRename,
     required this.onRecolour,
+    required this.onDelete,
   });
 
   final LauncherApp app;
   final VoidCallback onRename;
   final VoidCallback onRecolour;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    // The same two lines an app row has, minus 순서: this one has a place of
+    // its own on both home screens and is never dragged into the grid.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onRename,
-          borderRadius: BorderRadius.circular(20),
-          child: Row(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             children: [
               Container(
                 width: 52,
@@ -598,19 +685,29 @@ class _FixedRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   app.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 21,
+                    fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.seniorInk,
+                    color: AppColors.seniorOnSurface,
                   ),
                 ),
               ),
-              // The same word the app rows carry, for the same reason: a
-              // painter's palette is not a colour to anybody reading this
-              // screen. There is no 지우기 and no 순서 here - there is one of
-              // each of these and the senior did not put it there.
-              SizedBox(
-                width: 108,
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _WordButton(
+                  buttonKey: AppSettingsKeys.rename(app.id),
+                  label: '이름',
+                  onTap: onRename,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
                 child: _WordButton(
                   buttonKey: AppSettingsKeys.colour(app.id),
                   label: '색깔',
@@ -618,9 +715,18 @@ class _FixedRow extends StatelessWidget {
                   swatch: app.baseColor,
                 ),
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _WordButton(
+                  buttonKey: AppSettingsKeys.delete(app.id),
+                  label: '지우기',
+                  onTap: onDelete,
+                  ink: AppColors.seniorSos,
+                ),
+              ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }

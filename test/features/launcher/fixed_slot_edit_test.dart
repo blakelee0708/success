@@ -11,6 +11,8 @@ import 'package:app/domain/senior_settings.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/launcher/presentation/widgets/category_picker.dart';
 
+import 'package:app/features/launcher/presentation/app_settings_screen.dart';
+
 import '../../support/pump_app.dart';
 
 /// 가족, 소리 and 인터넷 are the senior's buttons too.
@@ -47,11 +49,12 @@ Future<void> _openSettings(WidgetTester tester, {List<LauncherApp>? apps}) async
 }
 
 void main() {
-  testWidgets('all three are offered for editing', (tester) async {
+  testWidgets('all four are offered for editing', (tester) async {
     await _openSettings(tester);
+    await showSlotRows(tester);
 
-    expect(find.text('이 화면에 늘 있는 버튼'), findsOneWidget);
-    for (final label in ['가족', '소리', '인터넷']) {
+    expect(find.text('이 화면의 자리 버튼'), findsOneWidget);
+    for (final label in ['가족', '소리', '인터넷', '긴급 구조 요청']) {
       expect(find.text(label), findsWidgets, reason: '$label cannot be edited');
     }
   });
@@ -61,9 +64,13 @@ void main() {
   ) async {
     await _openSettings(tester);
 
-    // 이 화면에 늘 있는 버튼 sits under the app rows, which are two lines
-    // each now, so it starts below the fold.
-    await tapInAppSettings(tester, find.text('인터넷'));
+    // 이 화면의 자리 버튼 sits under the app rows, which are two lines each
+    // now, so it starts below the fold. 이름 is the control, not the row:
+    // these carry the same three words an app row does, minus 순서.
+    await tapInAppSettings(
+      tester,
+      find.byKey(AppSettingsKeys.rename('internet')),
+    );
     await tester.enterText(find.byType(TextField).first, '와이파이');
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
@@ -75,36 +82,43 @@ void main() {
     expect(find.text('와이파이'), findsOneWidget);
   });
 
-  testWidgets('none of them can be deleted or dragged', (tester) async {
-    // There is exactly one of each and the senior did not put it there. A
-    // senior who could delete 가족 would lose the only way to their family
-    // from the home screen, with nothing on that screen to say why.
+  testWidgets('none of them is dragged, and all of them can be removed', (
+    tester,
+  ) async {
+    // 순서 is the one control an app row has that these do not: each has a
+    // place of its own on both home screens and never joins the grid.
+    //
+    // 지우기 arrived on 2026-10-28. These four used to be the only buttons on
+    // a senior's phone that nobody could take off, which is the opposite of
+    // what this half of the app is for - and the case is a real one, a
+    // senior who finds the red emergency bar alarming and a child asked to
+    // remove it.
     await _openSettings(tester);
+    await showSlotRows(tester);
 
-    final fixed = find.ancestor(
-      of: find.text('인터넷'),
-      matching: find.byType(Row),
-    );
-    expect(
-      find.descendant(of: fixed.first, matching: find.byTooltip('지우기')),
-      findsNothing,
-    );
+    for (final id in ['family', 'sound', 'internet', 'sos']) {
+      expect(find.byKey(AppSettingsKeys.delete(id)), findsOneWidget);
+      expect(find.byKey(AppSettingsKeys.dragHandle(id)), findsNothing);
+    }
   });
 
-  testWidgets('and adding a button never offers one of them', (tester) async {
+  testWidgets('adding a button offers only the ones that are gone', (
+    tester,
+  ) async {
     await _openSettings(tester);
 
     await tapInAppSettings(tester, find.text('버튼 추가하기'));
 
-    // Scoped to the sheet: the three sit on the screen behind it, which is
-    // the point of them.
+    // Scoped to the sheet: the four sit on the screen behind it, which is
+    // the point of them. A kind already on the screen is hidden, exactly as
+    // a second 전화 is.
     final sheet = find.byKey(CategoryPickerKeys.sheet);
     expect(sheet, findsOneWidget);
-    for (final label in ['소리', '인터넷']) {
+    for (final label in ['소리', '인터넷', '긴급 구조 요청']) {
       expect(
         find.descendant(of: sheet, matching: find.text(label)),
         findsNothing,
-        reason: '$label is offered as a button to add',
+        reason: '$label is already on the screen',
       );
     }
   });

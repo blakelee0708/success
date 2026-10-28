@@ -6,6 +6,7 @@ import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
+import '../../../domain/senior_settings.dart';
 import '../application/senior_settings_controller.dart';
 import 'open_home_button.dart';
 import 'widgets/app_tile.dart';
@@ -29,10 +30,16 @@ class EasyHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final saved = ref.watch(seniorSettingsControllerProvider).value?.apps;
-    final all = (saved == null || saved.isEmpty) ? defaultEasyApps : saved;
+    final settings =
+        ref.watch(seniorSettingsControllerProvider).value ??
+        const SeniorSettings();
+    final all = settings.apps.isEmpty ? defaultEasyApps : settings.apps;
     final apps = seniorGridApps(all);
-    final familyButton = fixedSlotApp(all, AppCategory.family);
+    // Null when the family took the button off. Each of the four goes on its
+    // own: the row it is in closes up, and if nothing is left in that row the
+    // row goes too and the grid takes the height.
+    final familyButton = settings.slot(AppCategory.family);
+    final sosButton = settings.slot(AppCategory.sos);
     // `04_SCREEN_SPEC` gives this slot as 가족 연결 또는 자녀 이름 버튼. Talking
     // to the family moved up into [HomeStrip], which shows their newest
     // message, so what is left for the button is the connection itself —
@@ -74,34 +81,36 @@ class EasyHomeScreen extends ConsumerWidget {
                     const SizedBox(height: HomeBody.sectionGap),
                     Row(
                       children: [
-                        Expanded(
-                          child: HomePill(
-                            // The senior's own words and colour, which the
-                            // family can change from either phone. Before a
-                            // family is attached the button is still an
-                            // invitation, so the label they chose waits.
-                            label: connected
-                                ? familyButton.label
-                                : '가족 연결',
-                            icon: familyButton.category.icon,
-                            light: familyButton.lightColor,
-                            face: familyButton.baseColor,
-                            deep: familyButton.deepColor,
-                            wall: familyButton.wallColor,
-                            ink: familyButton.letteringColor,
-                            // The band used to carry the newest message and
-                            // open the conversation. With the band down to a
-                            // clock, this button takes that back - which is
-                            // what `04_SCREEN_SPEC` asked of it in the first
-                            // place. Without this the conversation has no
-                            // route from the senior's home at all: 가족 연결
-                            // only ever reaches a 연결되었어요 notice.
-                            onTap: () => context.push(
-                              connected ? Routes.familyMessages : Routes.familyLink,
+                        if (familyButton case final family?) ...[
+                          Expanded(
+                            child: HomePill(
+                              // The senior's own words and colour, which the
+                              // family can change from either phone. Before a
+                              // family is attached the button is still an
+                              // invitation, so the label they chose waits.
+                              label: connected ? family.label : '가족 연결',
+                              icon: family.category.icon,
+                              light: family.lightColor,
+                              face: family.baseColor,
+                              deep: family.deepColor,
+                              wall: family.wallColor,
+                              ink: family.letteringColor,
+                              // The band used to carry the newest message and
+                              // open the conversation. With the band down to a
+                              // clock, this button takes that back - which is
+                              // what `04_SCREEN_SPEC` asked of it in the first
+                              // place. Without this the conversation has no
+                              // route from the senior's home at all: 가족 연결
+                              // only ever reaches a 연결되었어요 notice.
+                              onTap: () => context.push(
+                                connected
+                                    ? Routes.familyMessages
+                                    : Routes.familyLink,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: HomeBody.gutter),
+                          const SizedBox(width: HomeBody.gutter),
+                        ],
                         Expanded(
                           child: HomePill(
                             label: '더 보기',
@@ -113,15 +122,20 @@ class EasyHomeScreen extends ConsumerWidget {
                             ink: Colors.white,
                             // Straight to 설정. The screen that used to sit in
                             // between held one button and a line saying apps
-                            // cannot be added yet, which is a screen that exists
-                            // to be passed through.
+                            // cannot be added yet, which is a screen that
+                            // exists to be passed through.
                             onTap: () => context.push(Routes.seniorSettings),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: HomeBody.sectionGap),
-                    SosButton(onTap: () => context.go(Routes.sos)),
+                    if (sosButton case final sos?) ...[
+                      const SizedBox(height: HomeBody.sectionGap),
+                      SosButton(
+                        label: sos.label,
+                        onTap: () => context.go(Routes.sos),
+                      ),
+                    ],
                   ],
                 ),
               ),

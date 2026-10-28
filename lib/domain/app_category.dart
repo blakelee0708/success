@@ -54,6 +54,18 @@ enum AppCategory {
   family,
   sound,
   internet,
+
+  /// 긴급 구조 요청, which was a hard-coded widget on both home screens until
+  /// 2026-10-28 and so was the one button on the senior's phone that nobody
+  /// could remove - not the senior, not their family.
+  ///
+  /// It is removable now, on the owner's call, and the case for it is a real
+  /// one: a senior who finds a large red emergency bar alarming, or who keeps
+  /// pressing it by accident, has asked their child to take it away. The cost
+  /// is stated rather than hidden - with it gone there is no route to 119
+  /// from the home screen, and the only way back is 설정 → 앱 설정하기 →
+  /// 버튼 추가하기.
+  sos,
 }
 
 extension AppCategoryStyle on AppCategory {
@@ -74,6 +86,7 @@ extension AppCategoryStyle on AppCategory {
     // already has, since the saved button only stores an override.
     AppCategory.family => AppColors.seniorFamily,
     AppCategory.sound || AppCategory.internet => AppColors.seniorUtility,
+    AppCategory.sos => AppColors.seniorSos,
   };
 
   /// Lit top of the face.
@@ -91,6 +104,7 @@ extension AppCategoryStyle on AppCategory {
     // already has, since the saved button only stores an override.
     AppCategory.family => AppColors.seniorFamilyLight,
     AppCategory.sound || AppCategory.internet => AppColors.seniorUtilityLight,
+    AppCategory.sos => AppColors.seniorSosLight,
   };
 
   /// Shaded foot of the face, where it turns away from the light.
@@ -108,6 +122,7 @@ extension AppCategoryStyle on AppCategory {
     // already has, since the saved button only stores an override.
     AppCategory.family => AppColors.seniorFamilyDeep,
     AppCategory.sound || AppCategory.internet => AppColors.seniorUtilityDeep,
+    AppCategory.sos => AppColors.seniorSosDeep,
   };
 
   /// The side wall the tile stands on — the thing that makes it an object
@@ -126,6 +141,7 @@ extension AppCategoryStyle on AppCategory {
     // already has, since the saved button only stores an override.
     AppCategory.family => AppColors.seniorFamilyWall,
     AppCategory.sound || AppCategory.internet => AppColors.seniorUtilityWall,
+    AppCategory.sos => AppColors.seniorSosWall,
   };
 
   /// What the icon and the label are drawn in.
@@ -147,16 +163,24 @@ extension AppCategoryStyle on AppCategory {
     _ => Colors.white,
   };
 
-  /// True for the three that have a place of their own on both home screens.
+  /// True for the four that have a place of their own on both home screens:
+  /// 가족, 소리, 인터넷, 긴급 구조 요청.
   ///
-  /// They are saved and synced like every other button - that is how they
-  /// became renameable - but they are never drawn in the grid and never
-  /// offered in the 어떤 버튼인가요 sheet. There is exactly one of each and
-  /// the senior did not put it there.
+  /// They are never drawn in the grid - each has its own row at its own size,
+  /// and that does not change when one is removed and put back.
+  ///
+  /// **They used to be undeletable, and now they are not.** The rule was that
+  /// there is exactly one of each and the senior did not put it there, so
+  /// taking one away was not a thing to offer. What that missed is the other
+  /// direction: a senior who wants their emergency bar gone, or their child
+  /// who was asked to remove it, had no way to say so about the four buttons
+  /// on the screen they are least able to change themselves. They are
+  /// ordinary buttons now in every respect but where they are drawn.
   bool get fixedSlot =>
       this == AppCategory.family ||
       this == AppCategory.sound ||
-      this == AppCategory.internet;
+      this == AppCategory.internet ||
+      this == AppCategory.sos;
 
   /// True for a button that dials a number rather than opening an app.
   bool get isContact => this == AppCategory.contact;
@@ -178,6 +202,7 @@ extension AppCategoryStyle on AppCategory {
     AppCategory.family => '가족',
     AppCategory.sound => '소리',
     AppCategory.internet => '인터넷',
+    AppCategory.sos => '긴급 구조 요청',
   };
 
   /// Whether a home screen may hold more than one of these.
@@ -212,6 +237,7 @@ extension AppCategoryStyle on AppCategory {
     AppCategory.family => Icons.family_restroom,
     AppCategory.sound => Icons.volume_up_rounded,
     AppCategory.internet => Icons.wifi_rounded,
+    AppCategory.sos => Icons.notifications_active,
     // Only drawn until the app's real icon arrives, and on the guardian's
     // half, which never receives one.
     AppCategory.installed => Icons.apps_rounded,

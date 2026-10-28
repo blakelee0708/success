@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../domain/device_status.dart';
 import '../../../../domain/app_category.dart';
-import '../../../../domain/launcher_app.dart';
+import '../../../../domain/senior_settings.dart';
 import '../../application/senior_settings_controller.dart';
 import '../../application/ringer_controller.dart';
 import 'internet_card.dart';
@@ -61,18 +61,30 @@ class HomeUtilityRow extends ConsumerWidget {
   static const soundKey = Key('home-utility-sound');
   static const internetKey = Key('home-utility-internet');
 
+  /// Whether this row has anything to draw. Both buttons gone and the row
+  /// takes no height at all, rather than leaving a 48px band of nothing where
+  /// they used to be.
+  static bool visibleFor(SeniorSettings settings) =>
+      settings.slot(AppCategory.sound) != null ||
+      settings.slot(AppCategory.internet) != null;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ringer = ref.watch(ringerControllerProvider);
     // The senior's own words and colours. They are ordinary saved buttons,
     // which is how the family can rename and recolour them from either phone;
     // what keeps them out of the grid is `fixedSlot`.
-    final saved = ref.watch(seniorSettingsControllerProvider).value?.apps;
-    final all = (saved == null || saved.isEmpty) ? fixedSlotApps : saved;
-    final soundButton = fixedSlotApp(all, AppCategory.sound);
-    final internetButton = fixedSlotApp(all, AppCategory.internet);
+    final settings =
+        ref.watch(seniorSettingsControllerProvider).value ??
+        const SeniorSettings();
+    // Null when the family took it off. One gone leaves the other the whole
+    // width at the same small height; both gone and `HomeBody` draws no row
+    // at all, which is what `visibleFor` answers.
+    final soundButton = settings.slot(AppCategory.sound);
+    final internetButton = settings.slot(AppCategory.internet);
     return Row(
       children: [
+        if (soundButton case final sound?)
         Expanded(
           child: HomePill(
             key: soundKey,
@@ -83,10 +95,10 @@ class HomeUtilityRow extends ConsumerWidget {
             // The state is appended to whatever they called it, so a button
             // renamed 벨소리 still says which way it is set.
             label: switch (ringer) {
-              RingerMode.normal => '${soundButton.label} 켜짐',
+              RingerMode.normal => '${sound.label} 켜짐',
               RingerMode.vibrate => '진동',
-              RingerMode.silent => '${soundButton.label} 꺼짐',
-              null => soundButton.label,
+              RingerMode.silent => '${sound.label} 꺼짐',
+              null => sound.label,
             },
             // Null gets the speaker too, because the label beside it is the
             // neutral 소리 and the icon must not contradict it. A vibration
@@ -97,11 +109,11 @@ class HomeUtilityRow extends ConsumerWidget {
               RingerMode.silent => Icons.volume_off_rounded,
               RingerMode.normal || null => Icons.volume_up_rounded,
             },
-            light: AppColors.seniorUtilityLight,
-            face: AppColors.seniorUtility,
-            deep: AppColors.seniorUtilityDeep,
-            wall: AppColors.seniorUtilityWall,
-            ink: AppColors.seniorInk,
+            light: sound.lightColor,
+            face: sound.baseColor,
+            deep: sound.deepColor,
+            wall: sound.wallColor,
+            ink: sound.letteringColor,
             sheen: 0.4,
             height: height,
             iconSize: 21,
@@ -109,17 +121,19 @@ class HomeUtilityRow extends ConsumerWidget {
             onTap: () => _toggleSound(context, ref),
           ),
         ),
-        const SizedBox(width: 12),
+        if (soundButton != null && internetButton != null)
+          const SizedBox(width: 12),
+        if (internetButton case final internet?)
         Expanded(
           child: HomePill(
             key: internetKey,
-            label: internetButton.label,
-            icon: internetButton.category.icon,
-            light: internetButton.lightColor,
-            face: internetButton.baseColor,
-            deep: internetButton.deepColor,
-            wall: internetButton.wallColor,
-            ink: internetButton.letteringColor,
+            label: internet.label,
+            icon: internet.category.icon,
+            light: internet.lightColor,
+            face: internet.baseColor,
+            deep: internet.deepColor,
+            wall: internet.wallColor,
+            ink: internet.letteringColor,
             sheen: 0.4,
             height: height,
             iconSize: 21,

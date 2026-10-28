@@ -4,6 +4,7 @@ import '../../domain/device_status.dart';
 import '../../domain/guardian_account.dart';
 import '../../domain/senior_device.dart';
 import '../../domain/senior_readings.dart';
+import '../../domain/app_category.dart';
 import '../../domain/senior_profile.dart';
 import '../../domain/senior_settings.dart';
 
@@ -108,6 +109,7 @@ abstract interface class SeniorLinkRepository {
     String seniorProfileId, {
     ScreenMode? screenMode,
     FontSize? fontSize,
+    Set<AppCategory>? removedSlots,
   });
 }
 
@@ -275,10 +277,15 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
     String seniorProfileId, {
     ScreenMode? screenMode,
     FontSize? fontSize,
+    Set<AppCategory>? removedSlots,
   }) async {
     final patch = <String, Object?>{
       if (screenMode != null) 'screen_mode': screenMode.name,
       if (fontSize != null) 'font_size': fontSize.name,
+      // Written whole rather than added to: this is what is *off* the screen,
+      // so an empty list is the meaningful answer "nothing is".
+      if (removedSlots != null)
+        'removed_slots': [for (final c in removedSlots) c.name],
     };
     if (patch.isEmpty) return;
     try {
@@ -598,6 +605,7 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     String seniorProfileId, {
     ScreenMode? screenMode,
     FontSize? fontSize,
+    Set<AppCategory>? removedSlots,
   }) async {
     final profile = profiles[seniorProfileId];
     if (profile == null) return;
@@ -608,6 +616,7 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     profiles[seniorProfileId] = profile.copyWith(
       screenMode: screenMode ?? profile.screenMode,
       fontSize: fontSize ?? profile.fontSize,
+      removedSlots: removedSlots ?? profile.removedSlots,
     );
   }
 }

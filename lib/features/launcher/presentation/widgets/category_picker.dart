@@ -39,14 +39,14 @@ class CategoryPickerKeys {
 /// an app on the parent's phone means **reading the list of apps on the
 /// parent's phone**, and that list is deliberately never sent off it. Showing
 /// the option there would be offering something the next screen cannot do.
-/// The three fixed slots are never offered. 가족, 소리 and 인터넷 each have a
-/// place of their own on both home screens, there is exactly one of each, and
-/// the senior did not put it there - so adding one is not a thing to offer.
-/// They are still ordinary saved buttons, which is how the family renames and
-/// recolours them.
-final addableCategories = [
-  for (final c in AppCategory.values) if (!c.fixedSlot) c,
-];
+/// The four slot buttons are offered too, **but only once one has been taken
+/// off.** 가족, 소리, 인터넷 and 긴급 구조 요청 each have a place of their own
+/// on both home screens and there is exactly one of each, so the caller
+/// passes what the screen already holds and the filter below hides them -
+/// the same rule that stops a second 전화 being offered. What changed on
+/// 2026-10-28 is that they can be removed at all, and a kind that can be
+/// removed and never offered back is a one-way door.
+final addableCategories = AppCategory.values;
 
 Future<AppCategory?> askForCategory(
   BuildContext context, {

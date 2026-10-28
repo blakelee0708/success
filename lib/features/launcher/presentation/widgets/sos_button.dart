@@ -7,15 +7,24 @@ import '../../../../core/widgets/clay_pad.dart';
 /// screen — it is the one control that must read as pressable from across a
 /// room.
 class SosButton extends StatelessWidget {
-  const SosButton({super.key, required this.onTap});
+  const SosButton({
+    super.key,
+    required this.onTap,
+    this.label = '긴급 구조 요청',
+  });
 
   final VoidCallback onTap;
+
+  /// The senior's own word for it. It is an ordinary saved button now, so the
+  /// family can rename it from either phone - and take it off the screen
+  /// altogether, which nobody could do until 2026-10-28.
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: '긴급 구조 요청',
+      label: label,
       child: SizedBox(
         height: 96,
         child: ClayPad(
@@ -28,7 +37,7 @@ class SosButton extends StatelessWidget {
           // Scales down rather than clipping: at 아주 크게 the label and
           // icon no longer fit the pill, and SOS is the one control that
           // must never be half off the screen.
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -49,7 +58,7 @@ class SosButton extends StatelessWidget {
                   ),
                   SizedBox(width: 13),
                   Text(
-                    '긴급 구조 요청',
+                    label,
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w900,
