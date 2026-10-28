@@ -210,8 +210,7 @@ void main() {
     testWidgets('the senior can add a person and it dials', (tester) async {
       await _openAppSettings(tester);
 
-      await tester.tap(find.text('버튼 추가하기'));
-      await tester.pumpAndSettle();
+      await tapInAppSettings(tester, find.text('버튼 추가하기'));
       await tester.tap(
         find.byKey(CategoryPickerKeys.option(AppCategory.contact)),
       );
@@ -235,8 +234,7 @@ void main() {
       // mother's home screen.
       await _openAppSettings(tester);
 
-      await tester.tap(find.text('버튼 추가하기'));
-      await tester.pumpAndSettle();
+      await tapInAppSettings(tester, find.text('버튼 추가하기'));
       await tester.tap(
         find.byKey(CategoryPickerKeys.option(AppCategory.contact)),
       );
@@ -255,8 +253,7 @@ void main() {
       // until a stranger answers.
       await _openAppSettings(tester);
 
-      await tester.tap(find.text('버튼 추가하기'));
-      await tester.pumpAndSettle();
+      await tapInAppSettings(tester, find.text('버튼 추가하기'));
       await tester.tap(
         find.byKey(CategoryPickerKeys.option(AppCategory.contact)),
       );

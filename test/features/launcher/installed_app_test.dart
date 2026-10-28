@@ -110,8 +110,7 @@ Future<FakeAppLauncher> _pumpSeniorHome(
 }
 
 Future<void> _pickKind(WidgetTester tester) async {
-  await tester.tap(find.text('버튼 추가하기'));
-  await tester.pumpAndSettle();
+  await tapInAppSettings(tester, find.text('버튼 추가하기'));
   await tester.tap(
     find.byKey(CategoryPickerKeys.option(AppCategory.installed)),
   );
@@ -167,8 +166,7 @@ void main() {
       // parent's phone — that list never leaves it — so what they can place
       // is the slot. Their parent presses it once and picks.
       final h = await _pumpGuardianTab(tester);
-      await tester.tap(find.text('버튼 추가하기'));
-      await tester.pumpAndSettle();
+      await tapInAppSettings(tester, find.text('버튼 추가하기'));
       await tester.tap(
         find.byKey(CategoryPickerKeys.option(AppCategory.installed)),
       );
@@ -185,8 +183,7 @@ void main() {
       // guardian's would list *their* apps, which is both useless and the
       // wrong phone.
       final h = await _pumpGuardianTab(tester);
-      await tester.tap(find.text('버튼 추가하기'));
-      await tester.pumpAndSettle();
+      await tapInAppSettings(tester, find.text('버튼 추가하기'));
       await tester.tap(
         find.byKey(CategoryPickerKeys.option(AppCategory.installed)),
       );
@@ -200,8 +197,7 @@ void main() {
       // A row that did not say so would read as a button that failed to
       // save. Nothing more happens until the parent presses it.
       final h = await _pumpGuardianTab(tester);
-      await tester.tap(find.text('버튼 추가하기'));
-      await tester.pumpAndSettle();
+      await tapInAppSettings(tester, find.text('버튼 추가하기'));
       await tester.tap(
         find.byKey(CategoryPickerKeys.option(AppCategory.installed)),
       );

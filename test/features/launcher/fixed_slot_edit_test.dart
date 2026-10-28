@@ -61,8 +61,9 @@ void main() {
   ) async {
     await _openSettings(tester);
 
-    await tester.tap(find.text('인터넷'));
-    await tester.pumpAndSettle();
+    // 이 화면에 늘 있는 버튼 sits under the app rows, which are two lines
+    // each now, so it starts below the fold.
+    await tapInAppSettings(tester, find.text('인터넷'));
     await tester.enterText(find.byType(TextField).first, '와이파이');
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
@@ -93,8 +94,7 @@ void main() {
   testWidgets('and adding a button never offers one of them', (tester) async {
     await _openSettings(tester);
 
-    await tester.tap(find.text('버튼 추가하기'));
-    await tester.pumpAndSettle();
+    await tapInAppSettings(tester, find.text('버튼 추가하기'));
 
     // Scoped to the sheet: the three sit on the screen behind it, which is
     // the point of them.

@@ -100,3 +100,20 @@ Future<void> agreeToTerms(WidgetTester tester) async {
   await tester.tap(find.byKey(SignupConsentSheet.continueKey));
   await tester.pumpAndSettle();
 }
+
+/// Taps something in 앱 설정's list, scrolling it into view first.
+///
+/// The rows grew to two lines when the three unlabelled symbols became the
+/// words 이름, 색깔 and 지우기, so 버튼 추가하기 and the lower rows now sit
+/// below the fold on a phone-sized test view. A `find.text` with nothing
+/// scrolled to it finds nothing at all, which reads in a failure as the
+/// control having been removed rather than merely being further down.
+Future<void> tapInAppSettings(WidgetTester tester, Finder finder) async {
+  if (finder.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(finder, 200);
+  }
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
+}

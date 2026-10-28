@@ -53,8 +53,7 @@ void main() {
     await tester.tap(find.text('앱 설정하기'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('버튼 추가하기'));
-    await tester.pumpAndSettle();
+    await tapInAppSettings(tester, find.text('버튼 추가하기'));
 
     // The kind first, because it decides the icon, the colour and the app
     // that opens — none of which a name can imply.
@@ -106,8 +105,7 @@ void main() {
     await tester.tap(find.text('홈 화면'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('버튼 추가하기'));
-    await tester.pumpAndSettle();
+    await tapInAppSettings(tester, find.text('버튼 추가하기'));
     expect(find.byKey(CategoryPickerKeys.sheet), findsOneWidget);
     await tester.tap(
       find.byKey(CategoryPickerKeys.option(AppCategory.youtube)),

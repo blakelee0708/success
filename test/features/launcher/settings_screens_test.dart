@@ -7,6 +7,8 @@ import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/app_category.dart';
 import 'package:app/features/launcher/presentation/widgets/category_picker.dart';
 
+import 'package:app/features/launcher/presentation/app_settings_screen.dart';
+
 import '../../support/pump_app.dart';
 
 Map<String, Object> _saved({String fontSize = 'normal'}) => {
@@ -79,8 +81,10 @@ void main() {
     await tester.tap(find.text('앱 설정하기'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('카카오톡'));
-    await tester.pumpAndSettle();
+    // The row is no longer the rename target: 이름 is, and it says so. Three
+    // unlabelled symbols with renaming hidden behind a tap on the row was
+    // what this screen used to be.
+    await tapInAppSettings(tester, find.byKey(AppSettingsKeys.rename('kakao')));
     await tester.enterText(find.byType(TextField), '카톡');
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
@@ -94,9 +98,9 @@ void main() {
     await tester.tap(find.text('앱 설정하기'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('delete-kakao')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('지우기'));
+    await tapInAppSettings(tester, find.byKey(AppSettingsKeys.delete('kakao')));
+    // By key, because the row's own button says 지우기 too now.
+    await tester.tap(find.byKey(AppSettingsKeys.deleteConfirm));
     await tester.pumpAndSettle();
 
     expect(find.text('카카오톡'), findsNothing);
@@ -110,8 +114,7 @@ void main() {
     await tester.tap(find.text('앱 설정하기'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('delete-kakao')));
-    await tester.pumpAndSettle();
+    await tapInAppSettings(tester, find.byKey(AppSettingsKeys.delete('kakao')));
     await tester.tap(find.text('그만두기'));
     await tester.pumpAndSettle();
 
@@ -123,8 +126,7 @@ void main() {
     await tester.tap(find.text('앱 설정하기'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('버튼 추가하기'));
-    await tester.pumpAndSettle();
+    await tapInAppSettings(tester, find.text('버튼 추가하기'));
     // The kind is asked before the name, so the button gets the right icon,
     // colour and app rather than always being a 문자.
     await tester.tap(find.byKey(CategoryPickerKeys.option(AppCategory.camera)));

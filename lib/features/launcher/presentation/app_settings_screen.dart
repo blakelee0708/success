@@ -22,6 +22,14 @@ abstract final class AppSettingsKeys {
   /// the list reorders perfectly well without it and shows nothing, which is
   /// how it shipped.
   static Key dragHandle(String id) => Key('drag-handle-$id');
+
+  /// The three words under a button's name, and the confirm that follows
+  /// 지우기. The confirm needs a key of its own because its button says
+  /// 지우기 too, and a test reaching for the word now finds two.
+  static Key rename(String id) => Key('rename-$id');
+  static Key colour(String id) => Key('colour-$id');
+  static Key delete(String id) => Key('delete-$id');
+  static const deleteConfirm = Key('app-settings-delete-confirm');
 }
 
 /// 앱 설정하기 — the senior's own view of their home buttons: reorder, rename,
@@ -233,6 +241,7 @@ class AppSettingsScreen extends ConsumerWidget {
             child: const Text('그만두기', style: TextStyle(fontSize: 20)),
           ),
           TextButton(
+            key: AppSettingsKeys.deleteConfirm,
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
               '지우기',
@@ -254,16 +263,31 @@ class AppSettingsScreen extends ConsumerWidget {
 
 /// One button in the list.
 ///
-/// **The handle is the whole point of the row.** `ReorderableListView` on
-/// Android starts a drag on a *long press* and draws nothing at all to say
-/// so, which left 드래그 순서 변경 — a thing `04_SCREEN_SPEC` asks for — with
-/// no way to discover it. Long-press is the gesture this app's readers are
-/// least likely to know, so an invisible one is the same as a missing
-/// feature; on a real phone it was reported as one.
+/// **Three unlabelled symbols is what this row used to be**, right-aligned:
+/// a drag handle, a painter's palette and a bin, with renaming hidden behind
+/// a tap on the row that nothing announced. Reported from a real phone, and
+/// it breaks two rules this repository already wrote down - the assisted
+/// controls **around the corners** are the ones older adults are measured not
+/// noticing at all, and an icon whose meaning sits far from its function is
+/// among the commonest things they get stuck on. A palette is the worst of
+/// the three: there is no generation of Korean seniors for whom a painter's
+/// palette means colour.
 ///
-/// `ReorderableDragStartListener` also makes the handle drag *immediately*
-/// rather than after a hold, which is the difference between a control and a
-/// trick.
+/// So the row is **two lines and the controls are words** - 이름, 색깔,
+/// 지우기 - each a third of the width and 54px tall. The same argument that
+/// replaced the `←` in the corner with 첫 화면으로 가기, one screen along.
+///
+/// **색깔 carries the button's own colour rather than a glyph**, so there is
+/// nothing to learn: the green row's button is green. 지우기 is the one that
+/// cannot be undone, so it is lettered in the SOS red and sits at the far
+/// end, away from the hand coming off 이름.
+///
+/// **The handle keeps its symbol and gains the word 순서.**
+/// `ReorderableListView` on Android starts a drag on a *long press* and draws
+/// nothing at all to say so, which left 드래그 순서 변경 - a thing
+/// `04_SCREEN_SPEC` asks for - with no way to discover it;
+/// `ReorderableDragStartListener` drags immediately instead, which is the
+/// difference between a control and a trick. What it never had was a name.
 class _AppRow extends StatelessWidget {
   const _AppRow({
     super.key,
@@ -282,58 +306,175 @@ class _AppRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          color: app.baseColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        // Measured, not assumed white — the yellows cannot hold it. The
-        // home screen's tiles follow the same rule.
-        child: Icon(app.category.icon, color: app.letteringColor, size: 28),
-      ),
-      title: Text(
-        app.label,
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w700,
-          color: AppColors.seniorOnSurface,
-        ),
-      ),
-      onTap: onRename,
-      trailing: Row(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          ReorderableDragStartListener(
-            key: AppSettingsKeys.dragHandle(app.id),
-            index: index,
-            child: const Padding(
-              // A target an ageing hand can land on, rather than the icon's
-              // own bounds.
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-              child: Icon(
-                Icons.drag_handle,
-                size: 30,
-                color: AppColors.seniorInkMuted,
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: app.baseColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                // Measured, not assumed white — the yellows cannot hold it.
+                // The home screen's tiles follow the same rule.
+                child: Icon(
+                  app.category.icon,
+                  color: app.letteringColor,
+                  size: 28,
+                ),
               ),
-            ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  app.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.seniorOnSurface,
+                  ),
+                ),
+              ),
+              ReorderableDragStartListener(
+                key: AppSettingsKeys.dragHandle(app.id),
+                index: index,
+                child: const Padding(
+                  // A target an ageing hand can land on, rather than the
+                  // icon's own bounds.
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.drag_handle,
+                        size: 28,
+                        color: AppColors.seniorInkMuted,
+                      ),
+                      Text(
+                        '순서',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.seniorInkMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            key: Key('colour-${app.id}'),
-            onPressed: onRecolour,
-            icon: const Icon(Icons.palette_outlined, size: 28),
-            tooltip: '색 바꾸기',
-          ),
-          IconButton(
-            key: Key('delete-${app.id}'),
-            onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline, size: 28),
-            tooltip: '지우기',
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _WordButton(
+                  buttonKey: AppSettingsKeys.rename(app.id),
+                  label: '이름',
+                  onTap: onRename,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _WordButton(
+                  buttonKey: AppSettingsKeys.colour(app.id),
+                  label: '색깔',
+                  onTap: onRecolour,
+                  // The button's own colour, so there is no symbol to learn.
+                  swatch: app.baseColor,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _WordButton(
+                  buttonKey: AppSettingsKeys.delete(app.id),
+                  label: '지우기',
+                  onTap: onDelete,
+                  ink: AppColors.seniorSos,
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// One of the three words under a button's name.
+///
+/// Outlined rather than filled: three solid blocks under every row would be
+/// louder than the buttons they are about, and this screen is a list of the
+/// senior's own home screen.
+class _WordButton extends StatelessWidget {
+  const _WordButton({
+    required this.buttonKey,
+    required this.label,
+    required this.onTap,
+    this.swatch,
+    this.ink = AppColors.seniorOnSurface,
+  });
+
+  final Key buttonKey;
+  final String label;
+  final VoidCallback onTap;
+
+  /// Drawn as a filled circle before the word, for 색깔.
+  final Color? swatch;
+  final Color ink;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 54,
+      child: OutlinedButton(
+        key: buttonKey,
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          side: const BorderSide(color: AppColors.seniorHairline, width: 1.6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (swatch case final colour?) ...[
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: colour,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.seniorHairline,
+                      width: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 7),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  color: ink,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -464,11 +605,18 @@ class _FixedRow extends StatelessWidget {
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: onRecolour,
-                tooltip: '색 바꾸기',
-                icon: const Icon(Icons.palette_outlined, size: 26),
-                color: AppColors.seniorInkMuted,
+              // The same word the app rows carry, for the same reason: a
+              // painter's palette is not a colour to anybody reading this
+              // screen. There is no 지우기 and no 순서 here - there is one of
+              // each of these and the senior did not put it there.
+              SizedBox(
+                width: 108,
+                child: _WordButton(
+                  buttonKey: AppSettingsKeys.colour(app.id),
+                  label: '색깔',
+                  onTap: onRecolour,
+                  swatch: app.baseColor,
+                ),
               ),
             ],
           ),

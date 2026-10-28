@@ -783,8 +783,9 @@ void main() {
     await tester.pumpAndSettle();
     await _capture(tester, '22-app-settings');
 
-    await tester.tap(find.byKey(AppSettingsKeys.add));
-    await tester.pumpAndSettle();
+    // Below the fold since the rows became two lines each - the three
+    // unlabelled symbols are the words 이름, 색깔 and 지우기 now.
+    await tapInAppSettings(tester, find.byKey(AppSettingsKeys.add));
     await _capture(tester, '22b-add-button-kind');
     await tester.tap(find.text('그만두기'));
     await tester.pumpAndSettle();

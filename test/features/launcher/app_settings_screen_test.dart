@@ -121,6 +121,10 @@ void main() {
     // and the button, and said nothing about where a new one would land.
     // The guardian's half already learnt this.
     await _openAppSettings(tester);
+    // The rows are two lines each since the symbols became words, so both of
+    // these are below the fold on a phone.
+    await tester.scrollUntilVisible(find.byKey(AppSettingsKeys.add), 200);
+    await tester.pumpAndSettle();
 
     final lastRow = tester.getBottomLeft(find.text('사진 보기')).dy;
     final add = tester.getTopLeft(find.byKey(AppSettingsKeys.add)).dy;
@@ -133,8 +137,7 @@ void main() {
   testWidgets('and adding one asks the question straight away', (tester) async {
     await _openAppSettings(tester);
 
-    await tester.tap(find.byKey(AppSettingsKeys.add));
-    await tester.pumpAndSettle();
+    await tapInAppSettings(tester, find.byKey(AppSettingsKeys.add));
 
     expect(find.byKey(CategoryPickerKeys.sheet), findsOneWidget);
   });
