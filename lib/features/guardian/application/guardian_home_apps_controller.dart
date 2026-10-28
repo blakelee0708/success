@@ -5,6 +5,7 @@ import 'home_edit_allowance.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../../../domain/senior_device.dart';
+import '../../../domain/senior_readings.dart';
 import '../../../domain/senior_profile.dart';
 import 'guardian_session_controller.dart';
 
@@ -42,6 +43,15 @@ final selectedSeniorDeviceProvider = FutureProvider<SeniorDevice?>((ref) async {
   final profile = ref.watch(selectedSeniorProfileProvider);
   if (profile == null) return null;
   return ref.watch(seniorLinkRepositoryProvider).activeDevice(profile.id);
+});
+
+/// What the guardian may know about that phone's state, which the free week
+/// and then 안심 케어 decide. Separate from the device itself: which handset
+/// is connected is 연결 관리 and stays free.
+final seniorReadingsProvider = FutureProvider<SeniorReadings>((ref) async {
+  final profile = ref.watch(selectedSeniorProfileProvider);
+  if (profile == null) return SeniorReadings.none;
+  return ref.watch(seniorLinkRepositoryProvider).readings(profile.id);
 });
 
 /// The buttons on the parent's launcher, edited from the guardian's phone.

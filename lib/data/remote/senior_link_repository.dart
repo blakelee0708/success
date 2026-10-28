@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../../domain/device_status.dart';
 import '../../domain/guardian_account.dart';
 import '../../domain/senior_device.dart';
+import '../../domain/senior_readings.dart';
 import '../../domain/senior_profile.dart';
 import '../../domain/senior_settings.dart';
 
@@ -81,6 +82,15 @@ abstract interface class SeniorLinkRepository {
   /// showing it would tell the guardian their parent is set up when they are
   /// holding a different phone.
   Future<SeniorDevice?> activeDevice(String seniorProfileId);
+
+  /// What the guardian may know about that phone's state, which is a
+  /// different question from which phone it is.
+  ///
+  /// Goes through `senior_readings` rather than reading the device row,
+  /// because the gate has to live somewhere the app cannot skip and a column
+  /// cannot be carved out of the table-level SELECT grant - tried for
+  /// `push_token`, written into its migration so nobody tries it twice.
+  Future<SeniorReadings> readings(String seniorProfileId);
 
   /// Pushes the two settings that live on the profile rather than in
   /// `home_apps`, so the guardian's dashboard can show what the parent chose.
@@ -217,14 +227,34 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
           // Named rather than `*`, because `push_token` is revoked from
           // `authenticated` and a `select *` would be refused outright. See
           // `20261026020000_push_token.sql`.
-          .select(
-            'id, install_id, is_active, device_label, platform, last_seen_at, '
-            'battery_percent, is_charging, ringer_mode, status_read_at',
-          )
+          //
+          // **The readings are gone from this list**, and that is the 안심
+          // 케어 gate rather than tidying: `last_seen_at`, the battery and
+          // the ringer are what the subscription buys, so the app asks
+          // `senior_readings` for them and never selects them here. Which
+          // phone is connected stays free - a family has to be able to see
+          // they attached the right handset.
+          .select('id, install_id, is_active, device_label, platform')
           .eq('senior_profile_id', seniorProfileId)
           .eq('is_active', true)
           .maybeSingle();
       return row == null ? null : SeniorDevice.fromRow(row);
+    } on sb.PostgrestException catch (e) {
+      throw SeniorLinkException(e.message);
+    }
+  }
+
+  @override
+  Future<SeniorReadings> readings(String seniorProfileId) async {
+    try {
+      final rows = await _client.rpc(
+        'senior_readings',
+        params: {'p_senior_profile_id': seniorProfileId},
+      );
+      if (rows is! List || rows.isEmpty) return SeniorReadings.none;
+      return SeniorReadings.fromRow(
+        (rows.first as Map).cast<String, Object?>(),
+      );
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);
     }
@@ -283,6 +313,18 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
 
   final Map<String, SeniorProfile> profiles = {};
   final Map<String, SeniorDevice> activeDeviceByProfile = {};
+
+  /// Whether this twin hands the readings over.
+  ///
+  /// **It does not simulate the clock**, deliberately: the real rule is a
+  /// week from the first link, then a subscription, and reproducing it here
+  /// would be a second copy that could drift from the server's.
+  /// `tool/verify_supabase_pricing.py` proves the rule; this is the switch a
+  /// widget test flips to see both screens.
+  bool readingsVisible = true;
+
+  /// What the trial countdown reads. Null means say nothing about it.
+  DateTime? trialEndsAt;
   final List<String> linkedProfileIds = [];
 
   /// profile id -> guardian account id -> role. Phase 5 gave a profile more
@@ -500,6 +542,23 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   @override
   Future<SeniorDevice?> activeDevice(String seniorProfileId) async =>
       activeDeviceByProfile[seniorProfileId];
+
+  @override
+  Future<SeniorReadings> readings(String seniorProfileId) async {
+    final device = activeDeviceByProfile[seniorProfileId];
+    // No phone attached is not the same as withheld, and the dashboard has a
+    // different sentence for each - only one of them is an offer.
+    if (device == null) return SeniorReadings.none;
+    if (!readingsVisible) {
+      return SeniorReadings(visible: false, trialEndsAt: trialEndsAt);
+    }
+    return SeniorReadings(
+      visible: true,
+      trialEndsAt: trialEndsAt,
+      lastSeenAt: device.lastSeenAt,
+      status: device.status,
+    );
+  }
 
   @override
   Future<void> updateProfileSettings(

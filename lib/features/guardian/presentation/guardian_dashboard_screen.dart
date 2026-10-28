@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/family_message.dart';
 import '../../../domain/senior_profile.dart';
+import '../../../domain/senior_readings.dart';
 import '../../../domain/senior_settings.dart';
 import '../application/device_status_lines.dart';
 import '../application/senior_presence.dart';
@@ -240,12 +241,26 @@ class _HomeTab extends ConsumerWidget {
     // speak in the present tense about a check-in from three days ago — which
     // is what `폰은 잘 켜져 있어요` did for as long as `last_seen_at` was
     // written only at registration.
-    final presence = SeniorPresence.from(lastSeen: device?.lastSeenAt, now: now);
-    final status = DeviceStatusLines.from(status: device?.status, now: now);
+    // Read through the gate rather than off the device row. 안부 신호 and the
+    // battery are what 안심 케어 sells; which handset is connected is 연결
+    // 관리 and stays free, which is why `device` is still here for the name.
+    final readings =
+        ref.watch(seniorReadingsProvider).value ?? SeniorReadings.none;
+    final locked = !readings.visible;
+    final presence = SeniorPresence.from(
+      lastSeen: readings.lastSeenAt,
+      now: now,
+    );
+    final status = DeviceStatusLines.from(status: readings.status, now: now);
 
     return _TabScaffold(
       title: profile.displayName,
-      lede: presence.lede,
+      // Withheld, the subtitle must not go on describing a phone it is not
+      // being told about - `아직 / 연결되기 전이에요` would be the card
+      // claiming the parent never set theirs up.
+      lede: locked
+          ? '안심 케어를 시작하시면 부모님 폰 상태를 알려 드려요.'
+          : presence.lede,
       children: [
         if ((profiles.value?.length ?? 0) > 1)
           _Card(child: _ParentSwitcher(profiles: profiles.value!)),
@@ -254,15 +269,29 @@ class _HomeTab extends ConsumerWidget {
           subject: phone == null
               ? profile.displayName
               : '${profile.displayName} · $phone',
-          // The dot claims *now*, so it is lit for nothing else.
-          online: presence.online,
-          headline: presence.headline,
-          caption: presence.caption,
+          // The dot claims *now*, so it is lit for nothing else - and
+          // withheld, there is nothing to claim.
+          online: !locked && presence.online,
+          headline: locked ? '안심 케어로 볼 수 있어요' : presence.headline,
+          caption: locked
+              ? '부모님이 폰을 쓰신 때와 배터리를 알려 드립니다.'
+              : presence.caption,
           metric: quota == null || quota.unlimited
               ? '무제한'
               : '${quota.textLeft}번',
           metricCaption: '메시지 남음',
         ),
+        // The week has to be visible while it is running. A free trial that
+        // simply stops on the eighth day reads as the app breaking, and the
+        // guardian never connects the two - they were never told there was a
+        // week. Said only when nobody has subscribed, because `visible` is
+        // true for both and one of them is about to end.
+        if (!careOn && readings.trialRunningAt(now))
+          Padding(
+            key: GuardianHomeKeys.trial,
+            padding: const EdgeInsets.only(top: 12),
+            child: _TrialLine(daysLeft: readings.trialDaysLeftAt(now)),
+          ),
         const SizedBox(height: 26),
         const Text(
           '무엇을 해 드릴까요',
@@ -365,7 +394,13 @@ class _HomeTab extends ConsumerWidget {
               // 인터넷 is gone from the row rather than kept as a third
               // 준비 중: reporting it would mean ACCESS_NETWORK_STATE for a
               // fact the check-in already proves.
-              if (!status.hasReading)
+              if (locked)
+                GuardianFact(
+                  key: GuardianHomeKeys.lockedStatus,
+                  label: '배터리 · 소리',
+                  value: '안심 케어',
+                )
+              else if (!status.hasReading)
                 GuardianFact(label: '배터리 · 소리', value: status.battery)
               else ...[
                 GuardianFact(
@@ -398,6 +433,8 @@ class GuardianHomeKeys {
   static const noParent = Key('guardian-home-no-parent');
   static const switcher = Key('guardian-home-switcher');
   static const hero = Key('guardian-home-hero');
+  static const lockedStatus = Key('guardian-home-locked-status');
+  static const trial = Key('guardian-home-trial');
   static const care = Key('guardian-home-care');
   static const ring = Key('guardian-home-ring');
 }
@@ -432,6 +469,53 @@ class _ParentSwitcher extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+/// How much of the free week is left, on the card it applies to.
+///
+/// Amber rather than grey: it is the one line on this tab with a deadline,
+/// and a guardian who misses it finds the most reassuring thing on the screen
+/// gone one morning with no explanation they can connect it to.
+class _TrialLine extends StatelessWidget {
+  const _TrialLine({required this.daysLeft});
+
+  final int daysLeft;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.guardianTintAmber,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.schedule_rounded,
+            size: 18,
+            color: AppColors.guardianTintAmberInk,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              // `오늘까지` rather than `0일 남음`, which reads as already
+              // over. Calendar days, the same way 안부 신호 counts them.
+              daysLeft == 0
+                  ? '폰 상태를 보여 드리는 무료 기간이 오늘까지예요.'
+                  : '폰 상태를 보여 드리는 무료 기간이 $daysLeft일 남았어요.',
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.guardianTintAmberInk,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
