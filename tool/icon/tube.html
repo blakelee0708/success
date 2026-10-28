@@ -152,25 +152,52 @@ const build = (o) => `${defs(o)}
 
 const common = { cx: 424, cy: 406, R: 244, W: 112, hx: 858, hy: 840, glyph: 248 };
 
+// **The amber is gone.** Terracotta sits at 13 degrees, the amber at 32 and
+// the cream between them, so three warm oranges were competing and none of
+// them won - the same thing this repository already recorded about the warm
+// band on the home screen, where anything fitted between those hues is
+// indistinguishable at arm's length. The reference reads because it is two
+// *different* hues on white.
+//
+// So: one strong colour, and the second is either a neutral or a hue far
+// enough away to be a different colour rather than a shade of the first.
 const sets = [
-  { ...common, id: 'a', name: 'A \u2014 테라코타 튜브', note: '크림 바탕',
-    bgLit: '#FFF9F4', bg: '#F5E6D8',
+  { ...common, id: 'a', name: 'A \u2014 테라코타 + 잉크', note: '흰 바탕',
+    bgLit: '#FFFFFF', bg: '#F1F2F4',
     lit: '#FF8E66', base: '#E0481C', deep: '#93280D',
-    grip: '#E0A33C', gripLit: '#FFDB92', gripDeep: '#9A6416',
+    grip: '#4A423B', gripLit: '#7A6E63', gripDeep: '#2A241F',
     glass: '#FFF1E4', glassLit: '#FFFFFF', ink: '#352F29',
-    castColor: '#8A3A1B' },
-  { ...common, id: 'b', name: 'B \u2014 크림 튜브', note: '테라코타 바탕',
+    castColor: '#7A3318' },
+  { ...common, id: 'b', name: 'B \u2014 테라코타 한 색', note: '흰 바탕',
+    bgLit: '#FFFFFF', bg: '#F1F2F4',
+    lit: '#FF8E66', base: '#E0481C', deep: '#93280D',
+    grip: '#E0481C', gripLit: '#FF8E66', gripDeep: '#93280D',
+    glass: '#FFF1E4', glassLit: '#FFFFFF', ink: '#352F29',
+    castColor: '#7A3318' },
+  { ...common, id: 'c', name: 'C \u2014 테라코타 + 보라', note: '흰 바탕',
+    bgLit: '#FFFFFF', bg: '#F1F2F4',
+    lit: '#FF8E66', base: '#E0481C', deep: '#93280D',
+    grip: '#7E5BC4', gripLit: '#AE94E4', gripDeep: '#513380',
+    glass: '#FFF1E4', glassLit: '#FFFFFF', ink: '#352F29',
+    castColor: '#7A3318' },
+  { ...common, id: 'd', name: 'D \u2014 테라코타 + 초록', note: '흰 바탕',
+    bgLit: '#FFFFFF', bg: '#F1F2F4',
+    lit: '#FF8E66', base: '#E0481C', deep: '#93280D',
+    grip: '#55A05D', gripLit: '#8AD08F', gripDeep: '#2F6B38',
+    glass: '#FFF1E4', glassLit: '#FFFFFF', ink: '#352F29',
+    castColor: '#7A3318' },
+  { ...common, id: 'e', name: 'E \u2014 흰 고리 + 잉크', note: '테라코타 바탕',
     bgLit: '#F2663F', bg: '#BE3610',
-    lit: '#FFFFFF', base: '#F7E3D2', deep: '#B08B70',
-    grip: '#E0A33C', gripLit: '#FFDB92', gripDeep: '#9A6416',
-    glass: '#FFF6EE', glassLit: '#FFFFFF', ink: '#352F29',
+    lit: '#FFFFFF', base: '#F6EDE6', deep: '#BBA394',
+    grip: '#4A423B', gripLit: '#7A6E63', gripDeep: '#2A241F',
+    glass: '#FFFFFF', glassLit: '#FFFFFF', ink: '#352F29',
     castColor: '#5E1704' },
-  { ...common, id: 'c', name: 'C \u2014 앰버 튜브', note: '테라코타 바탕',
-    bgLit: '#F2663F', bg: '#BE3610',
-    lit: '#FFE4B0', base: '#E8A93E', deep: '#96600F',
-    grip: '#F7E3D2', gripLit: '#FFFFFF', gripDeep: '#B08B70',
+  { ...common, id: 'f', name: 'F \u2014 잉크 + 테라코타', note: '흰 바탕',
+    bgLit: '#FFFFFF', bg: '#F1F2F4',
+    lit: '#6E6258', base: '#3D362F', deep: '#1C1813',
+    grip: '#E0481C', gripLit: '#FF8E66', gripDeep: '#93280D',
     glass: '#FFF6EE', glassLit: '#FFFFFF', ink: '#352F29',
-    castColor: '#5E1704' },
+    castColor: '#2A241F' },
 ];
 
 const svg = (body, size) =>
