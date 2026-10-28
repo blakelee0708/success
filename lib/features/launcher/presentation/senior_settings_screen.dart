@@ -26,6 +26,8 @@ import '../../../domain/device_status.dart';
 class SeniorSettingsScreen extends ConsumerWidget {
   const SeniorSettingsScreen({super.key});
 
+  static const familyVisibilityRow =
+      Key('senior-settings-family-visibility');
   static const homeAppRow = Key('senior-settings-home-app');
   static const stopUsingRow = Key('senior-settings-stop-using');
   static const stopUsingConfirm = Key('senior-settings-stop-using-confirm');
@@ -389,6 +391,27 @@ class SeniorSettingsScreen extends ConsumerWidget {
               wall: AppColors.seniorFamilyWall,
               ink: AppColors.seniorInk,
               onTap: () => context.push(Routes.familyMessages),
+            ),
+            // **The consent card asks once and goes away.** After it, a
+            // senior who wanted to know what their children can see had
+            // nowhere to look - which is the gap Play's rules about
+            // collecting an adult's data are aimed at, and a fair question
+            // for somebody whose home screen this is. It sits in 가족 rather
+            // than in 이 폰 because what it is about is the family, not the
+            // handset.
+            _Row(
+              key: SeniorSettingsScreen.familyVisibilityRow,
+              label: '자녀가 보는 것',
+              detail: '자녀분께 무엇이 전해지는지',
+              icon: Icons.visibility_rounded,
+              face: AppColors.seniorButtonYellow,
+              light: AppColors.seniorButtonYellowLight,
+              deep: AppColors.seniorButtonYellowDeep,
+              wall: AppColors.seniorButtonYellowWall,
+              // Yellow cannot hold white lettering, the same rule the
+              // 카카오톡 tile and the amber 가족 button follow.
+              ink: AppColors.seniorInk,
+              onTap: () => context.push(Routes.familyVisibility),
             ),
             _Row(
               label: '가족 연결 설정',

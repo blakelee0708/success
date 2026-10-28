@@ -23,4 +23,8 @@ class Routes {
   static const seniorSettings = '/settings';
   static const appSettings = '/settings/apps';
   static const fontSize = '/settings/font-size';
+
+  /// What the senior's family can see. Reached from 설정 → 가족,
+  /// because the consent card asks once and then goes away.
+  static const familyVisibility = '/settings/family-visibility';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/care/presentation/family_visibility_screen.dart';
 import '../../features/family/presentation/family_link_screen.dart';
 import '../../features/guardian/presentation/guardian_login_screen.dart';
 import '../../features/guardian/presentation/guardian_dashboard_screen.dart';
@@ -64,6 +65,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.seniorSettings,
         builder: (context, state) => const SeniorSettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.familyVisibility,
+        builder: (context, state) => const FamilyVisibilityScreen(),
       ),
       GoRoute(
         path: Routes.appSettings,
