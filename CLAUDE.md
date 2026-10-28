@@ -2198,11 +2198,37 @@ The page leads with the fact that it is **not ready to publish**: six 사업자
 fields - 상호, 대표자, 주소, 보호책임자, 문의 이메일, 공고일/시행일 - sit
 blank as `「 」`, because they cannot be invented and a blank 상호 on a live
 policy is worse than no page. `privacy_policy_test.dart` holds the banner in
-place for as long as a `「 」` remains, and pins the two claims that are facts
-about files here: that the manifest declares **no** `uses-permission`, and
-that the policy sits on the host the reset mail points at. Adding one
-permission fails that test with the line about rewriting the page in the same
-commit - checked by adding `ACCESS_FINE_LOCATION` and watching it fail.
+place for as long as a `「 」` remains, and pins the claims that are facts
+about files here: that **this repository's** manifest declares no
+`uses-permission`, that the policy names every permission the APK actually
+ships with, and that the policy sits on the host the reset mail points at.
+Adding one permission fails that test with the line about rewriting the page
+in the same commit - checked by adding `ACCESS_FINE_LOCATION` and watching it
+fail.
+
+**For one day that test read the wrong file.** It checked
+`android/app/src/main/AndroidManifest.xml`, found no `uses-permission`, and
+the page said 런타임 권한을 하나도 요구하지 않습니다 on the strength of it.
+Gradle merges **every plugin's** manifest into the APK, and
+`firebase_messaging` brings four: `INTERNET`, `ACCESS_NETWORK_STATE`,
+`WAKE_LOCK` and `POST_NOTIFICATIONS`. Play lists the merged set on the store
+page, so a reviewer comparing the listing against the policy would have found
+four permissions the policy denied - the Data-safety mismatch that gets an
+app suspended rather than rejected.
+
+The page now says the app asks for nothing *and* names the four with what
+each is for. The test reads `.flutter-plugins-dependencies` rather than
+naming them, because **adding a plugin is how that set changes** and nobody
+adding one would think to come here. Dropping one row from the page fails it
+by name, which was checked.
+
+Two things follow that are worth knowing before building anything. One,
+`POST_NOTIFICATIONS` is already in the APK, so the guardian's push
+notification needs no new permission - only a call to request it. Two,
+`ACCESS_NETWORK_STATE` is **already there too**, so the reason 인터넷 was
+dropped from the device-status row ("reporting it would mean
+`ACCESS_NETWORK_STATE`") no longer holds as stated. The other half of that
+reason does: the check-in already proves the phone got through.
 
 ### The site pages can be rendered here, and it found two faults
 

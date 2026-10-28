@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -21,18 +22,18 @@ import 'package:app/data/remote/guardian_auth_repository.dart';
 void main() {
   final policy = File('site/privacy.html').readAsStringSync();
 
-  test('the policy claims no runtime permission, and the manifest agrees', () {
-    // The policy says so in as many words, and it is a large part of why the
-    // app can say what it says about location, contacts and call logs. The
-    // day somebody adds a `uses-permission` for a feature, this page has to
-    // be rewritten in the same commit — not whenever it is next read.
+  test('this app declares no permission of its own', () {
+    // A large part of why the page can say what it says about location,
+    // contacts and call logs. The day somebody adds a `uses-permission` for a
+    // feature, that page has to be rewritten in the same commit - not
+    // whenever it is next read.
     final manifest = File(
       'android/app/src/main/AndroidManifest.xml',
     ).readAsStringSync();
 
     expect(
       policy,
-      contains('런타임 권한을 하나도 요구하지 않습니다'),
+      contains('앱이 직접 요구하는'),
       reason: 'the policy should still be making this claim',
     );
     expect(
@@ -42,6 +43,64 @@ void main() {
           'a declared permission makes the privacy policy false; rewrite '
           'site/privacy.html in the same commit that adds one',
     );
+  });
+
+  test('the policy names every permission the APK actually ships with', () {
+    // **This file was the wrong file.** The test above reads the manifest in
+    // this repository and the policy said `런타임 권한을 하나도 요구하지
+    // 않습니다` on the strength of it - but Gradle merges every plugin's
+    // manifest into the APK, and `firebase_messaging` brings four. Play
+    // lists the merged set on the store page, so a reviewer comparing the
+    // listing against the policy saw four permissions the policy denied.
+    //
+    // Reading `.flutter-plugins-dependencies` rather than naming the four is
+    // what makes this hold: adding a plugin is how the set changes, and
+    // nobody adding one would think to come here.
+    final names = <String>{};
+    final resolved = jsonDecode(
+      File('.flutter-plugins-dependencies').readAsStringSync(),
+    );
+    final plugins =
+        (resolved['plugins']['android'] as List).cast<Map<String, Object?>>();
+    expect(plugins, isNotEmpty, reason: 'run `flutter pub get` first');
+
+    for (final plugin in plugins) {
+      final manifest = File(
+        '${plugin['path']}android/src/main/AndroidManifest.xml',
+      );
+      if (!manifest.existsSync()) continue;
+      for (final match in RegExp(
+        r'uses-permission[^>]*android:name="([^"]+)"',
+      ).allMatches(manifest.readAsStringSync())) {
+        names.add(match.group(1)!.split('.').last);
+      }
+    }
+
+    // What each one is called on the page, in the words a reader of a
+    // privacy policy would recognise rather than in Android's.
+    const korean = {
+      'INTERNET': '인터넷 사용',
+      'ACCESS_NETWORK_STATE': '네트워크 상태 보기',
+      'WAKE_LOCK': '절전 모드 해제',
+      'POST_NOTIFICATIONS': '알림 표시',
+    };
+
+    for (final name in names) {
+      expect(
+        korean,
+        contains(name),
+        reason:
+            '$name is merged into the APK and this test has no Korean name '
+            'for it; add one here and a row to site/privacy.html',
+      );
+      expect(
+        policy,
+        contains(korean[name]!),
+        reason:
+            '$name ships in the APK and Play lists it, but the policy does '
+            'not mention it',
+      );
+    }
   });
 
   test('the policy is reachable on the host the reset mail points at', () {
