@@ -1881,6 +1881,72 @@ and nobody goes looking. The verifier reads `sender_unconfigured` as a failure
 and `INVALID_ARGUMENT` as success, which is the only way to tell them apart
 from outside. `error` stays the one line a guardian reads.
 
+### The two halves a guardian touches are built
+
+As of 2026-10-28, and the design was settled with the owner before any of it
+was written.
+
+**On the parent's phone it is a card over the home, not a screen.** The same
+shape as the message popup, and for the same reason: the home still showing
+around it is how a senior knows their phone has not turned into something
+else while they were not looking. It replaced a full-screen `ColoredBox`.
+
+**Tapping the scrim still stops it**, which is what the full-screen version
+did everywhere, and the card swallows its own taps so 전화하기 is not racing
+the scrim two pixels behind it. There is a test for exactly that: a press
+that missed the button by a hair would silence the phone instead, and the
+senior would believe they had rung their child.
+
+**전화하기 is the new part and it is the resolution of the whole feature.**
+Silencing the noise is not what their child wanted. A senior who picks up a
+loud phone and can only make it quiet has been told something and given
+nothing to do about it, and 전화를 안 받아 is why the button was pressed. The
+number is already on the server, collected when the guardian connected, and
+`guardians_for_senior` already hands it to the parent's phone for 긴급
+연락's 보호자 tile.
+
+That needed **who** rather than only **what name**, so
+`20261028000000_ring_sender_id.sql` adds `from_id` to `request_phone_ring`'s
+return and the Edge Function puts it in the payload (version 2, deployed).
+Matching on `from_name` was the alternative and it is wrong in the case that
+matters: two children, both called 아들 by their mother, and the phone rings
+the other one. When the id resolves to no number the card shows **no call
+button at all** rather than falling back to the primary guardian - ringing
+the wrong child is worse than offering nothing, because the senior would
+believe they had answered.
+
+`create or replace` cannot change a function's return type, so that migration
+drops and recreates, which also drops the grants. They are re-applied at the
+bottom of the file; leaving them off would make the function uncallable by
+every guardian and the failure would look like the gate refusing.
+
+**On the guardian's home, 소리 울리기 takes 안심 케어 알아보기's slot** once
+`CareStage.active` - a subscription **and** the senior's consent. The grid
+stays 2x2: a fifth card leaves a hole and a locked sixth advertises what the
+buyer has already answered. The card that sold the tier becomes the tier.
+
+The sheet carries three chips and a box. The chips **replace** rather than
+append, because they are whole messages and a guardian who taps two in a row
+meant the second. A blank box is normalised to null **in the controller**,
+not in each repository: the gate substitutes `전화 한 번만 주세요.` for an
+absent message, and an empty string sent through would be a second way of
+saying the same thing with nothing holding the two together.
+
+**Four outcomes, four sentences, and that is the load-bearing part.** The
+guardian presses this when they are already worried, and **silence is the one
+answer that makes them press again.** A phone that never checked in, a token
+that died with a reinstall, a gate refusal and a sender that cannot reach
+Google look identical from behind a spinner, and only one of them is anyone's
+to act on. `RingRefused` carries the server's own sentence rather than a
+local rewording, so the rule's explanation does not live in two places with
+the readable copy being the one no test reaches.
+
+One small thing, recorded because the obvious fix was the wrong one: the
+field's cursor drew **terracotta** on the blue half. Wrapping the sheet in
+`Theme(data: AppTheme.guardian)` was tried and the rendered PNG came back
+**byte-identical**, so the wrap was removed rather than left behind a comment
+claiming a fix it had not made. `cursorColor` is named on the field instead.
+
 ### What is still missing
 
 1. **The background wake-up.** `PushMessaging.messages()` is
@@ -1891,13 +1957,24 @@ from outside. `error` stays the one line a guardian reads.
    to bring the activity forward, and on Android 14 that route runs into
    `USE_FULL_SCREEN_INTENT`, which Play grants to calling and alarm apps.
    Unresolved, and unverifiable here.
-2. **The guardian's button.** Deliberately not built yet. With (2) open it
-   would ring only a phone whose screen is already on, which is the opposite
-   of what the feature is for, and putting it on 돌봄 would be selling that.
+So the feature **rings a phone that is awake and not one that is asleep**,
+which is half of what it is for. `CareReadiness` stays `planned` and 소리
+울리기 stays in 돌봄's 준비 중 block until it has been watched working on a
+real handset - the Kotlin cannot be compiled here, so calling it built would
+be a claim nothing in this repository can check. Flipping it is one enum
+value plus a `seniorLine` for the consent card, which the capability test
+will demand in the same commit.
 
-So the feature is **plumbed and gated, not working**. Nothing on either screen
-claims otherwise: 소리 울리기 is still `CareReadiness.planned` and sits in
-돌봄's 준비 중 block.
+**The Play question is the other reason to wait**, and it is not the
+sending. Android 14 restricts `USE_FULL_SCREEN_INTENT` to calling and alarm
+apps and Play revokes the default grant otherwise; a launcher is neither. The
+route that avoids it is to **not bring the activity forward at all**: play on
+`STREAM_ALARM` from the background handler and post a notification, and let
+the parent land on the card when they turn the screen on, because this app
+**is** the home screen. That costs one ordinary permission
+(`POST_NOTIFICATIONS`) and no Play declaration - and it would be the first
+`uses-permission` in this manifest, so `privacy_policy_test` and
+`site/privacy.html` change in the same commit as the Kotlin.
 
 ## 폰에 있는 앱, and the two ways in
 

@@ -11,10 +11,16 @@ import '../data/emergency_sound.dart';
 /// screaming with no explanation is frightening, and an elderly person who
 /// cannot tell a message from a fault is the person this app exists for.
 class RingRequest {
-  const RingRequest({required this.from, this.message});
+  const RingRequest({required this.from, this.fromGuardianId, this.message});
 
   /// The guardian's name, as the family roster gives it.
   final String from;
+
+  /// Which guardian, so the phone can offer to call **them** back rather
+  /// than matching on a display name two siblings may share. Null on a push
+  /// that arrived without one, and then no call button is offered: ringing
+  /// the wrong child is worse than offering nothing.
+  final String? fromGuardianId;
 
   /// Their own words, when they wrote any.
   final String? message;

@@ -16,7 +16,8 @@ import 'senior_ring_controller.dart';
 /// is asking before it says anything else.
 ///
 /// ```
-/// {"type": "ring", "from": "영희", "message": "엄마 전화 좀 줘"}
+/// {"type": "ring", "from_id": "<uuid>", "from": "영희",
+///  "message": "엄마 전화 좀 줘"}
 /// ```
 class PushRingListener {
   PushRingListener(this._ref);
@@ -54,6 +55,9 @@ class PushRingListener {
             // so dropping it silently is the one outcome worse than a
             // slightly vaguer line — and `가족` is true of whoever sent it.
             from: from == null || from.isEmpty ? '가족' : from,
+            fromGuardianId: data['from_id']?.trim().isNotEmpty == true
+                ? data['from_id']!.trim()
+                : null,
             message: data['message'],
           ),
         );

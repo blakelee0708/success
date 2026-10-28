@@ -55,6 +55,10 @@ Future<void> _ring(
   await tester.pumpAndSettle();
 }
 
+/// A point that is always scrim and never card: the card is centred with 22px
+/// of horizontal padding, so anything left of that is behind it.
+const _scrim = Offset(8, 300);
+
 void main() {
   testWidgets('a ring covers the home and names who is asking', (
     tester,
@@ -67,29 +71,67 @@ void main() {
     expect(find.text('엄마, 전화 좀 줘.'), findsOneWidget);
   });
 
-  testWidgets('tapping anywhere at all stops it', (tester) async {
-    // The whole screen is the button. Somebody woken by a phone they did not
-    // expect to make a noise should not have to find one.
+  testWidgets('tapping the scrim outside the card stops it', (tester) async {
+    // The card carries buttons now, so it is no longer true that the whole
+    // screen is one. What is still true is that a senior startled by a phone
+    // they did not expect to make a noise should not have to find anything:
+    // the scrim answers too, which is the safety net for whoever presses the
+    // background in a hurry.
     final sound = await _pumpHome(tester);
     await _ring(tester);
     expect(sound.isPlaying, isTrue);
 
-    // A corner, where no text and no icon is drawn.
-    await tester.tapAt(const Offset(30, 120));
+    await tester.tapAt(_scrim);
     await tester.pumpAndSettle();
 
     expect(find.byKey(SeniorRingLayer.layerKey), findsNothing);
     expect(sound.isPlaying, isFalse);
   });
 
+  testWidgets('소리 끄기 stops it, for whoever does look', (tester) async {
+    final sound = await _pumpHome(tester);
+    await _ring(tester);
+
+    await tester.tap(find.byKey(SeniorRingLayer.stopKey));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(SeniorRingLayer.layerKey), findsNothing);
+    expect(sound.isPlaying, isFalse);
+  });
+
+  testWidgets('a tap on the card itself does not stop it', (tester) async {
+    // Otherwise the buttons race the scrim behind them: a press that misses
+    // 전화하기 by two pixels would silence the phone instead, and the senior
+    // would believe they had rung their child.
+    final sound = await _pumpHome(tester);
+    await _ring(tester, message: '엄마, 전화 좀 줘.');
+
+    await tester.tap(find.text('엄마, 전화 좀 줘.'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(SeniorRingLayer.layerKey), findsOneWidget);
+    expect(sound.isPlaying, isTrue);
+  });
+
   testWidgets('the tiles come back exactly as they were', (tester) async {
     final sound = await _pumpHome(tester);
     await _ring(tester);
-    await tester.tapAt(const Offset(200, 400));
+    await tester.tapAt(_scrim);
     await tester.pumpAndSettle();
 
     expect(find.text('전화'), findsOneWidget);
     expect(sound.stops, 1);
+  });
+
+  testWidgets('the home is still visible behind the card', (tester) async {
+    // The same shape as the message popup, and for the same reason: a senior
+    // who can see their own tiles knows the phone has not turned into
+    // something else while they were not looking.
+    await _pumpHome(tester);
+    await _ring(tester);
+
+    expect(find.byKey(SeniorRingLayer.layerKey), findsOneWidget);
+    expect(find.text('전화'), findsOneWidget);
   });
 
   testWidgets('it covers the detailed home too', (tester) async {
@@ -97,8 +139,7 @@ void main() {
     await _ring(tester);
 
     expect(find.byKey(SeniorRingLayer.layerKey), findsOneWidget);
-    // Nothing behind it is reachable — a tap lands on the layer, not a tile.
-    await tester.tapAt(const Offset(200, 400));
+    await tester.tapAt(_scrim);
     await tester.pumpAndSettle();
     expect(find.byKey(SeniorRingLayer.layerKey), findsNothing);
   });
@@ -140,7 +181,7 @@ void main() {
     expect(find.textContaining('철수'), findsWidgets);
     expect(find.textContaining('영희'), findsNothing);
 
-    await tester.tapAt(const Offset(200, 400));
+    await tester.tapAt(_scrim);
     await tester.pumpAndSettle();
     expect(sound.isPlaying, isFalse);
   });

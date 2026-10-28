@@ -183,6 +183,10 @@ Deno.serve(async (req) => {
           token: target.push_token,
           data: {
             type: 'ring',
+            // The id as well as the name, so the parent's phone can offer to
+            // call *this* child back rather than matching on a display name
+            // two siblings may share.
+            from_id: target.from_id,
             from: target.from_name,
             message: target.line,
           },

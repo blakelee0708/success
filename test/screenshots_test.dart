@@ -32,6 +32,7 @@ import 'package:app/features/messages/presentation/conversation_view.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/care/application/senior_ring_controller.dart';
 import 'package:app/features/care/presentation/care_consent_prompt.dart';
+import 'package:app/features/care/presentation/ring_sheet.dart';
 import 'package:app/features/family/presentation/primary_guardian_prompt.dart';
 import 'package:app/features/launcher/presentation/app_settings_screen.dart';
 import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
@@ -636,17 +637,6 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    // 소리 울리기, as the parent sees it. The whole screen is the button.
-    await openDetailedHome();
-    final ringContext = tester.element(find.byType(Scaffold).first);
-    ProviderScope.containerOf(ringContext)
-        .read(seniorRingControllerProvider.notifier)
-        .ring(const RingRequest(from: '영희', message: '엄마, 전화 좀 줘.'));
-    await tester.pumpAndSettle();
-    await _capture(tester, '26-ring');
-    await tester.tapAt(const Offset(200, 400));
-    await tester.pumpAndSettle();
-
     await openDetailedHome();
     await tester.tap(find.text('긴급 구조 요청'));
     await tester.pumpAndSettle();
@@ -806,4 +796,88 @@ void main() {
     // The senior's end is covered by test/features/messages; capturing it here
     // needs a second pumpApp in the same test and that does not settle.
   });
+  testWidgets('소리 울리기, both halves', (tester) async {
+    // Two screens that had no picture. The parent's is a card over the home
+    // rather than a screen of its own, and it carries 전화하기 — which only
+    // appears when the sender's number is on the roster, so this needs a
+    // real family rather than a bare launcher.
+    final store = InMemorySeniorLinkRepository();
+    final pairing = InMemoryPairingRepository(store);
+    final subs = InMemorySubscriptionRepository(store);
+    final account = await store.ensureGuardianAccount(
+      displayName: '영희',
+      phoneNumber: '01012345678',
+    );
+    final started = await pairing.startSeniorPairing(installId: 'senior-phone');
+    final profile = await pairing.claimSeniorPairingCode(
+      code: started.code,
+      displayName: '어머니',
+    );
+    await subs.startCare(profile.id);
+    await subs.resolveCareConsent(profile.id, true);
+
+    final shared = <Object>[
+      nowProvider.overrideWithValue(() => DateTime(2026, 10, 20, 14, 30)),
+      appLauncherProvider.overrideWithValue(FakeAppLauncher(defaultHome: true)),
+      seniorLinkRepositoryProvider.overrideWithValue(store),
+      pairingRepositoryProvider.overrideWithValue(pairing),
+      subscriptionRepositoryProvider.overrideWithValue(subs),
+      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+    ];
+
+    // The parent's phone.
+    await pumpApp(
+      tester,
+      overrides: [
+        ...shared,
+        seniorLinkStoreProvider.overrideWithValue(
+          InMemorySeniorLinkStore(
+            SeniorLink(installId: 'senior-phone', seniorProfileId: profile.id),
+          ),
+        ),
+      ],
+      prefs: {
+        SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+          const SeniorSettings(
+            screenMode: ScreenMode.easy,
+            apps: defaultEasyApps,
+          ).toJson(),
+        ),
+      },
+    );
+    await tester.pumpAndSettle();
+    ProviderScope.containerOf(tester.element(find.byType(Scaffold).first))
+        .read(seniorRingControllerProvider.notifier)
+        .ring(
+          RingRequest(
+            from: '영희',
+            fromGuardianId: account.id,
+            message: '엄마, 전화 좀 줘.',
+          ),
+        );
+    await tester.pumpAndSettle();
+    await _capture(tester, '26-ring');
+
+    // The child's phone: the card that took 안심 케어's slot, and the sheet.
+    final auth = InMemoryGuardianAuthRepository()
+      ..seedSignedIn(const GuardianSession(userId: 'u1'));
+    addTearDown(auth.dispose);
+    await pumpApp(
+      tester,
+      overrides: [...shared, guardianAuthRepositoryProvider.overrideWithValue(auth)],
+    );
+    await tester.pumpAndSettle();
+    await _capture(tester, '27-dashboard-home-care-on');
+
+    await tester.tap(find.byKey(GuardianHomeKeys.ring));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(RingSheet.fieldKey), '엄마, 전화 좀 줘.');
+    await tester.pumpAndSettle();
+    await _capture(tester, '28-ring-sheet');
+
+    await tester.tap(find.byKey(RingSheet.sendKey));
+    await tester.pumpAndSettle();
+    await _capture(tester, '29-ring-sheet-sent');
+  });
+
 }
