@@ -7,6 +7,7 @@ import '../../../domain/launcher_app.dart';
 import '../../launcher/presentation/widgets/category_picker.dart';
 import '../../launcher/presentation/widgets/contact_dialog.dart';
 import '../application/guardian_home_apps_controller.dart';
+import '../application/home_edit_allowance.dart';
 import 'widgets/guardian_surfaces.dart';
 
 /// Widget keys the tests drive.
@@ -29,7 +30,15 @@ class GuardianLauncherKeys {
 /// reaches the parent's phone was not true. It now reads and writes the
 /// parent's `home_apps` rows.
 class GuardianLauncherTab extends ConsumerWidget {
-  const GuardianLauncherTab({super.key});
+  const GuardianLauncherTab({super.key, this.onOpenTab});
+
+  static const allowanceKey = Key('guardian-home-allowance');
+  static const upsellKey = Key('guardian-home-upsell');
+  static const upsellCareKey = Key('guardian-home-upsell-care');
+
+  /// Lets the 안심 케어 offer reach the 돌봄 tab. Null in the tests that pump
+  /// this tab on its own, and the offer then simply closes.
+  final ValueChanged<int>? onOpenTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,6 +64,7 @@ class GuardianLauncherTab extends ConsumerWidget {
       AsyncData(:final value) => _Editor(
         profile: profile.displayName,
         apps: value,
+        onOpenTab: onOpenTab,
       ),
       _ => const Center(child: CircularProgressIndicator()),
     };
@@ -62,10 +72,17 @@ class GuardianLauncherTab extends ConsumerWidget {
 }
 
 class _Editor extends ConsumerWidget {
-  const _Editor({required this.profile, required this.apps});
+  const _Editor({
+    required this.profile,
+    required this.apps,
+    this.onOpenTab,
+  });
 
   final String profile;
   final List<LauncherApp> apps;
+
+  /// Carried down so the 안심 케어 offer can reach the 돌봄 tab from here.
+  final ValueChanged<int>? onOpenTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -76,6 +93,7 @@ class _Editor extends ConsumerWidget {
     // and the button and said nothing about where a new button would land. In
     // the list, 버튼 추가하기 is simply the next thing after the last button,
     // and adding one pushes it down.
+    final allowance = ref.watch(homeEditAllowanceProvider);
     return ReorderableListView(
       key: GuardianLauncherKeys.list,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
@@ -86,11 +104,22 @@ class _Editor extends ConsumerWidget {
           0,
           GuardianHeading.gap,
         ),
-        child: GuardianHeading(
-          title: '$profile 홈 화면',
-          lede:
-              '바꾸면 부모님 폰에 반영됩니다. '
-              '부모님 폰이 꺼져 있으면 다음에 켤 때 적용돼요.',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GuardianHeading(
+              title: '$profile 홈 화면',
+              lede:
+                  '바꾸면 부모님 폰에 반영됩니다. '
+                  '부모님 폰이 꺼져 있으면 다음에 켤 때 적용돼요.',
+            ),
+            // Said **before** a save, which is the whole point of it. A
+            // number that only appears in a refusal arrives after the
+            // guardian has already arranged the screen and watched it snap
+            // back. Hidden on a subscription: a counter on a screen nobody
+            // can reach the end of is noise.
+            if (allowance.shouldShow) _Allowance(allowance: allowance),
+          ],
         ),
       ),
       footer: Column(
@@ -116,7 +145,7 @@ class _Editor extends ConsumerWidget {
         ],
       ),
       onReorder: (oldIndex, newIndex) =>
-          _run(context, ref, (c) => c.reorder(oldIndex, newIndex)),
+          _run(context, ref, (c) => c.reorder(oldIndex, newIndex), onOpenTab: onOpenTab),
       children: [
         for (final app in apps)
           _AppRow(
@@ -135,15 +164,109 @@ class _Editor extends ConsumerWidget {
   static Future<void> _run(
     BuildContext context,
     WidgetRef ref,
-    Future<bool> Function(GuardianHomeAppsController) action,
-  ) async {
-    final ok = await action(ref.read(guardianHomeAppsProvider.notifier));
-    if (ok || !context.mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('바꾸지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.')),
-      );
+    Future<HomeEditOutcome> Function(GuardianHomeAppsController) action, {
+    ValueChanged<int>? onOpenTab,
+  }) async {
+    final outcome = await action(ref.read(guardianHomeAppsProvider.notifier));
+    if (!context.mounted) return;
+    switch (outcome) {
+      case HomeEditOutcome.saved:
+        return;
+      // Not a failure, so not a snackbar. A grey line at the bottom of the
+      // screen saying 바꾸지 못했어요 would read as something broken, and the
+      // guardian would try again and again.
+      case HomeEditOutcome.allowanceSpent:
+        await _offerCare(context, onOpenTab);
+      case HomeEditOutcome.failed:
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('바꾸지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'),
+            ),
+          );
+    }
+  }
+
+  /// Where the free allowance runs out.
+  ///
+  /// **It says what still works before it says what costs money.** 부모님
+  /// 폰에서는 언제든 바꾸실 수 있어요 is true, it is the rule the whole
+  /// pricing line rests on, and a guardian who reads only the price reads
+  /// this as their parent's home screen being locked - which it is not.
+  static Future<void> _offerCare(
+    BuildContext context,
+    ValueChanged<int>? onOpenTab,
+  ) {
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheet) => DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            key: GuardianLauncherTab.upsellKey,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  '무료로 바꿀 수 있는 $guardianHomeEditsFree번을 다 쓰셨어요',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    color: AppColors.guardianInk,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  '부모님 폰에서는 언제든 바꾸실 수 있어요. '
+                  '설정 → 앱 설정하기에서 하시면 됩니다.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.55,
+                    color: AppColors.guardianInkFaint,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  '안심 케어를 시작하시면 자녀분 폰에서도 제한 없이 정리하실 수 있어요.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.55,
+                    color: AppColors.guardianInkFaint,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                GuardianPrimaryButton(
+                  key: GuardianLauncherTab.upsellCareKey,
+                  label: '안심 케어 알아보기',
+                  icon: Icons.favorite_rounded,
+                  onPressed: () {
+                    Navigator.of(sheet).pop();
+                    onOpenTab?.call(3);
+                  },
+                ),
+                const SizedBox(height: 6),
+                TextButton(
+                  onPressed: () => Navigator.of(sheet).pop(),
+                  child: const Text(
+                    '나중에 할게요',
+                    style: TextStyle(color: AppColors.guardianInkFaint),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _rename(
@@ -162,6 +285,7 @@ class _Editor extends ConsumerWidget {
       await _run(
         context,
         ref,
+        onOpenTab: onOpenTab,
         (c) => c.editContact(
           app.id,
           label: draft.name,
@@ -177,7 +301,7 @@ class _Editor extends ConsumerWidget {
       initial: app.label,
     );
     if (name == null || !context.mounted) return;
-    await _run(context, ref, (c) => c.rename(app.id, name));
+    await _run(context, ref, (c) => c.rename(app.id, name), onOpenTab: onOpenTab);
   }
 
   /// The kind comes first, then the name.
@@ -208,6 +332,7 @@ class _Editor extends ConsumerWidget {
       await _run(
         context,
         ref,
+        onOpenTab: onOpenTab,
         (c) => c.add(label: '눌러서 앱 고르기', category: category),
       );
       return;
@@ -222,6 +347,7 @@ class _Editor extends ConsumerWidget {
       await _run(
         context,
         ref,
+        onOpenTab: onOpenTab,
         (c) => c.add(
           label: draft.name,
           category: category,
@@ -237,7 +363,7 @@ class _Editor extends ConsumerWidget {
       initial: category.defaultLabel,
     );
     if (name == null || !context.mounted) return;
-    await _run(context, ref, (c) => c.add(label: name, category: category));
+    await _run(context, ref, (c) => c.add(label: name, category: category), onOpenTab: onOpenTab);
   }
 
   Future<void> _recolour(
@@ -285,7 +411,7 @@ class _Editor extends ConsumerWidget {
       ),
     );
     if (chosen == null || !context.mounted) return;
-    await _run(context, ref, (c) => c.setColor(app.id, chosen.colour));
+    await _run(context, ref, (c) => c.setColor(app.id, chosen.colour), onOpenTab: onOpenTab);
   }
 
   Future<void> _confirmDelete(
@@ -311,7 +437,7 @@ class _Editor extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await _run(context, ref, (c) => c.remove(app.id));
+    await _run(context, ref, (c) => c.remove(app.id), onOpenTab: onOpenTab);
   }
 
   static Future<String?> _askForName(
@@ -522,6 +648,66 @@ class _Message extends StatelessWidget {
               const SizedBox(height: 18),
               OutlinedButton(onPressed: onRetry, child: const Text('다시 시도')),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 무료로 바꿀 수 있는 횟수, on the screen that spends it.
+///
+/// Amber once it is gone rather than red: nothing is broken and nothing of
+/// the parent's is locked - 앱 설정하기 on their own phone is still
+/// unlimited, which the line says because a guardian who reads only the
+/// number reads it as their mother's home screen being frozen.
+class _Allowance extends StatelessWidget {
+  const _Allowance({required this.allowance});
+
+  final HomeEditAllowance allowance;
+
+  @override
+  Widget build(BuildContext context) {
+    final spent = allowance.left == 0;
+    return Padding(
+      key: GuardianLauncherTab.allowanceKey,
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: spent
+              ? AppColors.guardianTintAmber
+              : AppColors.guardianTintBlue,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              spent ? Icons.lock_outline_rounded : Icons.edit_rounded,
+              size: 18,
+              color: spent
+                  ? AppColors.guardianTintAmberInk
+                  : AppColors.guardianTintBlueInk,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                spent
+                    ? '무료로 바꿀 수 있는 $guardianHomeEditsFree번을 다 쓰셨어요. '
+                          '부모님 폰에서는 언제든 바꾸실 수 있어요.'
+                    : '무료로 ${allowance.left}번 더 바꾸실 수 있어요. '
+                          '부모님 폰에서는 언제나 무제한입니다.',
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  fontWeight: FontWeight.w700,
+                  color: spent
+                      ? AppColors.guardianTintAmberInk
+                      : AppColors.guardianTintBlueInk,
+                ),
+              ),
+            ),
           ],
         ),
       ),

@@ -24,6 +24,7 @@ class SeniorProfile {
     this.fontSize,
     this.paidConsentStatus = PaidConsentStatus.none,
     this.pendingPrimaryGuardianId,
+    this.guardianHomeEdits = 0,
   });
 
   final String id;
@@ -49,6 +50,16 @@ class SeniorProfile {
   /// can be open at a time, so asking is never two questions at once.
   final String? pendingPrimaryGuardianId;
 
+  /// How many times a guardian has saved this parent's home screen from
+  /// their own phone.
+  ///
+  /// The senior's own saves are never counted - their phone edits its own
+  /// buttons without limit, and that is the rule the whole pricing line
+  /// rests on. The free allowance is lifetime rather than monthly, so this
+  /// only ever goes up; `replace_home_apps` is where it is enforced and this
+  /// is what lets the screen say the number *before* a save is refused.
+  final int guardianHomeEdits;
+
   /// Folds the server's copy into what this phone already has.
   ///
   /// The button list is not touched here — it syncs through `home_apps`, and
@@ -57,6 +68,29 @@ class SeniorProfile {
   SeniorSettings applyTo(SeniorSettings settings) => settings.copyWith(
     screenMode: screenMode ?? settings.screenMode,
     fontSize: fontSize ?? settings.fontSize,
+  );
+
+  /// Added because the in-memory twin rebuilt this by hand in two places and
+  /// **both dropped `pendingPrimaryGuardianId`** - a field that decides
+  /// whether the senior's home screen raises the handover card. Every new
+  /// field would have been dropped the same way, silently, in a double that
+  /// exists to make tests trustworthy.
+  SeniorProfile copyWith({
+    String? displayName,
+    ScreenMode? screenMode,
+    FontSize? fontSize,
+    PaidConsentStatus? paidConsentStatus,
+    int? guardianHomeEdits,
+  }) => SeniorProfile(
+    id: id,
+    displayName: displayName ?? this.displayName,
+    customerCode: customerCode,
+    ageBand: ageBand,
+    screenMode: screenMode ?? this.screenMode,
+    fontSize: fontSize ?? this.fontSize,
+    paidConsentStatus: paidConsentStatus ?? this.paidConsentStatus,
+    pendingPrimaryGuardianId: pendingPrimaryGuardianId,
+    guardianHomeEdits: guardianHomeEdits ?? this.guardianHomeEdits,
   );
 
   static SeniorProfile? fromRow(Map<String, Object?> row) {
@@ -77,6 +111,11 @@ class SeniorProfile {
           _byName(PaidConsentStatus.values, row['paid_consent_status']) ??
           PaidConsentStatus.none,
       pendingPrimaryGuardianId: row['pending_primary_guardian_id'] as String?,
+      guardianHomeEdits: switch (row['guardian_home_edits']) {
+        final int n => n,
+        final num n => n.toInt(),
+        _ => 0,
+      },
     );
   }
 
@@ -90,7 +129,8 @@ class SeniorProfile {
       other.screenMode == screenMode &&
       other.fontSize == fontSize &&
       other.paidConsentStatus == paidConsentStatus &&
-      other.pendingPrimaryGuardianId == pendingPrimaryGuardianId;
+      other.pendingPrimaryGuardianId == pendingPrimaryGuardianId &&
+      other.guardianHomeEdits == guardianHomeEdits;
 
   @override
   int get hashCode => Object.hash(
@@ -102,6 +142,7 @@ class SeniorProfile {
     fontSize,
     paidConsentStatus,
     pendingPrimaryGuardianId,
+    guardianHomeEdits,
   );
 }
 

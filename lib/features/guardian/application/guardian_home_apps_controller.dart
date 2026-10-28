@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/supabase/supabase_providers.dart';
+import 'home_edit_allowance.dart';
 import '../../../domain/app_category.dart';
 import '../../../domain/launcher_app.dart';
 import '../../../domain/senior_device.dart';
@@ -50,6 +51,18 @@ final selectedSeniorDeviceProvider = FutureProvider<SeniorDevice?>((ref) async {
 /// dashboard tells the guardian the change reaches their parent's phone
 /// immediately, so a change still on screen after a failed write would be a
 /// lie about someone else's phone.
+/// What came of a guardian saving their parent's home screen.
+enum HomeEditOutcome {
+  saved,
+
+  /// The free lifetime allowance is spent. Not a failure: it is where the
+  /// screen offers 안심 케어 instead of apologising.
+  allowanceSpent,
+
+  /// The write did not reach the server.
+  failed,
+}
+
 class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
   @override
   Future<List<LauncherApp>> build() async {
@@ -58,7 +71,7 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
     return ref.watch(homeAppsRepositoryProvider).fetch(profile.id);
   }
 
-  Future<bool> rename(String id, String label) => _write(
+  Future<HomeEditOutcome> rename(String id, String label) => _write(
     (apps) => [
       for (final app in apps)
         if (app.id == id) app.copyWith(label: label) else app,
@@ -66,17 +79,17 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
   );
 
   /// Pass null to drop back to the button's category colour.
-  Future<bool> setColor(String id, ButtonColor? color) => _write(
+  Future<HomeEditOutcome> setColor(String id, ButtonColor? color) => _write(
     (apps) => [
       for (final app in apps)
         if (app.id == id) app.withColor(color) else app,
     ],
   );
 
-  Future<bool> remove(String id) =>
+  Future<HomeEditOutcome> remove(String id) =>
       _write((apps) => [for (final app in apps) if (app.id != id) app]);
 
-  Future<bool> add({
+  Future<HomeEditOutcome> add({
     required String label,
     required AppCategory category,
     String? phoneNumber,
@@ -93,7 +106,7 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
   );
 
   /// Both halves of a person button at once — see the senior-side twin.
-  Future<bool> editContact(
+  Future<HomeEditOutcome> editContact(
     String id, {
     required String label,
     required String phoneNumber,
@@ -109,7 +122,7 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
 
   /// Indices follow `ReorderableListView`: [newIndex] is read against the list
   /// as it still stands, before the dragged button is lifted out.
-  Future<bool> reorder(int oldIndex, int newIndex) => _write((apps) {
+  Future<HomeEditOutcome> reorder(int oldIndex, int newIndex) => _write((apps) {
     if (oldIndex < 0 || oldIndex >= apps.length) return apps;
     final next = [...apps];
     final target = newIndex > oldIndex ? newIndex - 1 : newIndex;
@@ -117,13 +130,25 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
     return next;
   });
 
-  /// Returns false when the write did not reach the server; the caller says so
-  /// rather than leaving the guardian believing their parent's phone changed.
-  Future<bool> _write(
+  /// What came of a save, in the three answers the screen needs.
+  ///
+  /// It was a bool, and the day the free allowance arrived that stopped being
+  /// enough: `false` would have made 무료 2번을 다 쓰셨어요 look exactly like
+  /// 부모님 폰에 닿지 않았어요, and one of those is an offer while the other
+  /// is a fault.
+  Future<HomeEditOutcome> _write(
     List<LauncherApp> Function(List<LauncherApp>) transform,
   ) async {
     final profile = ref.read(selectedSeniorProfileProvider);
-    if (profile == null) return false;
+    if (profile == null) return HomeEditOutcome.failed;
+
+    // Asked **before** the write, not after. The server refuses either way,
+    // but a guardian who learns it from an error has already made the
+    // arrangement and watched it snap back - and the screen then has to
+    // explain a failure instead of making an offer.
+    if (!ref.read(homeEditAllowanceProvider).canEdit) {
+      return HomeEditOutcome.allowanceSpent;
+    }
 
     final before = state.value ?? const <LauncherApp>[];
     final after = transform(before);
@@ -132,10 +157,14 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
     state = AsyncData(after);
     try {
       await ref.read(homeAppsRepositoryProvider).replace(profile.id, after);
-      return true;
+      // The count lives on the profile row, and the server has just moved it.
+      // Without this the screen goes on saying 2번 남았어요 until something
+      // else happens to reload.
+      ref.invalidate(linkedSeniorProfilesProvider);
+      return HomeEditOutcome.saved;
     } on Object {
       state = AsyncData(before);
-      return false;
+      return HomeEditOutcome.failed;
     }
   }
 

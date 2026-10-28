@@ -341,29 +341,21 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   void setConsent(String profileId, PaidConsentStatus status) {
     final profile = profiles[profileId];
     if (profile == null) return;
-    profiles[profileId] = SeniorProfile(
-      id: profile.id,
-      displayName: profile.displayName,
-      customerCode: profile.customerCode,
-      ageBand: profile.ageBand,
-      screenMode: profile.screenMode,
-      fontSize: profile.fontSize,
-      paidConsentStatus: status,
-    );
+    profiles[profileId] = profile.copyWith(paidConsentStatus: status);
+  }
+
+  /// How many remote home-screen saves this family has spent, for the tests
+  /// that drive the free allowance. The server counts the real ones.
+  void setGuardianHomeEdits(String profileId, int used) {
+    final profile = profiles[profileId];
+    if (profile == null) return;
+    profiles[profileId] = profile.copyWith(guardianHomeEdits: used);
   }
 
   void rename(String profileId, String displayName) {
     final profile = profiles[profileId];
     if (profile == null) return;
-    profiles[profileId] = SeniorProfile(
-      id: profile.id,
-      displayName: displayName,
-      customerCode: profile.customerCode,
-      ageBand: profile.ageBand,
-      screenMode: profile.screenMode,
-      fontSize: profile.fontSize,
-      paidConsentStatus: profile.paidConsentStatus,
-    );
+    profiles[profileId] = profile.copyWith(displayName: displayName);
   }
 
   /// Retires whichever install held the profile and makes this one live.
