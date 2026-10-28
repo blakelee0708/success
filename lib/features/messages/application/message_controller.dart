@@ -51,7 +51,10 @@ class MessageController extends Notifier<void> {
   Future<void> send(String body) async {
     final profileId = await ref.read(conversationProfileIdProvider.future);
     if (profileId == null) return;
-    await ref.read(messageRepositoryProvider).send(profileId, body: body);
+    final sent = await ref
+        .read(messageRepositoryProvider)
+        .send(profileId, body: body);
+    await _notify(sent);
     ref.invalidate(conversationProvider);
     ref.invalidate(messageQuotaProvider);
   }
@@ -72,9 +75,26 @@ class MessageController extends Notifier<void> {
       bytes,
       contentType: contentType,
     );
-    await repo.send(profileId, imagePath: path);
+    await _notify(await repo.send(profileId, imagePath: path));
     ref.invalidate(conversationProvider);
     ref.invalidate(messageQuotaProvider);
+  }
+
+  /// Puts the parent's message on their children's phones.
+  ///
+  /// Decided from the row that came back rather than from which half of the
+  /// app is running: `isFromSenior` is the server's own answer to who sent
+  /// it, and it is the same question the gate asks. A guardian's send falls
+  /// through here untouched, so their phone never makes a call the server
+  /// would refuse.
+  ///
+  /// The repository swallows its own failures. Awaited rather than fired and
+  /// forgotten only because `send` has already returned - nothing on screen
+  /// is waiting on a platform channel here, it is one HTTP call that cannot
+  /// throw.
+  Future<void> _notify(FamilyMessage sent) async {
+    if (!sent.isFromSenior) return;
+    await ref.read(messageRepositoryProvider).notifyFamily(sent.id);
   }
 
   /// Marks what the other side sent as read, because this screen is open.

@@ -30,6 +30,16 @@ abstract interface class SeniorLinkRepository {
     String? phoneNumber,
   });
 
+  /// Records where this guardian's phone can be reached, so their parent's
+  /// message can arrive as a notification rather than only as a number on a
+  /// tab they have to open first.
+  ///
+  /// Its own call rather than a column on something else, because the
+  /// guardian's half has no equivalent of the senior's check-in to ride on.
+  /// It is cheap and idempotent, so the dashboard makes it on every open -
+  /// which is what keeps it fresh, and a token **rotates**.
+  Future<void> registerPushToken(String token);
+
   Future<SeniorProfile> createSeniorProfile({
     required String displayName,
     String? ageBand,
@@ -100,6 +110,11 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
       throw const SeniorLinkException('보호자 계정을 만들지 못했어요.');
     }
     return account;
+  }
+
+  @override
+  Future<void> registerPushToken(String token) async {
+    await _rpc('register_guardian_push_token', {'p_token': token});
   }
 
   @override
@@ -379,6 +394,18 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
       guardianPhones[account.id] = number;
     }
     return account;
+  }
+
+  /// Every token this guardian has reported, in order, so a test can see that
+  /// a rotation lands rather than only that something was called once.
+  final guardianPushTokens = <String>[];
+
+  @override
+  Future<void> registerPushToken(String token) async {
+    if (_account == null) {
+      throw const SeniorLinkException('보호자 계정이 없어요.');
+    }
+    guardianPushTokens.add(token);
   }
 
   @override

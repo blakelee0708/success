@@ -22,6 +22,18 @@ abstract interface class PushMessaging {
   /// Firebase and when the phone has no network to fetch one over.
   Future<String?> token();
 
+  /// Asks for permission to show notifications, where the phone has such a
+  /// thing to ask.
+  ///
+  /// Only the **guardian's** half calls this. On the senior's phone a ring is
+  /// drawn as a full-screen layer by the app itself, so no notification is
+  /// posted and nothing needs granting — and a system dialog arriving on a
+  /// launcher is the exact problem `HomeAppCoach` exists to soften.
+  ///
+  /// `POST_NOTIFICATIONS` is already in the built APK: `firebase_messaging`
+  /// declares it and Gradle merges it in. What was missing was the asking.
+  Future<void> requestPermission();
+
   /// Data messages arriving **while the app is running in the foreground**.
   ///
   /// That limit is real and it is currently the feature's ceiling: a phone
@@ -48,6 +60,17 @@ class FirebasePushMessaging implements PushMessaging {
   }
 
   @override
+  Future<void> requestPermission() async {
+    try {
+      await _messaging.requestPermission();
+    } on Object {
+      // A phone with no Play Services, or one that answered nothing. The
+      // dashboard draws either way; what is lost is a notification, not a
+      // screen.
+    }
+  }
+
+  @override
   Stream<Map<String, String>> messages() =>
       FirebaseMessaging.onMessage.map((m) => m.data.map(
             (k, v) => MapEntry(k, '$v'),
@@ -63,6 +86,9 @@ class NoPushMessaging implements PushMessaging {
   Future<String?> token() async => null;
 
   @override
+  Future<void> requestPermission() async {}
+
+  @override
   Stream<Map<String, String>> messages() => const Stream.empty();
 }
 
@@ -76,6 +102,7 @@ class FakePushMessaging implements PushMessaging {
   bool offline = false;
 
   int tokenReads = 0;
+  int permissionAsks = 0;
 
   final _messages = StreamController<Map<String, String>>.broadcast();
 
@@ -85,6 +112,9 @@ class FakePushMessaging implements PushMessaging {
     if (offline) throw StateError('no network');
     return fixedToken;
   }
+
+  @override
+  Future<void> requestPermission() async => permissionAsks++;
 
   @override
   Stream<Map<String, String>> messages() => _messages.stream;

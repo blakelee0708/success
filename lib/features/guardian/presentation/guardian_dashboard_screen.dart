@@ -11,6 +11,7 @@ import '../../../domain/senior_settings.dart';
 import '../application/device_status_lines.dart';
 import '../application/senior_presence.dart';
 import '../application/guardian_home_apps_controller.dart';
+import '../application/guardian_push_registrar.dart';
 import '../application/guardian_session_controller.dart';
 import '../../care/application/care_controller.dart';
 import '../../care/presentation/guardian_care_tab.dart';
@@ -43,6 +44,15 @@ class GuardianDashboardScreen extends ConsumerStatefulWidget {
 class _GuardianDashboardScreenState
     extends ConsumerState<GuardianDashboardScreen> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Where this phone can be reached, so a message from their parent arrives
+    // as a notification rather than as a number on a tab they have to open
+    // first. Started, never awaited - see `GuardianPushRegistrar`.
+    ref.read(guardianPushRegistrarProvider).start();
+  }
 
   @override
   Widget build(BuildContext context) {

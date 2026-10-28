@@ -48,6 +48,21 @@ abstract interface class MessageRepository {
   /// Fails quietly — a receipt that did not land is not worth an error on
   /// either person's screen.
   Future<void> markRead(String seniorProfileId);
+
+  /// Asks the server to put this message on the family's phones as a
+  /// notification.
+  ///
+  /// **Only for a message the senior sent.** The server refuses any other
+  /// caller, and the app does not try: a guardian's own message is already on
+  /// their parent's screen the moment they pick the phone up, and buzzing a
+  /// sibling about what you just typed is noise.
+  ///
+  /// Takes an id and never the text, so nothing can push a line the
+  /// conversation does not contain. Fails quietly for the same reason
+  /// [markRead] does, and a stronger one: the message is already sent, and a
+  /// senior shown a failure for something that did not fail would send it
+  /// again.
+  Future<void> notifyFamily(String messageId);
 }
 
 /// The free allowance is gone for this month.
@@ -171,6 +186,19 @@ class SupabaseMessageRepository implements MessageRepository {
       // A receipt is a courtesy. Nothing on either screen depends on it.
     }
   }
+
+  @override
+  Future<void> notifyFamily(String messageId) async {
+    try {
+      await _client.functions.invoke(
+        'notify-message',
+        body: {'message_id': messageId},
+      );
+    } on Object {
+      // The message is in the conversation either way, and the guardian's
+      // tab carries the count. What is lost is the buzz.
+    }
+  }
   @override
   Future<MessageQuota> quota(String seniorProfileId) async {
     final result = await _client.rpc(
@@ -271,6 +299,12 @@ class InMemoryMessageRepository implements MessageRepository {
 
   /// Which side this fake is reading as — the mirror of [sendingAsSenior].
   bool readingAsSenior = false;
+
+  /// Message ids the family was told about, in order.
+  final notified = <String>[];
+
+  @override
+  Future<void> notifyFamily(String messageId) async => notified.add(messageId);
 
   @override
   Future<void> markRead(String seniorProfileId) async {

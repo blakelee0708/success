@@ -239,11 +239,56 @@ their own child.
 **The guardian gets a count, not a card.** `GuardianNavBar` carries a number
 on 메시지. They are an adult with an ordinary phone on which this is one app
 among many, so a card could only ever appear once they had already opened it,
-which is both late and redundant. What reaches them when it matters is a push
-notification, which is not built. This is the exact opposite of the rule FCM
+which is both late and redundant. This is the exact opposite of the rule FCM
 follows for the senior, for the same reason: a status-bar entry is the one
 place a senior who cannot find their contacts app will not look, and the first
 place their child will.
+
+**The notification is built, as of 2026-10-28**, and it was far cheaper than
+소리 울리기 for one reason worth keeping: it sends a **`notification`
+payload, not a `data` one.** Android draws a notification message itself
+while the app is backgrounded or not running at all - no background handler,
+no native code, nothing to bring forward, and nothing for Play to review.
+소리 울리기 cannot use it because a notification cannot make a noise on a
+silenced phone, which is the whole case that feature exists for.
+
+`POST_NOTIFICATIONS` needed no manifest change either: `firebase_messaging`
+already declares it and Gradle merges it in, which is what the privacy-policy
+section below records finding. What was missing was only the **asking**, and
+`GuardianPushRegistrar` asks before it reads the token, because a token with
+notifications denied is an address that accepts post and burns it.
+
+**It registers on every dashboard open, not at sign-in.** A token rotates on
+a reinstall, on a restore onto a new handset, and occasionally for Firebase's
+own reasons; registering once would go stale in silence, which is how a
+notification stops arriving with nothing anywhere saying so. The guardian's
+half has no equivalent of the senior's check-in to ride on, so the dashboard
+is that. Nothing in it is awaited by anything drawn - the same rule the ring,
+the onboarding channel and the device-status read all document.
+
+**One direction only, decided from the row rather than from which half is
+running.** `MessageController._notify` reads `isFromSenior` off the message
+the server just returned, which is the server's own answer to who sent it and
+the same question `notify_family_message` asks. A guardian's send falls
+through untouched, so their phone never makes a call the gate would refuse -
+and buzzing a sibling about a line you typed yourself is noise, since their
+parent's screen already shows it.
+
+**The gate refuses a guardian caller outright**, and that is the check worth
+reading twice. Being a guardian of the family is not enough: the caller has
+to be the device the message was sent from, or anyone in the family could
+make every sibling's phone buzz with a line of their own writing. It takes a
+message id and never the text, so nothing can push a line the conversation
+does not contain.
+
+`tool/verify_supabase_guardian_push.py` walks 23 checks against the live
+project, the last three through the deployed function itself. **That last
+part caught a real failure**: the SQL gate passed everything and the function
+answered `BOOT_ERROR`, because the file was assembled by copying
+`ring-phone`'s OAuth half and the copy included its `reply()` - two
+declarations of the same function in one module, which bundles fine and dies
+at startup. A verifier that stopped at the SQL would have reported the
+feature working.
 
 ## Two children, one thread
 
