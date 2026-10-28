@@ -852,9 +852,10 @@ would be worse than saying so. All four paths were run by hand.
 **The move to the Korean project `handkezisjufyyumpuma` is done.** The
 schema, the eight verifiers, the Korean mail templates, the Redirect URLs,
 Kakao and Google, CI's secrets and `app.jalboine.com` with HTTPS are all on
-it. `docs/SEOUL_MIGRATION.md` records what each step cost. Singapore can be
-deleted once the Edge Function has been redeployed and
-`tool/verify_ring_function.py` has run against Seoul.
+it. `docs/SEOUL_MIGRATION.md` records what each step cost. **The last step is
+done too**, as of 2026-10-28: `ring-phone` is deployed to Seoul with its
+`FCM_SERVICE_ACCOUNT` secret and `tool/verify_ring_function.py` passes against
+it, so **Singapore holds nothing Seoul does not** and can be deleted.
 
 The paragraph below is what that runbook replaced, kept because its account
 of why the move stalled is still the clearest statement of how the two
@@ -1857,9 +1858,16 @@ as a delivery failure.
 `.gitignore` carries `*-firebase-adminsdk-*.json` so it cannot be added by
 accident. It lives in Edge Function secrets as `FCM_SERVICE_ACCOUNT`.
 
-The sending chain is **deployed and proven**, as of 2026-10-27:
-`ring-phone` is ACTIVE with `verify_jwt`, the secret is set, and
+The sending chain is **deployed and proven on Seoul**, as of 2026-10-28:
+`ring-phone` is ACTIVE at version 1 with `verify_jwt`, the secret is set, and
 `tool/verify_ring_function.py` walks it end to end against the live project.
+
+**There is no `supabase` CLI and no `deno` in this container**, so the deploy
+went through the Management API's `POST /v1/projects/{ref}/functions/deploy`
+as `multipart/form-data` - one `metadata` part carrying
+`{entrypoint_path, name, verify_jwt}` and one `file` part carrying
+`index.ts`. Worth knowing before anyone spends a session trying to install
+the CLI: the deploy does not need it.
 It sends to a deliberately fake device token and reads the reply, because the
 one thing the SQL gate cannot tell you is whether the sender works.
 
