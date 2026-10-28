@@ -124,6 +124,10 @@ jobs:
           name: screenshots
           path: build/screenshots/
           if-no-files-found: warn
+          # Two days. These are looked at the day they are produced, by
+          # whoever asked for the run, and never again - but the default is
+          # **90 days**, so every push kept 5 MB of PNGs for three months.
+          retention-days: 2
 
   apk:
     name: build APK
@@ -195,6 +199,12 @@ jobs:
           name: app-release-${{ github.sha }}
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+          # **Three days, against a default of 90.** The APK is 26 MB and
+          # the name carries the commit, so nothing ever replaces anything:
+          # forty pushes in one day is a gigabyte, and the free allowance is
+          # half of one. It is downloaded within minutes of the run that
+          # makes it, and any commit can be rebuilt by re-running its job.
+          retention-days: 3
 
       # The Kotlin and the manifest are never compiled anywhere else, so this
       # is the only place the launcher's defining fact can be checked at all:
