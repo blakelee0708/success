@@ -65,9 +65,15 @@ class FamilyMessage {
       other.readAt == readAt;
 
   @override
-  int get hashCode =>
-      Object.hash(id, sentAt, body, imageUrl, senderGuardianId, senderDeviceId,
-          readAt);
+  int get hashCode => Object.hash(
+    id,
+    sentAt,
+    body,
+    imageUrl,
+    senderGuardianId,
+    senderDeviceId,
+    readAt,
+  );
 }
 
 /// What is left of this month's free allowance.

@@ -18,11 +18,16 @@ Future<void> _pumpHome(
 }) async {
   await pumpApp(
     tester,
-    overrides: [nowProvider.overrideWithValue(() => _tuesdayAfternoon), ...overrides],
+    overrides: [
+      nowProvider.overrideWithValue(() => _tuesdayAfternoon),
+      ...overrides,
+    ],
     prefs: {
       SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
-        const SeniorSettings(screenMode: ScreenMode.easy, apps: defaultEasyApps)
-            .toJson(),
+        const SeniorSettings(
+          screenMode: ScreenMode.easy,
+          apps: defaultEasyApps,
+        ).toJson(),
       ),
     },
   );
@@ -63,5 +68,4 @@ void main() {
       findsNothing,
     );
   });
-
 }

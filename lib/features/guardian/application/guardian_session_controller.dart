@@ -152,8 +152,7 @@ class GuardianLoginController extends Notifier<GuardianLoginState> {
     }
   }
 
-  Future<void> signOut() =>
-      ref.read(guardianAuthRepositoryProvider).signOut();
+  Future<void> signOut() => ref.read(guardianAuthRepositoryProvider).signOut();
 
   /// Checked here rather than in the form so the same rules apply however the
   /// screen is driven, and so the message is written once.

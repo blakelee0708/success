@@ -92,29 +92,35 @@ class SupabasePairingRepository implements PairingRepository {
     String? deviceLabel,
     String? platform,
     String? osVersion,
-  }) async => _link(await _rpc('start_senior_pairing', {
-    'p_install_id': installId,
-    'p_device_label': deviceLabel,
-    'p_platform': platform,
-    'p_os_version': osVersion,
-  }));
+  }) async => _link(
+    await _rpc('start_senior_pairing', {
+      'p_install_id': installId,
+      'p_device_label': deviceLabel,
+      'p_platform': platform,
+      'p_os_version': osVersion,
+    }),
+  );
 
   @override
   Future<SeniorProfile> claimSeniorPairingCode({
     required String code,
     required String displayName,
     String? phoneNumber,
-  }) async => _profile(await _rpc('claim_senior_pairing_code', {
-    'p_code': code.trim(),
-    'p_display_name': displayName.trim(),
-    'p_phone_number': phoneNumber,
-  }));
+  }) async => _profile(
+    await _rpc('claim_senior_pairing_code', {
+      'p_code': code.trim(),
+      'p_display_name': displayName.trim(),
+      'p_phone_number': phoneNumber,
+    }),
+  );
 
   @override
   Future<PairLink> createSeniorInvite({required String displayName}) async =>
-      _link(await _rpc('create_senior_invite', {
-        'p_display_name': displayName.trim(),
-      }));
+      _link(
+        await _rpc('create_senior_invite', {
+          'p_display_name': displayName.trim(),
+        }),
+      );
 
   @override
   Future<SeniorProfile> redeemSeniorInvite({
@@ -124,20 +130,23 @@ class SupabasePairingRepository implements PairingRepository {
     String? deviceLabel,
     String? platform,
     String? osVersion,
-  }) async => _profile(await _rpc('redeem_senior_invite', {
-    'p_install_id': installId,
-    'p_token': token?.trim(),
-    'p_code': code?.trim(),
-    'p_device_label': deviceLabel,
-    'p_platform': platform,
-    'p_os_version': osVersion,
-  }));
+  }) async => _profile(
+    await _rpc('redeem_senior_invite', {
+      'p_install_id': installId,
+      'p_token': token?.trim(),
+      'p_code': code?.trim(),
+      'p_device_label': deviceLabel,
+      'p_platform': platform,
+      'p_os_version': osVersion,
+    }),
+  );
 
   @override
-  Future<PairLink> createRecoveryCode(String seniorProfileId) async =>
-      _link(await _rpc('create_recovery_code', {
-        'p_senior_profile_id': seniorProfileId,
-      }));
+  Future<PairLink> createRecoveryCode(String seniorProfileId) async => _link(
+    await _rpc('create_recovery_code', {
+      'p_senior_profile_id': seniorProfileId,
+    }),
+  );
 
   @override
   Future<SeniorProfile> redeemRecoveryCode({
@@ -146,19 +155,22 @@ class SupabasePairingRepository implements PairingRepository {
     String? deviceLabel,
     String? platform,
     String? osVersion,
-  }) async => _profile(await _rpc('redeem_recovery_code', {
-    'p_code': code.trim(),
-    'p_install_id': installId,
-    'p_device_label': deviceLabel,
-    'p_platform': platform,
-    'p_os_version': osVersion,
-  }));
+  }) async => _profile(
+    await _rpc('redeem_recovery_code', {
+      'p_code': code.trim(),
+      'p_install_id': installId,
+      'p_device_label': deviceLabel,
+      'p_platform': platform,
+      'p_os_version': osVersion,
+    }),
+  );
 
   @override
-  Future<PairLink> createFamilyInvite(String seniorProfileId) async =>
-      _link(await _rpc('create_family_invite', {
-        'p_senior_profile_id': seniorProfileId,
-      }));
+  Future<PairLink> createFamilyInvite(String seniorProfileId) async => _link(
+    await _rpc('create_family_invite', {
+      'p_senior_profile_id': seniorProfileId,
+    }),
+  );
 
   @override
   Future<SeniorProfile> redeemFamilyInvite(String code) async =>
@@ -187,10 +199,10 @@ class SupabasePairingRepository implements PairingRepository {
   }
 
   @override
-  Future<void> requestPrimaryGuardian(String seniorProfileId) =>
-      _rpc('request_primary_guardian', {
-        'p_senior_profile_id': seniorProfileId,
-      });
+  Future<void> requestPrimaryGuardian(String seniorProfileId) => _rpc(
+    'request_primary_guardian',
+    {'p_senior_profile_id': seniorProfileId},
+  );
 
   @override
   Future<void> resolvePrimaryGuardian(String seniorProfileId, bool approve) =>
@@ -411,7 +423,10 @@ class InMemoryPairingRepository implements PairingRepository {
   }
 
   @override
-  Future<void> resolvePrimaryGuardian(String seniorProfileId, bool approve) async {
+  Future<void> resolvePrimaryGuardian(
+    String seniorProfileId,
+    bool approve,
+  ) async {
     // Only the phone in the senior's hand. A guardian approving their own
     // request would make the approval ceremonial.
     if (store.activeDeviceByProfile[seniorProfileId]?.installId !=
@@ -463,9 +478,7 @@ class InMemoryPairingRepository implements PairingRepository {
   );
 
   PairLink _spend(PairLink? link) {
-    if (link == null ||
-        _spent.contains(link.id) ||
-        link.isExpiredAt(now())) {
+    if (link == null || _spent.contains(link.id) || link.isExpiredAt(now())) {
       throw const SeniorLinkException('연결 번호가 맞지 않거나 시간이 지났어요. 다시 확인해 주세요.');
     }
     _spent.add(link.id);

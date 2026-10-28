@@ -29,10 +29,11 @@ void main() {
     );
     if (icons.existsSync()) {
       await (FontLoader('MaterialIcons')..addFont(
-        Future.value(
-          ByteData.view(Uint8List.fromList(icons.readAsBytesSync()).buffer),
-        ),
-      )).load();
+            Future.value(
+              ByteData.view(Uint8List.fromList(icons.readAsBytesSync()).buffer),
+            ),
+          ))
+          .load();
     }
   });
 
@@ -71,8 +72,9 @@ void main() {
       await tester.runAsync(() async {
         final image = await boundary.toImage(pixelRatio: 1.6);
         final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-        File('${dir.path}/${elapsed.toString().padLeft(3, '0')}ms.png')
-            .writeAsBytesSync(bytes!.buffer.asUint8List());
+        File(
+          '${dir.path}/${elapsed.toString().padLeft(3, '0')}ms.png',
+        ).writeAsBytesSync(bytes!.buffer.asUint8List());
         image.dispose();
       });
     }

@@ -11,7 +11,9 @@ class GuardianSession {
 
   @override
   bool operator ==(Object other) =>
-      other is GuardianSession && other.userId == userId && other.email == email;
+      other is GuardianSession &&
+      other.userId == userId &&
+      other.email == email;
 
   @override
   int get hashCode => Object.hash(userId, email);

@@ -199,16 +199,19 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
     String? pushToken,
   }) async {
     try {
-      await _client.rpc('touch_senior_device', params: {
-        'p_install_id': installId,
-        'p_battery_percent': status?.batteryPercent,
-        'p_is_charging': status?.isCharging,
-        'p_ringer_mode': status?.ringer?.name,
-        'p_status_read_at': status?.readAt.toUtc().toIso8601String(),
-        // Coalesced server-side like the rest: a resume that could not read
-        // a token leaves the last good one in place.
-        'p_push_token': pushToken,
-      });
+      await _client.rpc(
+        'touch_senior_device',
+        params: {
+          'p_install_id': installId,
+          'p_battery_percent': status?.batteryPercent,
+          'p_is_charging': status?.isCharging,
+          'p_ringer_mode': status?.ringer?.name,
+          'p_status_read_at': status?.readAt.toUtc().toIso8601String(),
+          // Coalesced server-side like the rest: a resume that could not read
+          // a token leaves the last good one in place.
+          'p_push_token': pushToken,
+        },
+      );
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);
     }
@@ -311,7 +314,10 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
     }
   }
 
-  Future<Map<String, Object?>> _rpc(String name, Map<String, Object?> params) async {
+  Future<Map<String, Object?>> _rpc(
+    String name,
+    Map<String, Object?> params,
+  ) async {
     try {
       final result = await _client.rpc(name, params: params);
       if (result is Map<String, Object?>) return result;
@@ -390,7 +396,8 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// Registers a profile as belonging to [role], used by the pairing twin.
   void link(String profileId, String guardianId, String role) {
     (rolesByProfile[profileId] ??= {})[guardianId] = role;
-    if (guardianId == guardianAccountId && !linkedProfileIds.contains(profileId)) {
+    if (guardianId == guardianAccountId &&
+        !linkedProfileIds.contains(profileId)) {
       linkedProfileIds.add(profileId);
     }
   }

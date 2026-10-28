@@ -57,7 +57,13 @@ class SeniorDevice {
       other.status == status;
 
   @override
-  int get hashCode =>
-      Object.hash(id, installId, isActive, deviceLabel, platform, lastSeenAt,
-          status);
+  int get hashCode => Object.hash(
+    id,
+    installId,
+    isActive,
+    deviceLabel,
+    platform,
+    lastSeenAt,
+    status,
+  );
 }

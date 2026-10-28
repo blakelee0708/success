@@ -275,22 +275,22 @@ void main() {
   });
 
   group('the number is read back in groups', () {
-    test('mobile', () => expect(
-      formatKoreanNumber('01012345678'),
-      '010-1234-5678',
-    ));
-    test('seoul landline', () => expect(
-      formatKoreanNumber('0212345678'),
-      '02-1234-5678',
-    ));
-    test('other landline', () => expect(
-      formatKoreanNumber('0311234567'),
-      '031-123-4567',
-    ));
-    test('already punctuated stays put', () => expect(
-      formatKoreanNumber('010-1234-5678'),
-      '010-1234-5678',
-    ));
+    test(
+      'mobile',
+      () => expect(formatKoreanNumber('01012345678'), '010-1234-5678'),
+    );
+    test(
+      'seoul landline',
+      () => expect(formatKoreanNumber('0212345678'), '02-1234-5678'),
+    );
+    test(
+      'other landline',
+      () => expect(formatKoreanNumber('0311234567'), '031-123-4567'),
+    );
+    test(
+      'already punctuated stays put',
+      () => expect(formatKoreanNumber('010-1234-5678'), '010-1234-5678'),
+    );
   });
 
   test('a person is lettered in ink, because the amber cannot hold white', () {
@@ -302,4 +302,3 @@ void main() {
     expect(AppCategory.contact.baseColor, isNot(AppCategory.phone.baseColor));
   });
 }
-

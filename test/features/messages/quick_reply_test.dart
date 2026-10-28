@@ -177,10 +177,7 @@ void main() {
     await tester.tap(find.byKey(ConversationKeys.quickReply('전화 좀 줘')));
     await tester.pumpAndSettle();
 
-    expect(
-      h.messages.byProfile[h.profileId]!.last.body,
-      '전화 좀 줘',
-    );
+    expect(h.messages.byProfile[h.profileId]!.last.body, '전화 좀 줘');
     expect(find.byKey(ConversationKeys.error), findsNothing);
   });
 }

@@ -105,7 +105,11 @@ class _Row extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const Icon(Icons.chevron_right_rounded, size: 26, color: Colors.white),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 26,
+              color: Colors.white,
+            ),
           ],
         ),
       ),

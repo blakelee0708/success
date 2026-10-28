@@ -54,11 +54,14 @@ Future<void> _openAppSettings(
 }
 
 /// The guardian's 홈 화면 tab, with one parent linked.
-Future<({
-  InMemoryHomeAppsRepository homeApps,
-  FakeAppLauncher launcher,
-  String profileId,
-})> _pumpGuardianTab(WidgetTester tester) async {
+Future<
+  ({
+    InMemoryHomeAppsRepository homeApps,
+    FakeAppLauncher launcher,
+    String profileId,
+  })
+>
+_pumpGuardianTab(WidgetTester tester) async {
   final auth = InMemoryGuardianAuthRepository()
     ..seedSignedIn(const GuardianSession(userId: 'u1'));
   addTearDown(auth.dispose);
@@ -209,37 +212,38 @@ void main() {
   });
 
   group('the senior fills it in from their home screen', () {
-    testWidgets('pressing the slot opens the list and the button becomes the app', (
-      tester,
-    ) async {
-      // Two presses on the screen they are already looking at. The step they
-      // could not do — knowing a button should exist and placing it — was
-      // done from the other phone.
-      await _pumpSeniorHome(
-        tester,
-        apps: const [
-          LauncherApp(
-            id: 'slot',
-            label: '눌러서 앱 고르기',
-            category: AppCategory.installed,
-          ),
-        ],
-        installed: [_gostop],
-      );
+    testWidgets(
+      'pressing the slot opens the list and the button becomes the app',
+      (tester) async {
+        // Two presses on the screen they are already looking at. The step they
+        // could not do — knowing a button should exist and placing it — was
+        // done from the other phone.
+        await _pumpSeniorHome(
+          tester,
+          apps: const [
+            LauncherApp(
+              id: 'slot',
+              label: '눌러서 앱 고르기',
+              category: AppCategory.installed,
+            ),
+          ],
+          installed: [_gostop],
+        );
 
-      await tester.tap(find.text('눌러서 앱 고르기'));
-      await tester.pumpAndSettle();
-      expect(find.byKey(InstalledAppPickerKeys.sheet), findsOneWidget);
+        await tester.tap(find.text('눌러서 앱 고르기'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(InstalledAppPickerKeys.sheet), findsOneWidget);
 
-      await tester.tap(
-        find.byKey(InstalledAppPickerKeys.option('com.game.gostop')),
-      );
-      await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(InstalledAppPickerKeys.option('com.game.gostop')),
+        );
+        await tester.pumpAndSettle();
 
-      // Named after what it opens, not after whatever the guardian wrote.
-      expect(find.text('고스톱'), findsWidgets);
-      expect(find.text('눌러서 앱 고르기'), findsNothing);
-    });
+        // Named after what it opens, not after whatever the guardian wrote.
+        expect(find.text('고스톱'), findsWidgets);
+        expect(find.text('눌러서 앱 고르기'), findsNothing);
+      },
+    );
 
     testWidgets('an unfilled slot never opens an app', (tester) async {
       // It resolves to nothing rather than to some fallback, so it cannot
@@ -262,30 +266,31 @@ void main() {
     });
   });
 
-  testWidgets('the hollow slot on the home screen goes straight to the question', (
-    tester,
-  ) async {
-    // It used to land on 앱 설정 — a list of the buttons they already have,
-    // with 버튼 추가하기 at the bottom — so adding one from the home screen
-    // took four screens, two of which existed to be passed through. The step
-    // a senior gives up at is not the choosing; it is getting to the place
-    // where they can choose.
-    await _pumpSeniorHome(
-      tester,
-      mode: ScreenMode.detailed,
-      apps: const [
-        LauncherApp(id: 'phone', label: '전화', category: AppCategory.phone),
-      ],
-      installed: [_gostop],
-    );
+  testWidgets(
+    'the hollow slot on the home screen goes straight to the question',
+    (tester) async {
+      // It used to land on 앱 설정 — a list of the buttons they already have,
+      // with 버튼 추가하기 at the bottom — so adding one from the home screen
+      // took four screens, two of which existed to be passed through. The step
+      // a senior gives up at is not the choosing; it is getting to the place
+      // where they can choose.
+      await _pumpSeniorHome(
+        tester,
+        mode: ScreenMode.detailed,
+        apps: const [
+          LauncherApp(id: 'phone', label: '전화', category: AppCategory.phone),
+        ],
+        installed: [_gostop],
+      );
 
-    // One button leaves two hollow slots — the grid keeps a whole row
-    // rather than one orphan. Either opens the same question.
-    await tester.tap(find.text('추가하기').first);
-    await tester.pumpAndSettle();
+      // One button leaves two hollow slots — the grid keeps a whole row
+      // rather than one orphan. Either opens the same question.
+      await tester.tap(find.text('추가하기').first);
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(CategoryPickerKeys.sheet), findsOneWidget);
-  });
+      expect(find.byKey(CategoryPickerKeys.sheet), findsOneWidget);
+    },
+  );
 
   group('opening it', () {
     test('it opens the package the senior chose', () {

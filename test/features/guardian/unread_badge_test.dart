@@ -48,7 +48,10 @@ void main() {
     return (messages: messages, profileId: profile.id);
   }
 
-  Future<void> pumpGuardian(WidgetTester tester, InMemoryMessageRepository m) async {
+  Future<void> pumpGuardian(
+    WidgetTester tester,
+    InMemoryMessageRepository m,
+  ) async {
     final auth = InMemoryGuardianAuthRepository()
       ..seedSignedIn(const GuardianSession(userId: 'u1'));
     addTearDown(auth.dispose);
@@ -59,7 +62,9 @@ void main() {
         pairingRepositoryProvider.overrideWithValue(_pairing!),
         subscriptionRepositoryProvider.overrideWithValue(_subs!),
         messageRepositoryProvider.overrideWithValue(m),
-        homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+        homeAppsRepositoryProvider.overrideWithValue(
+          InMemoryHomeAppsRepository(),
+        ),
         guardianAuthRepositoryProvider.overrideWithValue(auth),
       ],
     );

@@ -55,9 +55,7 @@ void main() {
     expect(tester.getTopLeft(google).dy, lessThan(tester.getTopLeft(email).dy));
   });
 
-  testWidgets('email needs no 준비 중 sheet, only the terms one', (
-    tester,
-  ) async {
+  testWidgets('email needs no 준비 중 sheet, only the terms one', (tester) async {
     // Kakao and Google have to explain themselves because neither has an
     // OAuth client configured. Email has nothing to explain and nothing to
     // wait for, so a sheet saying so would be a screen that exists to be

@@ -22,9 +22,7 @@ class HomeStrip extends ConsumerWidget {
 
   static const stripKey = Key('home-strip');
 
-
   /// Shown once somebody is.
-
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

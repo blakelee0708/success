@@ -63,7 +63,10 @@ void main() {
     test('a code cannot be claimed twice', () async {
       final h = _fresh();
       final link = await h.pairing.startSeniorPairing(installId: 'install-1');
-      await h.pairing.claimSeniorPairingCode(code: link.code, displayName: '어머니');
+      await h.pairing.claimSeniorPairingCode(
+        code: link.code,
+        displayName: '어머니',
+      );
 
       await expectLater(
         h.pairing.claimSeniorPairingCode(code: link.code, displayName: '가로채기'),
@@ -108,18 +111,21 @@ void main() {
       expect(profile.id, link.seniorProfileId);
     });
 
-    test('the same invite works by code when the link did not survive', () async {
-      // Most installs that did not come from the store lose the referrer.
-      final h = _fresh();
-      final link = await h.pairing.createSeniorInvite(displayName: '아버지');
+    test(
+      'the same invite works by code when the link did not survive',
+      () async {
+        // Most installs that did not come from the store lose the referrer.
+        final h = _fresh();
+        final link = await h.pairing.createSeniorInvite(displayName: '아버지');
 
-      final profile = await h.pairing.redeemSeniorInvite(
-        installId: 'install-1',
-        code: link.code,
-      );
+        final profile = await h.pairing.redeemSeniorInvite(
+          installId: 'install-1',
+          code: link.code,
+        );
 
-      expect(profile.id, link.seniorProfileId);
-    });
+        expect(profile.id, link.seniorProfileId);
+      },
+    );
 
     test('redeeming with neither is refused', () async {
       final h = _fresh();
@@ -154,7 +160,9 @@ void main() {
   group('recovery', () {
     test('a replaced phone restores the parent it already had', () async {
       final h = _fresh();
-      final started = await h.pairing.startSeniorPairing(installId: 'old-phone');
+      final started = await h.pairing.startSeniorPairing(
+        installId: 'old-phone',
+      );
       final profile = await h.pairing.claimSeniorPairingCode(
         code: started.code,
         displayName: '어머니',
@@ -172,39 +180,51 @@ void main() {
 
     test('recovery retires the phone that held the profile before', () async {
       final h = _fresh();
-      final started = await h.pairing.startSeniorPairing(installId: 'old-phone');
+      final started = await h.pairing.startSeniorPairing(
+        installId: 'old-phone',
+      );
       final profile = await h.pairing.claimSeniorPairingCode(
         code: started.code,
         displayName: '어머니',
       );
 
       final code = await h.pairing.createRecoveryCode(profile.id);
-      await h.pairing.redeemRecoveryCode(code: code.code, installId: 'new-phone');
+      await h.pairing.redeemRecoveryCode(
+        code: code.code,
+        installId: 'new-phone',
+      );
 
       expect(h.store.activeDeviceByProfile[profile.id]!.installId, 'new-phone');
     });
 
-    test('a guardian who does not manage the parent cannot issue one', () async {
-      final h = _fresh();
-      final started = await h.pairing.startSeniorPairing(installId: 'install-1');
-      final profile = await h.pairing.claimSeniorPairingCode(
-        code: started.code,
-        displayName: '어머니',
-      );
+    test(
+      'a guardian who does not manage the parent cannot issue one',
+      () async {
+        final h = _fresh();
+        final started = await h.pairing.startSeniorPairing(
+          installId: 'install-1',
+        );
+        final profile = await h.pairing.claimSeniorPairingCode(
+          code: started.code,
+          displayName: '어머니',
+        );
 
-      h.pairing.actingGuardianId = 'someone-else';
+        h.pairing.actingGuardianId = 'someone-else';
 
-      await expectLater(
-        h.pairing.createRecoveryCode(profile.id),
-        throwsA(isA<SeniorLinkException>()),
-      );
-    });
+        await expectLater(
+          h.pairing.createRecoveryCode(profile.id),
+          throwsA(isA<SeniorLinkException>()),
+        );
+      },
+    );
   });
 
   group('family guardians', () {
     test('an invited sibling joins as family, never primary', () async {
       final h = _fresh();
-      final started = await h.pairing.startSeniorPairing(installId: 'install-1');
+      final started = await h.pairing.startSeniorPairing(
+        installId: 'install-1',
+      );
       final profile = await h.pairing.claimSeniorPairingCode(
         code: started.code,
         displayName: '어머니',
@@ -235,7 +255,9 @@ void main() {
     >
     family() async {
       final h = _fresh();
-      final started = await h.pairing.startSeniorPairing(installId: 'senior-phone');
+      final started = await h.pairing.startSeniorPairing(
+        installId: 'senior-phone',
+      );
       final profile = await h.pairing.claimSeniorPairingCode(
         code: started.code,
         displayName: '어머니',

@@ -36,12 +36,10 @@ void main() {
   test('the scheme is the application id, which is already unique', () {
     // Any scheme would work, but a made-up one can collide with another app
     // on the phone — and whichever app claims it gets handed the session.
-    final gradle = File(
-      'android/app/build.gradle.kts',
-    ).readAsStringSync();
-    final applicationId = RegExp(r'applicationId\s*=\s*"([^"]+)"')
-        .firstMatch(gradle)
-        ?.group(1);
+    final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+    final applicationId = RegExp(
+      r'applicationId\s*=\s*"([^"]+)"',
+    ).firstMatch(gradle)?.group(1);
 
     expect(applicationId, isNotNull);
     expect(Uri.parse(oauthRedirect).scheme, applicationId);

@@ -69,8 +69,7 @@ class SignupConsentSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<SignupConsentSheet> createState() =>
-      _SignupConsentSheetState();
+  ConsumerState<SignupConsentSheet> createState() => _SignupConsentSheetState();
 }
 
 class _SignupConsentSheetState extends ConsumerState<SignupConsentSheet> {
@@ -91,13 +90,15 @@ class _SignupConsentSheetState extends ConsumerState<SignupConsentSheet> {
   }
 
   Future<void> _agree() async {
-    await ref.read(signupConsentStoreProvider).save(
-      SignupConsent(
-        version: signupConsentVersion,
-        agreedAt: DateTime.now(),
-        marketing: _marketing,
-      ),
-    );
+    await ref
+        .read(signupConsentStoreProvider)
+        .save(
+          SignupConsent(
+            version: signupConsentVersion,
+            agreedAt: DateTime.now(),
+            marketing: _marketing,
+          ),
+        );
     ref.invalidate(signupConsentProvider);
     if (mounted) Navigator.of(context).pop(true);
   }
@@ -248,9 +249,7 @@ class _Row extends StatelessWidget {
                       label,
                       style: TextStyle(
                         fontSize: bold ? 15 : 14,
-                        fontWeight: bold
-                            ? FontWeight.w800
-                            : FontWeight.w600,
+                        fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
                         color: AppColors.guardianInk,
                       ),
                     ),

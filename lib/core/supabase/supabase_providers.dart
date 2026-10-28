@@ -87,7 +87,9 @@ final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
   final client = ref.watch(supabaseClientProvider);
   if (client == null) {
     final links = ref.watch(seniorLinkRepositoryProvider);
-    return InMemorySubscriptionRepository(links as InMemorySeniorLinkRepository);
+    return InMemorySubscriptionRepository(
+      links as InMemorySeniorLinkRepository,
+    );
   }
   return SupabaseSubscriptionRepository(client);
 });

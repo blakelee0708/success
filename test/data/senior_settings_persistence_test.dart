@@ -95,9 +95,7 @@ void main() {
     final repo = SharedPreferencesSeniorSettingsRepository();
     await repo.save(
       const SeniorSettings(
-        apps: [
-          LauncherApp(id: 'a', label: '전화', category: AppCategory.phone),
-        ],
+        apps: [LauncherApp(id: 'a', label: '전화', category: AppCategory.phone)],
       ),
     );
 

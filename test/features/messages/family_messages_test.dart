@@ -203,8 +203,10 @@ void main() {
       await _pumpGuardianMessages(tester, h);
 
       expect(
-        find.text('이번 달 메시지 ${MessageQuota.free.textLimit}번, '
-            '사진 ${MessageQuota.free.imageLimit}장 더 보낼 수 있어요'),
+        find.text(
+          '이번 달 메시지 ${MessageQuota.free.textLimit}번, '
+          '사진 ${MessageQuota.free.imageLimit}장 더 보낼 수 있어요',
+        ),
         findsOneWidget,
       );
     });
@@ -219,8 +221,10 @@ void main() {
       await _pumpGuardianMessages(tester, h);
 
       expect(
-        find.text('이번 달 메시지 3번, '
-            '사진 ${MessageQuota.free.imageLimit}장 더 보낼 수 있어요'),
+        find.text(
+          '이번 달 메시지 3번, '
+          '사진 ${MessageQuota.free.imageLimit}장 더 보낼 수 있어요',
+        ),
         findsOneWidget,
       );
       // The tail rather than the opening: the 읽음 확인 hint added on

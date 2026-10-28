@@ -11,8 +11,7 @@ class InstalledAppPickerKeys {
   static const empty = Key('installed-app-picker-empty');
   static const loading = Key('installed-app-picker-loading');
 
-  static Key option(String packageName) =>
-      Key('installed-app-$packageName');
+  static Key option(String packageName) => Key('installed-app-$packageName');
 }
 
 /// Picks one of the apps already on this phone.

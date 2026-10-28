@@ -141,7 +141,10 @@ void main() {
 
     await tester.tap(find.text('번호 입력하기'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(GuardianFamilyKeys.codeField), shown.code);
+    await tester.enterText(
+      find.byKey(GuardianFamilyKeys.codeField),
+      shown.code,
+    );
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '어머니');
     await tester.tap(find.byKey(GuardianFamilyKeys.enterCode));
     await tester.pumpAndSettle();
@@ -174,17 +177,18 @@ void main() {
     expect(find.text('부모님 폰 다시 연결하기'), findsOneWidget);
   });
 
-  testWidgets('a recovery code is issued on demand and says how long it lasts', (
-    tester,
-  ) async {
-    await _pumpFamilyTab(tester, withParent: true);
+  testWidgets(
+    'a recovery code is issued on demand and says how long it lasts',
+    (tester) async {
+      await _pumpFamilyTab(tester, withParent: true);
 
-    await tester.tap(find.text('연결 번호 만들기'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('연결 번호 만들기'));
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(GuardianFamilyKeys.issuedCode), findsOneWidget);
-    expect(find.textContaining('24시간'), findsOneWidget);
-  });
+      expect(find.byKey(GuardianFamilyKeys.issuedCode), findsOneWidget);
+      expect(find.textContaining('24시간'), findsOneWidget);
+    },
+  );
 
   testWidgets('inviting family is shown as free', (tester) async {
     // The PRD lists 가족 보호자 초대 among the free features; the uploaded

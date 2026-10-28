@@ -125,13 +125,9 @@ class SeniorSettings {
     final removed = json['removedSlots'];
     return SeniorSettings(
       screenMode: _byName(ScreenMode.values, json['screenMode']),
-      fontSize:
-          _byName(FontSize.values, json['fontSize']) ?? FontSize.normal,
+      fontSize: _byName(FontSize.values, json['fontSize']) ?? FontSize.normal,
       removedSlots: removed is List
-          ? {
-              for (final name in removed)
-                ?_byName(AppCategory.values, name),
-            }
+          ? {for (final name in removed) ?_byName(AppCategory.values, name)}
           : const {},
       apps: apps is List
           ? apps

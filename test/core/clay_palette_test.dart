@@ -33,7 +33,8 @@ void main() {
           expect(
             steps[i],
             lessThan(steps[i - 1]),
-            reason: '${category.name}: step $i is not darker than step ${i - 1}',
+            reason:
+                '${category.name}: step $i is not darker than step ${i - 1}',
           );
         }
       });
@@ -101,8 +102,11 @@ void main() {
 
     // Neutral: no channel may lead the others, which is what made the old
     // one read as beige.
-    for (final c in [AppColors.seniorSlotFill, AppColors.seniorSlotBorder,
-        AppColors.seniorSlotInk]) {
+    for (final c in [
+      AppColors.seniorSlotFill,
+      AppColors.seniorSlotBorder,
+      AppColors.seniorSlotInk,
+    ]) {
       final channels = [c.r, c.g, c.b];
       expect(
         channels.reduce(math.max) - channels.reduce(math.min),
@@ -172,7 +176,8 @@ void main() {
     // are amber and brown rather than the blue and teal they were. Amber is
     // too light for white lettering, so it takes dark ink instead.
     final face = AppColors.seniorFamily.computeLuminance();
-    final contrast = (face + 0.05) / (AppColors.seniorInk.computeLuminance() + 0.05);
+    final contrast =
+        (face + 0.05) / (AppColors.seniorInk.computeLuminance() + 0.05);
 
     expect(contrast, greaterThanOrEqualTo(4.5));
   });

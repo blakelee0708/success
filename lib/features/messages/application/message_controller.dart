@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,17 +19,49 @@ final conversationProfileIdProvider = FutureProvider<String?>((ref) async {
   return link.seniorProfileId;
 });
 
-final conversationProvider = FutureProvider<List<FamilyMessage>>((ref) async {
-  final profileId = await ref.watch(conversationProfileIdProvider.future);
-  if (profileId == null) return const [];
-  try {
-    return await ref.watch(messageRepositoryProvider).conversation(profileId);
-  } on Object {
-    // A conversation that cannot be loaded shows as empty rather than as an
-    // error on the senior's launcher, which has to keep working with no signal.
-    return const [];
+/// The thread, oldest first.
+///
+/// A notifier rather than a plain future because **the message that was just
+/// sent is already in hand.** `send_family_message` returns the row it wrote,
+/// and the screen used to throw it away and re-read all two hundred rows to
+/// find it again - so pressing 보내기 cost a second round trip before
+/// anything appeared, on top of the one that did the sending.
+class ConversationNotifier extends AsyncNotifier<List<FamilyMessage>> {
+  @override
+  Future<List<FamilyMessage>> build() async {
+    final profileId = await ref.watch(conversationProfileIdProvider.future);
+    if (profileId == null) return const [];
+    try {
+      return await ref.watch(messageRepositoryProvider).conversation(profileId);
+    } on Object {
+      // A conversation that cannot be loaded shows as empty rather than as an
+      // error on the senior's launcher, which has to keep working with no
+      // signal.
+      return const [];
+    }
   }
-});
+
+  /// Puts a message the server has **already accepted** on screen at once.
+  ///
+  /// Not an optimistic bubble: nothing is drawn until the server has written
+  /// the row and handed it back, so there is no state where the screen shows
+  /// a message that does not exist. What it removes is only the wait for a
+  /// second read of what we were just told.
+  ///
+  /// Guarded on the id, because the refresh that follows carries the same row
+  /// and a conversation that shows a message twice is worse than a slow one.
+  void append(FamilyMessage sent) {
+    final now = state.value;
+    if (now == null) return;
+    if (now.any((m) => m.id == sent.id)) return;
+    state = AsyncData([...now, sent]);
+  }
+}
+
+final conversationProvider =
+    AsyncNotifierProvider<ConversationNotifier, List<FamilyMessage>>(
+      ConversationNotifier.new,
+    );
 
 final messageQuotaProvider = FutureProvider<MessageQuota>((ref) async {
   final profileId = await ref.watch(conversationProfileIdProvider.future);
@@ -54,8 +87,11 @@ class MessageController extends Notifier<void> {
     final sent = await ref
         .read(messageRepositoryProvider)
         .send(profileId, body: body);
-    await _notify(sent);
-    ref.invalidate(conversationProvider);
+    ref.read(conversationProvider.notifier).append(sent);
+    // Neither of these is on the path to the bubble. The push is a round trip
+    // to an Edge Function, and the allowance is a third call - awaited, they
+    // were what 보내기 actually waited on.
+    unawaited(_notify(sent));
     ref.invalidate(messageQuotaProvider);
   }
 
@@ -75,8 +111,9 @@ class MessageController extends Notifier<void> {
       bytes,
       contentType: contentType,
     );
-    await _notify(await repo.send(profileId, imagePath: path));
-    ref.invalidate(conversationProvider);
+    final sent = await repo.send(profileId, imagePath: path);
+    ref.read(conversationProvider.notifier).append(sent);
+    unawaited(_notify(sent));
     ref.invalidate(messageQuotaProvider);
   }
 
@@ -88,10 +125,9 @@ class MessageController extends Notifier<void> {
   /// through here untouched, so their phone never makes a call the server
   /// would refuse.
   ///
-  /// The repository swallows its own failures. Awaited rather than fired and
-  /// forgotten only because `send` has already returned - nothing on screen
-  /// is waiting on a platform channel here, it is one HTTP call that cannot
-  /// throw.
+  /// The repository swallows its own failures, which is what makes it safe to
+  /// let go of: nothing on screen waits for the buzz, and a message that was
+  /// written is in the conversation whether or not the other phone rang.
   Future<void> _notify(FamilyMessage sent) async {
     if (!sent.isFromSenior) return;
     await ref.read(messageRepositoryProvider).notifyFamily(sent.id);

@@ -21,11 +21,7 @@ import 'senior_settings_controller.dart';
 /// Wrapped around the router rather than placed on a screen: the point is to
 /// leave whichever screen is on top, so it cannot live on any of them.
 class HomeKeyListener extends ConsumerStatefulWidget {
-  const HomeKeyListener({
-    super.key,
-    required this.router,
-    required this.child,
-  });
+  const HomeKeyListener({super.key, required this.router, required this.child});
 
   final GoRouter router;
   final Widget child;
@@ -36,11 +32,29 @@ class HomeKeyListener extends ConsumerStatefulWidget {
 
 class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
     with WidgetsBindingObserver {
+  /// How often the parent's phone re-reads what their family arranged.
+  ///
+  /// **Start-up and resume were not enough, and the gap was the whole
+  /// promise.** 홈 화면 tells the guardian 바꾸면 부모님 폰에 반영됩니다, and
+  /// a launcher is the screen a phone *sits* on: a parent looking straight at
+  /// their home screen is in neither of those moments, so a colour their
+  /// child changed while they watched never arrived at all. They had to lock
+  /// the phone and wake it again, which nobody would guess.
+  ///
+  /// Fifteen seconds is the answer to 얼마나 기다려야 하나. It is one small
+  /// read, and it only runs while the app is in the foreground - the screen
+  /// going off takes the app out of `resumed`, so a phone in a pocket asks
+  /// nothing.
+  static const refreshEvery = Duration(seconds: 15);
+
+  Timer? _tick;
+
   @override
   void initState() {
     super.initState();
     MethodChannelAppLauncher.channel.setMethodCallHandler(_onCall);
     WidgetsBinding.instance.addObserver(this);
+    _startTicking();
     // The first report of the run. Not awaited and not shown: see [_report].
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _report();
@@ -59,8 +73,19 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
     ref.read(seniorPresenceReporterProvider).report();
   }
 
+  /// The periodic read. Cancelled and restarted rather than left running, so
+  /// a resume never leaves two timers behind.
+  void _startTicking() {
+    _tick?.cancel();
+    _tick = Timer.periodic(refreshEvery, (_) {
+      if (!mounted) return;
+      ref.read(seniorSettingsControllerProvider.notifier).refresh();
+    });
+  }
+
   @override
   void dispose() {
+    _tick?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     MethodChannelAppLauncher.channel.setMethodCallHandler(null);
     super.dispose();
@@ -74,7 +99,14 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
   /// otherwise wait for a reboot.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) return;
+    if (state != AppLifecycleState.resumed) {
+      // Nothing is worth reading while nobody is looking, and the screen
+      // going off is what takes the app out of `resumed`.
+      _tick?.cancel();
+      _tick = null;
+      return;
+    }
+    _startTicking();
     ref.read(seniorSettingsControllerProvider.notifier).refresh();
     // The commoner half of 안부 신호 by far. A launcher may go weeks without
     // being restarted, so start-up alone would report once and then go quiet

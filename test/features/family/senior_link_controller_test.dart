@@ -55,7 +55,9 @@ void main() {
     await h.container.read(seniorLinkControllerProvider.future);
 
     await expectLater(
-      h.container.read(seniorLinkControllerProvider.notifier).connect('NOPE1234'),
+      h.container
+          .read(seniorLinkControllerProvider.notifier)
+          .connect('NOPE1234'),
       throwsA(
         isA<SeniorLinkException>().having(
           (e) => e.message,
@@ -77,7 +79,10 @@ void main() {
         .connect(code);
 
     expect((await h.store.load()).seniorProfileId, profile.id);
-    expect(h.container.read(seniorLinkControllerProvider).value!.isLinked, isTrue);
+    expect(
+      h.container.read(seniorLinkControllerProvider).value!.isLinked,
+      isTrue,
+    );
   });
 
   test('a lower-case code still connects', () async {
@@ -92,21 +97,24 @@ void main() {
     expect((await h.store.load()).isLinked, isTrue);
   });
 
-  test('the first phone to connect uploads the home screen it already has', () async {
-    final h = _harness();
-    final code = await _profileCreatedByGuardian(h.links);
-    await h.container.read(seniorSettingsControllerProvider.future);
-    await h.container
-        .read(seniorSettingsControllerProvider.notifier)
-        .chooseScreenMode(ScreenMode.easy);
-    await h.container.read(seniorLinkControllerProvider.future);
+  test(
+    'the first phone to connect uploads the home screen it already has',
+    () async {
+      final h = _harness();
+      final code = await _profileCreatedByGuardian(h.links);
+      await h.container.read(seniorSettingsControllerProvider.future);
+      await h.container
+          .read(seniorSettingsControllerProvider.notifier)
+          .chooseScreenMode(ScreenMode.easy);
+      await h.container.read(seniorLinkControllerProvider.future);
 
-    final profile = await h.container
-        .read(seniorLinkControllerProvider.notifier)
-        .connect(code);
+      final profile = await h.container
+          .read(seniorLinkControllerProvider.notifier)
+          .connect(code);
 
-    expect(h.homeApps.byProfile[profile.id], defaultEasyApps);
-  });
+      expect(h.homeApps.byProfile[profile.id], defaultEasyApps);
+    },
+  );
 
   test('a guardian arrangement made before connecting wins', () async {
     // The guardian may have tidied the home screen while waiting for their
@@ -144,32 +152,46 @@ void main() {
         .read(seniorLinkControllerProvider.notifier)
         .connect(code);
 
-    final settings = h.container.read(seniorSettingsControllerProvider.notifier);
+    final settings = h.container.read(
+      seniorSettingsControllerProvider.notifier,
+    );
     await settings.renameApp('phone', '전화 걸기');
     await settings.pendingSync;
 
     expect(
-      h.homeApps.byProfile[profile.id]!.firstWhere((a) => a.id == 'phone').label,
+      h.homeApps.byProfile[profile.id]!
+          .firstWhere((a) => a.id == 'phone')
+          .label,
       '전화 걸기',
     );
   });
 
-  test('an edit before connecting does not fail for want of a server', () async {
-    // Nothing is linked yet, and the launcher still has to work.
-    final h = _harness();
-    await h.container.read(seniorSettingsControllerProvider.future);
-    final settings = h.container.read(seniorSettingsControllerProvider.notifier);
+  test(
+    'an edit before connecting does not fail for want of a server',
+    () async {
+      // Nothing is linked yet, and the launcher still has to work.
+      final h = _harness();
+      await h.container.read(seniorSettingsControllerProvider.future);
+      final settings = h.container.read(
+        seniorSettingsControllerProvider.notifier,
+      );
 
-    await settings.chooseScreenMode(ScreenMode.easy);
-    await settings.renameApp('phone', '전화 걸기');
-    await settings.pendingSync;
+      await settings.chooseScreenMode(ScreenMode.easy);
+      await settings.renameApp('phone', '전화 걸기');
+      await settings.pendingSync;
 
-    expect(
-      h.container.read(seniorSettingsControllerProvider).value!.apps.first.label,
-      '전화 걸기',
-    );
-    expect(h.homeApps.replaceCount, 0);
-  });
+      expect(
+        h.container
+            .read(seniorSettingsControllerProvider)
+            .value!
+            .apps
+            .first
+            .label,
+        '전화 걸기',
+      );
+      expect(h.homeApps.replaceCount, 0);
+    },
+  );
 
   test('a phone with no signal keeps editing locally', () async {
     final h = _harness();
@@ -182,12 +204,19 @@ void main() {
     await h.container.read(seniorLinkControllerProvider.notifier).connect(code);
 
     h.homeApps.offline = true;
-    final settings = h.container.read(seniorSettingsControllerProvider.notifier);
+    final settings = h.container.read(
+      seniorSettingsControllerProvider.notifier,
+    );
     await settings.renameApp('phone', '전화 걸기');
     await settings.pendingSync;
 
     expect(
-      h.container.read(seniorSettingsControllerProvider).value!.apps.first.label,
+      h.container
+          .read(seniorSettingsControllerProvider)
+          .value!
+          .apps
+          .first
+          .label,
       '전화 걸기',
     );
   });

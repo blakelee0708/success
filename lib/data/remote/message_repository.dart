@@ -199,6 +199,7 @@ class SupabaseMessageRepository implements MessageRepository {
       // tab carries the count. What is lost is the buzz.
     }
   }
+
   @override
   Future<MessageQuota> quota(String seniorProfileId) async {
     final result = await _client.rpc(
@@ -230,9 +231,18 @@ class InMemoryMessageRepository implements MessageRepository {
 
   int _seq = 0;
 
+  /// How many times the whole thread has been read back.
+  ///
+  /// Counted because the cost of sending a message is not the send: the
+  /// screen used to re-read every row to find the one the server had just
+  /// handed it. A test can only tell that apart by counting.
+  int reads = 0;
+
   @override
-  Future<List<FamilyMessage>> conversation(String seniorProfileId) async =>
-      List.unmodifiable(byProfile[seniorProfileId] ?? const []);
+  Future<List<FamilyMessage>> conversation(String seniorProfileId) async {
+    reads++;
+    return List.unmodifiable(byProfile[seniorProfileId] ?? const []);
+  }
 
   @override
   Future<FamilyMessage> send(
@@ -331,8 +341,9 @@ class InMemoryMessageRepository implements MessageRepository {
 
   @override
   Future<MessageQuota> quota(String seniorProfileId) async {
-    final sent = (byProfile[seniorProfileId] ?? const <FamilyMessage>[])
-        .where((m) => !m.isFromSenior);
+    final sent = (byProfile[seniorProfileId] ?? const <FamilyMessage>[]).where(
+      (m) => !m.isFromSenior,
+    );
     final unlimited =
         await subscriptions?.careIsActive(seniorProfileId) ?? false;
     return MessageQuota(

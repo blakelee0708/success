@@ -31,8 +31,7 @@ class FakePhoneDialer implements PhoneDialer {
   Future<void> openDialer(String number) async => opened.add(number);
 }
 
-Future<({InMemorySeniorLinkRepository links, FakePhoneDialer dialer})>
-_pumpSos(
+Future<({InMemorySeniorLinkRepository links, FakePhoneDialer dialer})> _pumpSos(
   WidgetTester tester, {
   bool linked = true,
   String? guardianPhone = '01012345678',
@@ -58,7 +57,9 @@ _pumpSos(
       phoneDialerProvider.overrideWithValue(dialer),
       seniorLinkRepositoryProvider.overrideWithValue(links),
       pairingRepositoryProvider.overrideWithValue(pairing),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       seniorLinkStoreProvider.overrideWithValue(
         InMemorySeniorLinkStore(
           SeniorLink(

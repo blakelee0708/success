@@ -26,7 +26,6 @@ import '../../../domain/senior_profile.dart';
 /// paid subscription without the senior's consent has to behave exactly like no
 /// subscription at all.
 
-
 /// Whether the paid features may run for a parent at all.
 abstract interface class CareGate {
   /// True only when 안심 케어 is both paid for and consented to.

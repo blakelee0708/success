@@ -35,10 +35,7 @@ Future<
     String profileId,
   })
 >
-_pumpTab(
-  WidgetTester tester, {
-  List<LauncherApp> apps = _apps,
-}) async {
+_pumpTab(WidgetTester tester, {List<LauncherApp> apps = _apps}) async {
   final auth = InMemoryGuardianAuthRepository()
     ..seedSignedIn(const GuardianSession(userId: 'u1', email: 'g@example.com'));
   addTearDown(auth.dispose);
@@ -109,7 +106,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      h.homeApps.byProfile[h.profileId]!.firstWhere((a) => a.id == 'phone').label,
+      h.homeApps.byProfile[h.profileId]!
+          .firstWhere((a) => a.id == 'phone')
+          .label,
       '아들',
     );
     expect(find.text('아들'), findsOneWidget);
@@ -136,10 +135,10 @@ void main() {
     await tester.tap(find.text('지우기'));
     await tester.pumpAndSettle();
 
-    expect(
-      h.homeApps.byProfile[h.profileId]!.map((a) => a.id),
-      ['phone', 'message'],
-    );
+    expect(h.homeApps.byProfile[h.profileId]!.map((a) => a.id), [
+      'phone',
+      'message',
+    ]);
   });
 
   testWidgets('backing out of the delete dialog changes nothing', (
@@ -188,10 +187,7 @@ void main() {
 
     expect(find.text('아들'), findsNothing);
     expect(find.text('전화'), findsOneWidget);
-    expect(
-      find.text('바꾸지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'),
-      findsOneWidget,
-    );
+    expect(find.text('바꾸지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'), findsOneWidget);
   });
 
   testWidgets('버튼 추가하기 sits under the last row and moves down with it', (
@@ -204,9 +200,7 @@ void main() {
     // "where does it go".
     final h = await _pumpTab(tester);
 
-    double addTop() => tester.getRect(
-      find.byKey(GuardianLauncherKeys.add),
-    ).top;
+    double addTop() => tester.getRect(find.byKey(GuardianLauncherKeys.add)).top;
     final lastRow = tester.getRect(find.text(_apps.last.label));
     final before = addTop();
 
@@ -228,25 +222,26 @@ void main() {
     );
   });
 
-  testWidgets('the heading scrolls with the list rather than sitting above it', (
-    tester,
-  ) async {
-    // One scroll view holds the whole tab, so the heading is part of what
-    // moves. Pinned above a separate list, it stays clamped to the very top
-    // of the phone however far down the list you are.
-    await _pumpTab(tester, apps: _manyApps);
+  testWidgets(
+    'the heading scrolls with the list rather than sitting above it',
+    (tester) async {
+      // One scroll view holds the whole tab, so the heading is part of what
+      // moves. Pinned above a separate list, it stays clamped to the very top
+      // of the phone however far down the list you are.
+      await _pumpTab(tester, apps: _manyApps);
 
-    expect(find.text('어머니 홈 화면'), findsOneWidget);
-    await tester.drag(
-      find.byKey(GuardianLauncherKeys.list),
-      const Offset(0, -400),
-    );
-    await tester.pumpAndSettle();
+      expect(find.text('어머니 홈 화면'), findsOneWidget);
+      await tester.drag(
+        find.byKey(GuardianLauncherKeys.list),
+        const Offset(0, -400),
+      );
+      await tester.pumpAndSettle();
 
-    // Scrolled off, because it is in the list. A header pinned above one
-    // would still be sitting there at the top of the phone.
-    expect(find.text('어머니 홈 화면'), findsNothing);
-  });
+      // Scrolled off, because it is in the list. A header pinned above one
+      // would still be sitting there at the top of the phone.
+      expect(find.text('어머니 홈 화면'), findsNothing);
+    },
+  );
 
   testWidgets('a parent with no buttons yet is offered a first one', (
     tester,
@@ -282,40 +277,56 @@ void main() {
     await tester.tap(find.byKey(GuardianLauncherKeys.add));
     await tester.pumpAndSettle();
 
-    for (final taken in [AppCategory.phone, AppCategory.message, AppCategory.kakao]) {
+    for (final taken in [
+      AppCategory.phone,
+      AppCategory.message,
+      AppCategory.kakao,
+    ]) {
       expect(
         find.byKey(CategoryPickerKeys.option(taken)),
         findsNothing,
         reason: '$taken is already on the parent\'s home screen',
       );
     }
-    expect(find.byKey(CategoryPickerKeys.option(AppCategory.camera)), findsOneWidget);
+    expect(
+      find.byKey(CategoryPickerKeys.option(AppCategory.camera)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('사람 and 폰에 있는 앱 are always offered', (tester) async {
     // A family has several people in it and a phone has eighty apps. Hiding
     // these after the first use would make the whole feature a one-shot.
-    await _pumpTab(tester, apps: [
-      ..._apps,
-      const LauncherApp(
-        id: 'daughter',
-        label: '딸',
-        category: AppCategory.contact,
-        phoneNumber: '01012345678',
-      ),
-      const LauncherApp(
-        id: 'game',
-        label: '고스톱',
-        category: AppCategory.installed,
-        packageName: 'com.game.gostop',
-      ),
-    ]);
+    await _pumpTab(
+      tester,
+      apps: [
+        ..._apps,
+        const LauncherApp(
+          id: 'daughter',
+          label: '딸',
+          category: AppCategory.contact,
+          phoneNumber: '01012345678',
+        ),
+        const LauncherApp(
+          id: 'game',
+          label: '고스톱',
+          category: AppCategory.installed,
+          packageName: 'com.game.gostop',
+        ),
+      ],
+    );
 
     await tester.tap(find.byKey(GuardianLauncherKeys.add));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(CategoryPickerKeys.option(AppCategory.contact)), findsOneWidget);
-    expect(find.byKey(CategoryPickerKeys.option(AppCategory.installed)), findsOneWidget);
+    expect(
+      find.byKey(CategoryPickerKeys.option(AppCategory.contact)),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(CategoryPickerKeys.option(AppCategory.installed)),
+      findsOneWidget,
+    );
   });
 
   /// Presses 지우기 on one of the four slot rows, through the screen.
@@ -354,7 +365,10 @@ void main() {
       tab.links.profiles[tab.profileId]!.removedSlots,
       contains(AppCategory.sos),
     );
-    expect(find.byKey(GuardianLauncherKeys.slot(AppCategory.sos)), findsNothing);
+    expect(
+      find.byKey(GuardianLauncherKeys.slot(AppCategory.sos)),
+      findsNothing,
+    );
   });
 
   testWidgets('and it comes back from 버튼 추가하기', (tester) async {

@@ -52,58 +52,55 @@ Future<AppCategory?> askForCategory(
   BuildContext context, {
   List<AppCategory>? offer,
   List<LauncherApp> alreadyOn = const [],
-}) =>
-    showDialog<AppCategory>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: CategoryPickerKeys.sheet,
-        backgroundColor: AppColors.seniorSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        title: const Text(
-          '어떤 버튼인가요?',
-          style: TextStyle(
-            fontSize: 23,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-            color: AppColors.seniorInk,
-          ),
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 12, 6),
-        content: SizedBox(
-          width: 320,
-          child: GridView.count(
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.9,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              for (final category in (offer ?? addableCategories))
-                if (category.repeatable ||
-                    !alreadyOn.any((a) => a.category == category))
-                  _Option(category: category),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              '그만두기',
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-                color: AppColors.seniorInkMuted,
-              ),
-            ),
-          ),
+}) => showDialog<AppCategory>(
+  context: context,
+  builder: (context) => AlertDialog(
+    key: CategoryPickerKeys.sheet,
+    backgroundColor: AppColors.seniorSurface,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    title: const Text(
+      '어떤 버튼인가요?',
+      style: TextStyle(
+        fontSize: 23,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -0.5,
+        color: AppColors.seniorInk,
+      ),
+    ),
+    contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+    actionsPadding: const EdgeInsets.fromLTRB(20, 0, 12, 6),
+    content: SizedBox(
+      width: 320,
+      child: GridView.count(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.9,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          for (final category in (offer ?? addableCategories))
+            if (category.repeatable ||
+                !alreadyOn.any((a) => a.category == category))
+              _Option(category: category),
         ],
       ),
-    );
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text(
+          '그만두기',
+          style: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+            color: AppColors.seniorInkMuted,
+          ),
+        ),
+      ),
+    ],
+  ),
+);
 
 class _Option extends StatelessWidget {
   const _Option({required this.category});

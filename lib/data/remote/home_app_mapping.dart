@@ -37,10 +37,10 @@ List<Map<String, Object?>> homeAppsPayload(List<LauncherApp> apps) => [
       'button_color': apps[i].color?.name,
       'phone_number': apps[i].phoneNumber,
       'package_name': apps[i].packageName,
+
       // The icon is **not** here and must not be. Sending it would hand the
       // guardian a picture of what is on their parent's phone, which is the
       // one thing this feature was scoped not to do.
-
       'sort_order': i,
       'is_default': _defaultIds.contains(apps[i].id),
     },
@@ -52,8 +52,7 @@ List<Map<String, Object?>> homeAppsPayload(List<LauncherApp> apps) => [
 /// guessing puts an unrecognisable tile on a senior's home screen. One missing
 /// button is recoverable; a wrong one is not.
 List<LauncherApp> launcherAppsFromRows(List<Map<String, Object?>> rows) {
-  final sorted = [...rows]
-    ..sort((a, b) => _order(a).compareTo(_order(b)));
+  final sorted = [...rows]..sort((a, b) => _order(a).compareTo(_order(b)));
   return [for (final row in sorted) ?_toApp(row)];
 }
 

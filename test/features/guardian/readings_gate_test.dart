@@ -86,7 +86,9 @@ Future<void> _pumpHome(WidgetTester tester, Harness h) async {
       seniorLinkRepositoryProvider.overrideWithValue(h.store),
       pairingRepositoryProvider.overrideWithValue(h.pairing),
       subscriptionRepositoryProvider.overrideWithValue(h.subs),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       guardianAuthRepositoryProvider.overrideWithValue(auth),
     ],
   );
@@ -97,9 +99,7 @@ Future<void> _pumpHome(WidgetTester tester, Harness h) async {
 
 void main() {
   testWidgets('inside the week the readings are simply shown', (tester) async {
-    final h = await _family(
-      trialEndsAt: _now.add(const Duration(days: 3)),
-    );
+    final h = await _family(trialEndsAt: _now.add(const Duration(days: 3)));
     await _pumpHome(tester, h);
 
     expect(find.textContaining('방금'), findsWidgets);
@@ -111,9 +111,7 @@ void main() {
     // A free trial that stops on the eighth day with no warning reads as the
     // app breaking, and the guardian never connects the two - they were
     // never told there was a week.
-    final h = await _family(
-      trialEndsAt: _now.add(const Duration(days: 3)),
-    );
+    final h = await _family(trialEndsAt: _now.add(const Duration(days: 3)));
     await _pumpHome(tester, h);
 
     expect(find.byKey(GuardianHomeKeys.trial), findsOneWidget);

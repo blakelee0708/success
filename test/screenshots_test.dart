@@ -867,7 +867,9 @@ void main() {
       seniorLinkRepositoryProvider.overrideWithValue(store),
       pairingRepositoryProvider.overrideWithValue(pairing),
       subscriptionRepositoryProvider.overrideWithValue(subs),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
     ];
 
     // The parent's phone.
@@ -909,7 +911,10 @@ void main() {
     addTearDown(auth.dispose);
     await pumpApp(
       tester,
-      overrides: [...shared, guardianAuthRepositoryProvider.overrideWithValue(auth)],
+      overrides: [
+        ...shared,
+        guardianAuthRepositoryProvider.overrideWithValue(auth),
+      ],
     );
     await tester.pumpAndSettle();
     await _capture(tester, '27-dashboard-home-care-on');
@@ -924,5 +929,4 @@ void main() {
     await tester.pumpAndSettle();
     await _capture(tester, '29-ring-sheet-sent');
   });
-
 }

@@ -149,9 +149,7 @@ class _ContactDialogState extends State<_ContactDialog> {
               fontSize: 15,
               height: 1.5,
               fontWeight: FontWeight.w700,
-              color: _ready
-                  ? AppColors.seniorInk
-                  : AppColors.seniorInkMuted,
+              color: _ready ? AppColors.seniorInk : AppColors.seniorInkMuted,
             ),
           ),
         ],
@@ -167,10 +165,10 @@ class _ContactDialogState extends State<_ContactDialog> {
           // says what is missing, and a button that explains itself only
           // after being pressed is a button that was never going to work.
           onPressed: _ready
-              ? () => Navigator.pop(
-                  context,
-                  (name: _name.text.trim(), number: _digits),
-                )
+              ? () => Navigator.pop(context, (
+                  name: _name.text.trim(),
+                  number: _digits,
+                ))
               : null,
           child: const Text('저장', style: TextStyle(fontSize: 18)),
         ),

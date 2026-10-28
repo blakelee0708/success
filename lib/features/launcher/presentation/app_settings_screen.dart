@@ -175,7 +175,11 @@ class AppSettingsScreen extends ConsumerWidget {
       return;
     }
 
-    final name = await askForButtonName(context, title: '이름 바꾸기', initial: app.label);
+    final name = await askForButtonName(
+      context,
+      title: '이름 바꾸기',
+      initial: app.label,
+    );
     if (name == null) return;
     await ref
         .read(seniorSettingsControllerProvider.notifier)
@@ -333,9 +337,7 @@ class AppSettingsScreen extends ConsumerWidget {
       ),
     );
     if (ok != true) return;
-    await ref
-        .read(seniorSettingsControllerProvider.notifier)
-        .removeApp(app.id);
+    await ref.read(seniorSettingsControllerProvider.notifier).removeApp(app.id);
   }
 
   /// Returns null when the senior backs out or leaves the field empty — an

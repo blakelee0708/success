@@ -29,7 +29,8 @@ void main() {
         expect(
           File('assets/fonts/NotoSansKR-$style.ttf').existsSync(),
           isTrue,
-          reason: 'assets/fonts/NotoSansKR-$style.ttf is missing — run '
+          reason:
+              'assets/fonts/NotoSansKR-$style.ttf is missing — run '
               'tool/build_fonts.py',
         );
       }
@@ -69,9 +70,7 @@ void main() {
     await pumpApp(tester);
     await tester.pump(const Duration(milliseconds: 700));
 
-    final paragraph = tester.renderObject<RenderParagraph>(
-      find.text('눌러보세요'),
-    );
+    final paragraph = tester.renderObject<RenderParagraph>(find.text('눌러보세요'));
     expect(paragraph.text.style?.fontFamily, 'Noto Sans KR');
   });
 }

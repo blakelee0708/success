@@ -177,8 +177,7 @@ void main() {
     await _pumpSeniorHome(tester, h);
 
     for (final c in consentedCareCapabilities) {
-      expect(find.textContaining(c.seniorLine!), findsOneWidget,
-          reason: c.key);
+      expect(find.textContaining(c.seniorLine!), findsOneWidget, reason: c.key);
     }
   });
 
@@ -250,9 +249,7 @@ void main() {
     expect(find.textContaining('아직 준비 중입니다'), findsOneWidget);
   });
 
-  testWidgets('a feature that works is not listed under 준비 중', (
-    tester,
-  ) async {
+  testWidgets('a feature that works is not listed under 준비 중', (tester) async {
     // The 준비 중 block is honest only about what is below it. Anything built
     // sits above it, and a working feature under a sentence saying it does
     // not work is the mirror of the defect the block exists to prevent.
@@ -316,10 +313,7 @@ void main() {
     await _pumpCareTab(tester, h);
 
     expect(find.textContaining('인터넷'), findsNothing);
-    expect(
-      find.textContaining('배터리 · 소리 · 인터넷을 5분 주기로'),
-      findsNothing,
-    );
+    expect(find.textContaining('배터리 · 소리 · 인터넷을 5분 주기로'), findsNothing);
   });
 
   testWidgets('the care tab keeps the wording the policy fixes', (

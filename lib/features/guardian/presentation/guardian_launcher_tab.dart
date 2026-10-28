@@ -191,8 +191,12 @@ class _Editor extends ConsumerWidget {
               ),
         ],
       ),
-      onReorder: (oldIndex, newIndex) =>
-          _run(context, ref, (c) => c.reorder(oldIndex, newIndex), onOpenTab: onOpenTab),
+      onReorder: (oldIndex, newIndex) => _run(
+        context,
+        ref,
+        (c) => c.reorder(oldIndex, newIndex),
+        onOpenTab: onOpenTab,
+      ),
       children: [
         for (final app in apps)
           _AppRow(
@@ -248,9 +252,7 @@ class _Editor extends ConsumerWidget {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
-            const SnackBar(
-              content: Text('바꾸지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'),
-            ),
+            const SnackBar(content: Text('바꾸지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.')),
           );
     }
   }
@@ -353,11 +355,8 @@ class _Editor extends ConsumerWidget {
         context,
         ref,
         onOpenTab: onOpenTab,
-        (c) => c.editContact(
-          app.id,
-          label: draft.name,
-          phoneNumber: draft.number,
-        ),
+        (c) =>
+            c.editContact(app.id, label: draft.name, phoneNumber: draft.number),
       );
       return;
     }
@@ -458,7 +457,12 @@ class _Editor extends ConsumerWidget {
       initial: category.defaultLabel,
     );
     if (name == null || !context.mounted) return;
-    await _run(context, ref, (c) => c.add(label: name, category: category), onOpenTab: onOpenTab);
+    await _run(
+      context,
+      ref,
+      (c) => c.add(label: name, category: category),
+      onOpenTab: onOpenTab,
+    );
   }
 
   Future<void> _recolour(

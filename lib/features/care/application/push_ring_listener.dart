@@ -48,7 +48,9 @@ class PushRingListener {
   void _onPush(Map<String, String> data) {
     if (data['type'] != 'ring') return;
     final from = data['from']?.trim();
-    _ref.read(seniorRingControllerProvider.notifier).ring(
+    _ref
+        .read(seniorRingControllerProvider.notifier)
+        .ring(
           RingRequest(
             // A push that arrived without a name still rings. The guardian
             // pressed the button and has no way of learning it did nothing,

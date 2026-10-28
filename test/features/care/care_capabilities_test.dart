@@ -54,17 +54,21 @@ void main() {
     // reassures a child was free. Four is not a magic number - it is the
     // floor below which somebody should be asked whether 5,900원 is still
     // the right price rather than quietly shipping it.
-    final paid = careCapabilities.where(
-      (c) => c.stage == CareReadiness.live,
+    final paid = careCapabilities.where((c) => c.stage == CareReadiness.live);
+    expect(
+      paid.length,
+      greaterThanOrEqualTo(4),
+      reason: paid.map((c) => c.key).toString(),
     );
-    expect(paid.length, greaterThanOrEqualTo(4), reason: paid.map((c) => c.key).toString());
   });
 
   test('nothing free is on the consent card', () {
     // It happens whether or not anyone subscribes. Listing it would tell the
     // senior that 아니요 stops something it does not stop, which is worse
     // than not asking.
-    for (final c in careCapabilities.where((c) => c.stage == CareReadiness.free)) {
+    for (final c in careCapabilities.where(
+      (c) => c.stage == CareReadiness.free,
+    )) {
       expect(c.seniorLine, isNull, reason: c.key);
     }
   });

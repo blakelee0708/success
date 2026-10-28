@@ -112,22 +112,21 @@ class GuardianHomeAppsController extends AsyncNotifier<List<LauncherApp>> {
   Future<HomeEditOutcome> remove(String id) {
     final slot = _slotKindOf(id);
     if (slot != null) {
-      return _write(
-        (apps) => apps,
-        slots: (removed) => {...removed, slot},
-      );
+      return _write((apps) => apps, slots: (removed) => {...removed, slot});
     }
-    return _write((apps) => [for (final app in apps) if (app.id != id) app]);
+    return _write(
+      (apps) => [
+        for (final app in apps)
+          if (app.id != id) app,
+      ],
+    );
   }
 
   /// Puts a slot button back, with whatever the family had called it.
   Future<HomeEditOutcome> restoreSlot(AppCategory category) => _write(
     (apps) => apps.any((a) => a.category == category)
         ? apps
-        : [
-            ...apps,
-            fixedSlotApps.firstWhere((a) => a.category == category),
-          ],
+        : [...apps, fixedSlotApps.firstWhere((a) => a.category == category)],
     slots: (removed) => {...removed}..remove(category),
   );
 

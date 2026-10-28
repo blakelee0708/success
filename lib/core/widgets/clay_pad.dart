@@ -105,7 +105,10 @@ class ClayPad extends StatelessWidget {
             ),
             Material(
               color: Colors.transparent,
-              child: InkWell(onTap: onTap, child: Center(child: child)),
+              child: InkWell(
+                onTap: onTap,
+                child: Center(child: child),
+              ),
             ),
           ],
         ),

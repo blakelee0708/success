@@ -122,7 +122,10 @@ void main() {
     await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 17, 9, 0));
     expect(_dots(tester), 0, reason: 'a 3-day-old check-in lit the dot');
 
-    await _pumpHome(tester, lastSeenAt: _now.subtract(const Duration(minutes: 3)));
+    await _pumpHome(
+      tester,
+      lastSeenAt: _now.subtract(const Duration(minutes: 3)),
+    );
     expect(_dots(tester), 1, reason: 'a check-in from minutes ago lit nothing');
   });
 
@@ -247,15 +250,16 @@ void main() {
     expect(find.text('3일 전'), findsOneWidget);
   });
 
-  testWidgets('인터넷 is not claimed, because nothing reports it', (
-    tester,
-  ) async {
+  testWidgets('인터넷 is not claimed, because nothing reports it', (tester) async {
     // Saying it would mean ACCESS_NETWORK_STATE for a fact the check-in
     // already proves. The old 준비 중 row promised all three.
     await _pumpHome(
       tester,
       lastSeenAt: DateTime(2026, 10, 20, 14, 30),
-      status: DeviceStatus(readAt: DateTime(2026, 10, 20, 14, 30), batteryPercent: 61),
+      status: DeviceStatus(
+        readAt: DateTime(2026, 10, 20, 14, 30),
+        batteryPercent: 61,
+      ),
     );
 
     expect(find.textContaining('인터넷'), findsNothing);

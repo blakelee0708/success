@@ -12,7 +12,11 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: AppTile(
-            app: const LauncherApp(id: 'phone', label: '전화', category: AppCategory.phone),
+            app: const LauncherApp(
+              id: 'phone',
+              label: '전화',
+              category: AppCategory.phone,
+            ),
             onTap: () => tapped = true,
           ),
         ),

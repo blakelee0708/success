@@ -77,30 +77,28 @@ void main() {
     expect(auth.oauthAttempts, [GuardianOAuthProvider.google]);
   });
 
-  testWidgets('a provider the project has not set up says what the server said', (
-    tester,
-  ) async {
-    // Not a sentence written here. Until the owner finishes the Kakao
-    // console work the project answers that the provider is not enabled,
-    // and the day they finish it this screen stops saying so by itself.
-    await _gotoStart(
-      tester,
-      hasProject: true,
-      providerFails: '아직 준비 중이에요. 이메일로 시작해 주세요.',
-    );
+  testWidgets(
+    'a provider the project has not set up says what the server said',
+    (tester) async {
+      // Not a sentence written here. Until the owner finishes the Kakao
+      // console work the project answers that the provider is not enabled,
+      // and the day they finish it this screen stops saying so by itself.
+      await _gotoStart(
+        tester,
+        hasProject: true,
+        providerFails: '아직 준비 중이에요. 이메일로 시작해 주세요.',
+      );
 
-    await tester.tap(find.text('카카오로 시작하기'));
-    await tester.pumpAndSettle();
-    await agreeToTerms(tester);
+      await tester.tap(find.text('카카오로 시작하기'));
+      await tester.pumpAndSettle();
+      await agreeToTerms(tester);
 
-    // The screen names the provider; the rest is the server's own words.
-    expect(
-      find.text('카카오 로그인은 아직 준비 중이에요. 이메일로 시작해 주세요.'),
-      findsOneWidget,
-    );
-    // And the one route that does work is offered rather than left to guess.
-    expect(find.byKey(GuardianStartKeys.emailFallback), findsOneWidget);
-  });
+      // The screen names the provider; the rest is the server's own words.
+      expect(find.text('카카오 로그인은 아직 준비 중이에요. 이메일로 시작해 주세요.'), findsOneWidget);
+      // And the one route that does work is offered rather than left to guess.
+      expect(find.byKey(GuardianStartKeys.emailFallback), findsOneWidget);
+    },
+  );
 
   testWidgets('that offer leads to the email form', (tester) async {
     await _gotoStart(

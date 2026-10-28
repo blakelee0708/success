@@ -195,9 +195,7 @@ void main() {
     expect(said, isNot(contains('설정해 두신')));
   });
 
-  testWidgets('the way back uses the same verb as the way out', (
-    tester,
-  ) async {
+  testWidgets('the way back uses the same verb as the way out', (tester) async {
     // 바꾸다 both ways. The same word pointing in both directions is what
     // shows this can be undone, without a sentence claiming it.
     await _openSettings(tester, isHome: true);
@@ -247,11 +245,7 @@ void main() {
     // environment, and a test can only confirm the card says what it was
     // written to say.
     expect(said, contains('기본 앱으로 설정'));
-    expect(
-      said,
-      isNot(contains('변경')),
-      reason: 'the chooser has no 변경 button',
-    );
+    expect(said, isNot(contains('변경')), reason: 'the chooser has no 변경 button');
     expect(said, contains('폰에 따라'));
   });
 }

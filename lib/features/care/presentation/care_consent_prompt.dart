@@ -129,10 +129,8 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
               ),
               const SizedBox(height: 12),
               Text(
-                [
-                  for (final c in consentedCareCapabilities)
-                    '· ${c.seniorLine}',
-                ].join('\n'),
+                [for (final c in consentedCareCapabilities) '· ${c.seniorLine}']
+                    .join('\n'),
                 style: const TextStyle(
                   fontSize: 20,
                   height: 1.7,

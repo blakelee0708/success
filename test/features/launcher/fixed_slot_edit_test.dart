@@ -26,7 +26,10 @@ import '../../support/pump_app.dart';
 /// count and the order of `defaultDetailedApps`, which a dozen tests read as
 /// the spec's six in the spec's order, and they were right to. A saved list
 /// holds one only once somebody has edited it.
-Future<void> _openSettings(WidgetTester tester, {List<LauncherApp>? apps}) async {
+Future<void> _openSettings(
+  WidgetTester tester, {
+  List<LauncherApp>? apps,
+}) async {
   await pumpApp(
     tester,
     overrides: [

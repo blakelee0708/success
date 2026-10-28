@@ -88,8 +88,9 @@ class _SupportCard extends ConsumerWidget {
                 deep: AppColors.seniorButtonGreenDeep,
                 wall: AppColors.seniorButtonGreenWall,
                 radius: 22,
-                onTap: () =>
-                    ref.read(phoneDialerProvider).openDialer(supportPhoneNumber),
+                onTap: () => ref
+                    .read(phoneDialerProvider)
+                    .openDialer(supportPhoneNumber),
                 child: const Center(
                   child: FittedBox(
                     fit: BoxFit.scaleDown,

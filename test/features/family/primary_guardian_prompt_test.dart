@@ -16,7 +16,9 @@ import '../../support/pump_app.dart';
 
 /// A senior phone already connected to a family with two guardians, where the
 /// sibling has asked to take over.
-Future<({InMemorySeniorLinkRepository store, InMemoryPairingRepository pairing})>
+Future<
+  ({InMemorySeniorLinkRepository store, InMemoryPairingRepository pairing})
+>
 _pumpHomeWithRequest(WidgetTester tester, {bool requested = true}) async {
   final store = InMemorySeniorLinkRepository();
   final pairing = InMemoryPairingRepository(store);
@@ -37,7 +39,9 @@ _pumpHomeWithRequest(WidgetTester tester, {bool requested = true}) async {
     overrides: [
       seniorLinkRepositoryProvider.overrideWithValue(store),
       pairingRepositoryProvider.overrideWithValue(pairing),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       seniorLinkStoreProvider.overrideWithValue(
         InMemorySeniorLinkStore(
           SeniorLink(installId: 'senior-phone', seniorProfileId: profile.id),

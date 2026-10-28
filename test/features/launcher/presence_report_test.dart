@@ -46,11 +46,12 @@ Future<InMemorySeniorLinkRepository> _pumpSeniorPhone(
     tester,
     overrides: [
       appLauncherProvider.overrideWithValue(FakeAppLauncher(defaultHome: true)),
-      if (reader != null)
-        deviceStatusReaderProvider.overrideWithValue(reader),
+      if (reader != null) deviceStatusReaderProvider.overrideWithValue(reader),
       seniorLinkRepositoryProvider.overrideWithValue(store),
       pairingRepositoryProvider.overrideWithValue(pairing),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       seniorLinkStoreProvider.overrideWithValue(
         InMemorySeniorLinkStore(
           SeniorLink(
@@ -159,21 +160,22 @@ void main() {
     expect(store.touchCount, greaterThan(0));
   });
 
-  testWidgets('a platform that answers nothing reports no reading, not a zero', (
-    tester,
-  ) async {
-    // `flutter test` is such a platform and so is a phone whose channel is
-    // not there. 배터리 0% is the most alarming reading the card could show
-    // and nothing may invent it.
-    final store = await _pumpSeniorPhone(
-      tester,
-      linked: true,
-      reader: FakeDeviceStatusReader(null),
-    );
+  testWidgets(
+    'a platform that answers nothing reports no reading, not a zero',
+    (tester) async {
+      // `flutter test` is such a platform and so is a phone whose channel is
+      // not there. 배터리 0% is the most alarming reading the card could show
+      // and nothing may invent it.
+      final store = await _pumpSeniorPhone(
+        tester,
+        linked: true,
+        reader: FakeDeviceStatusReader(null),
+      );
 
-    expect(store.touchCount, greaterThan(0));
-    expect(store.activeDeviceByProfile.values.single.status, isNull);
-  });
+      expect(store.touchCount, greaterThan(0));
+      expect(store.activeDeviceByProfile.values.single.status, isNull);
+    },
+  );
 
   testWidgets('a reader that throws does not stop the check-in', (
     tester,

@@ -83,10 +83,7 @@ Future<void> openManualCard(BuildContext context, ManualTopic topic) {
               fit: BoxFit.scaleDown,
               child: Text(
                 '이해했어요',
-                style: TextStyle(
-                  fontSize: 23,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
               ),
             ),
           ),

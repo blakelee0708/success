@@ -23,7 +23,11 @@ void main() {
       AppCategory.camera,
       AppCategory.gallery,
     ]) {
-      expect(launchRequestFor(category).packageName, isNull, reason: '$category');
+      expect(
+        launchRequestFor(category).packageName,
+        isNull,
+        reason: '$category',
+      );
       expect(launchRequestFor(category).intent, isNotNull, reason: '$category');
     }
   });

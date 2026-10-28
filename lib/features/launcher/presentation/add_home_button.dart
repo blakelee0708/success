@@ -19,7 +19,8 @@ import 'widgets/name_dialog.dart';
 /// Returns the label added, or null if the senior backed out at any step.
 Future<String?> addHomeButton(BuildContext context, WidgetRef ref) async {
   final settings =
-      ref.read(seniorSettingsControllerProvider).value ?? const SeniorSettings();
+      ref.read(seniorSettingsControllerProvider).value ??
+      const SeniorSettings();
   final category = await askForCategory(
     context,
     // What the screen already holds, which is what the picker hides. A slot
@@ -41,12 +42,11 @@ Future<String?> addHomeButton(BuildContext context, WidgetRef ref) async {
         .read(seniorSettingsControllerProvider.notifier)
         .restoreSlot(category);
     return settings.apps
-            .firstWhere(
-              (a) => a.category == category,
-              orElse: () =>
-                  fixedSlotApps.firstWhere((a) => a.category == category),
-            )
-            .label;
+        .firstWhere(
+          (a) => a.category == category,
+          orElse: () => fixedSlotApps.firstWhere((a) => a.category == category),
+        )
+        .label;
   }
 
   // An app already on the phone brings its own name and its own icon, so

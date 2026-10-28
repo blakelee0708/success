@@ -25,7 +25,10 @@ abstract interface class SubscriptionRepository {
   Future<Subscription> startCare(String seniorProfileId);
 
   /// Steps 3 and 4, and only from the senior's own phone. A refusal refunds.
-  Future<SeniorProfile> resolveCareConsent(String seniorProfileId, bool approve);
+  Future<SeniorProfile> resolveCareConsent(
+    String seniorProfileId,
+    bool approve,
+  );
 
   /// True only when 안심 케어 is both paid for and consented to.
   Future<bool> careIsActive(String seniorProfileId);
@@ -227,9 +230,7 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
     subscriptions[index] = Subscription(
       id: pending.id,
       plan: pending.plan,
-      status: approve
-          ? SubscriptionStatus.active
-          : SubscriptionStatus.refunded,
+      status: approve ? SubscriptionStatus.active : SubscriptionStatus.refunded,
       seniorProfileId: seniorProfileId,
       refundedAt: approve ? null : DateTime(2026, 7, 31),
     );

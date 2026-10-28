@@ -37,8 +37,9 @@ class DismissedNotice extends Notifier<String?> {
   void dismiss(String messageId) => state = messageId;
 }
 
-final dismissedNoticeProvider =
-    NotifierProvider<DismissedNotice, String?>(DismissedNotice.new);
+final dismissedNoticeProvider = NotifierProvider<DismissedNotice, String?>(
+  DismissedNotice.new,
+);
 
 /// How many things the parent said that the guardian has not opened yet.
 ///

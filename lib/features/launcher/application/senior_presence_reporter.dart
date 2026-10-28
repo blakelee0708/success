@@ -164,11 +164,9 @@ class SeniorPresenceReporter {
 
     if (_lastToken == null || _lastToken == _reportedToken) return;
     try {
-      await _ref.read(seniorLinkRepositoryProvider).touchDevice(
-            installId,
-            status: _lastRead,
-            pushToken: _lastToken,
-          );
+      await _ref
+          .read(seniorLinkRepositoryProvider)
+          .touchDevice(installId, status: _lastRead, pushToken: _lastToken);
       _reportedToken = _lastToken;
     } on Object {
       // The next resume tries again, because `_reportedToken` is unchanged.

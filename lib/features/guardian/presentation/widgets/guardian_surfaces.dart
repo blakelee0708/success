@@ -494,9 +494,6 @@ InputDecoration guardianField({
   ),
   focusedBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(14),
-    borderSide: const BorderSide(
-      color: AppColors.guardianPrimary,
-      width: 1.6,
-    ),
+    borderSide: const BorderSide(color: AppColors.guardianPrimary, width: 1.6),
   ),
 );

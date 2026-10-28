@@ -7,11 +7,7 @@ import '../../../../core/widgets/clay_pad.dart';
 /// screen — it is the one control that must read as pressable from across a
 /// room.
 class SosButton extends StatelessWidget {
-  const SosButton({
-    super.key,
-    required this.onTap,
-    this.label = '긴급 구조 요청',
-  });
+  const SosButton({super.key, required this.onTap, this.label = '긴급 구조 요청'});
 
   final VoidCallback onTap;
 

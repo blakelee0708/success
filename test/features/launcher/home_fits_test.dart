@@ -41,7 +41,9 @@ Future<void> _pumpHome(
     overrides: [
       // Shows the 첫 화면으로 정하기 card, which is the tightest the screen ever
       // gets — and it is shown at whatever size the senior already chose.
-      appLauncherProvider.overrideWithValue(FakeAppLauncher(defaultHome: false)),
+      appLauncherProvider.overrideWithValue(
+        FakeAppLauncher(defaultHome: false),
+      ),
     ],
     prefs: {
       SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
@@ -74,7 +76,8 @@ void main() {
           expect(
             rect.bottom,
             lessThanOrEqualTo(grid.bottom + 0.5),
-            reason: '${(tile.widget as AppTile).app.label} is cut off at '
+            reason:
+                '${(tile.widget as AppTile).app.label} is cut off at '
                 '${size.name}',
           );
         }

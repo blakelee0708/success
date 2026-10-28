@@ -17,7 +17,10 @@ typedef Harness = ({
 });
 
 /// Walks the senior's route: splash → 정말 쉬운 화면 → 가족 연결.
-Future<Harness> _gotoFamilyLink(WidgetTester tester, {Harness? existing}) async {
+Future<Harness> _gotoFamilyLink(
+  WidgetTester tester, {
+  Harness? existing,
+}) async {
   final store = existing?.store ?? InMemorySeniorLinkRepository();
   final pairing = existing?.pairing ?? InMemoryPairingRepository(store);
 
@@ -26,7 +29,9 @@ Future<Harness> _gotoFamilyLink(WidgetTester tester, {Harness? existing}) async 
     overrides: [
       seniorLinkRepositoryProvider.overrideWithValue(store),
       pairingRepositoryProvider.overrideWithValue(pairing),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       seniorLinkStoreProvider.overrideWithValue(InMemorySeniorLinkStore()),
     ],
   );
@@ -86,9 +91,11 @@ void main() {
     final h = await _gotoFamilyLink(tester);
 
     await tester.tap(find.byKey(FamilyLinkKeys.showCode));
-    await tester.pumpAndSettle();
+    await _settleWithSpinner(tester);
 
-    final shown = tester.widget<Text>(find.byKey(FamilyLinkKeys.shownCode)).data!;
+    final shown = tester
+        .widget<Text>(find.byKey(FamilyLinkKeys.shownCode))
+        .data!;
     expect(shown, hasLength(4));
     expect(h.pairing.issued.single.code, shown);
   });
@@ -99,7 +106,7 @@ void main() {
     await _gotoFamilyLink(tester);
 
     await tester.tap(find.byKey(FamilyLinkKeys.showCode));
-    await tester.pumpAndSettle();
+    await _settleWithSpinner(tester);
 
     expect(find.text('이 번호는 10분 동안만 쓸 수 있어요'), findsOneWidget);
   });
@@ -112,7 +119,7 @@ void main() {
     final h = await _gotoFamilyLink(tester);
 
     await tester.tap(find.byKey(FamilyLinkKeys.showCode));
-    await tester.pumpAndSettle();
+    await _settleWithSpinner(tester);
 
     expect(h.store.profiles, hasLength(1));
   });
@@ -127,7 +134,7 @@ void main() {
     await _gotoFamilyLink(tester);
 
     await tester.tap(find.byKey(FamilyLinkKeys.showCode));
-    await tester.pumpAndSettle();
+    await _settleWithSpinner(tester);
 
     expect(find.byKey(FamilyLinkKeys.connected), findsNothing);
     expect(find.byKey(FamilyLinkKeys.shownCode), findsOneWidget);
@@ -140,14 +147,14 @@ void main() {
     // asking them to check would be asking the wrong person.
     final h = await _gotoFamilyLink(tester);
     await tester.tap(find.byKey(FamilyLinkKeys.showCode));
-    await tester.pumpAndSettle();
+    await _settleWithSpinner(tester);
 
     await h.pairing.claimSeniorPairingCode(
       code: h.pairing.issued.single.code,
       displayName: '어머니',
     );
-    await tester.pump(const Duration(seconds: 6));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 4));
+    await _settleWithSpinner(tester);
 
     expect(find.byKey(FamilyLinkKeys.connected), findsOneWidget);
   });
@@ -202,8 +209,23 @@ void main() {
     await tester.pump();
 
     expect(
-      tester.widget<TextField>(find.byKey(FamilyLinkKeys.code)).controller!.text,
+      tester
+          .widget<TextField>(find.byKey(FamilyLinkKeys.code))
+          .controller!
+          .text,
       '1234',
     );
   });
+}
+
+/// `pumpAndSettle` cannot be used once a code is on screen.
+///
+/// The number sits above a spinner saying 자녀분이 번호를 넣으면 바로
+/// 연결돼요, and a spinner is an animation that never ends - so settling
+/// waits for a frame that never comes and the test times out rather than
+/// failing on anything it was checking. Pumping a couple of frames is what
+/// these tests actually want: let the tap's future land, then look.
+Future<void> _settleWithSpinner(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 120));
 }

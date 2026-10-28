@@ -64,7 +64,9 @@ Future<void> _pumpMessages(WidgetTester tester, Harness h) async {
       pairingRepositoryProvider.overrideWithValue(h.pairing),
       subscriptionRepositoryProvider.overrideWithValue(h.subs),
       messageRepositoryProvider.overrideWithValue(h.messages),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       guardianAuthRepositoryProvider.overrideWithValue(auth),
     ],
   );

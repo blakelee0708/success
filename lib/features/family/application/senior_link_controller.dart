@@ -46,7 +46,10 @@ class SeniorLinkController extends AsyncNotifier<SeniorLink> {
     if (!await settings.pullFromServer()) {
       await ref
           .read(seniorSettingsSyncProvider)
-          .push(ref.read(seniorSettingsControllerProvider).value ?? const SeniorSettings());
+          .push(
+            ref.read(seniorSettingsControllerProvider).value ??
+                const SeniorSettings(),
+          );
     }
     return profile;
   }

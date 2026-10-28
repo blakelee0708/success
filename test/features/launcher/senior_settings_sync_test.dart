@@ -110,18 +110,21 @@ void main() {
     expect(merged, isNull);
   });
 
-  test('a profile with no font size chosen leaves the phone on its own', () async {
-    // A guardian creates the profile before the parent connects, so the row
-    // says nothing about font size. Reading that silence as 보통 would shrink
-    // the text of a senior who had already set 아주 크게.
-    final sync = SeniorSettingsSync(
-      linkStore: _linkedStore(),
-      homeApps: InMemoryHomeAppsRepository(),
-      links: _linksWithProfile(screenMode: ScreenMode.easy),
-    );
+  test(
+    'a profile with no font size chosen leaves the phone on its own',
+    () async {
+      // A guardian creates the profile before the parent connects, so the row
+      // says nothing about font size. Reading that silence as 보통 would shrink
+      // the text of a senior who had already set 아주 크게.
+      final sync = SeniorSettingsSync(
+        linkStore: _linkedStore(),
+        homeApps: InMemoryHomeAppsRepository(),
+        links: _linksWithProfile(screenMode: ScreenMode.easy),
+      );
 
-    expect(await sync.pull(settings), isNull);
-  });
+      expect(await sync.pull(settings), isNull);
+    },
+  );
 
   test('pull on an unlinked phone changes nothing', () async {
     final sync = SeniorSettingsSync(

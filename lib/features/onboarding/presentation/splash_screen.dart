@@ -269,7 +269,12 @@ class _Illustration extends StatelessWidget {
       builder: (context, constraints) {
         // Fit the box to the width, but never let it grow so tall that the
         // phone climbs off the top of a short screen.
-        final available = constraints.maxHeight - _bottomGap;
+        // The card below moved up by the system bar's height, so the
+        // illustration does too - otherwise the hand grows down into it on
+        // exactly the phones the card was being hidden on.
+        final inset = MediaQuery.viewPaddingOf(context).bottom;
+        final gap = _bottomGap + inset;
+        final available = constraints.maxHeight - gap;
         var boxWidth = constraints.maxWidth;
         var boxHeight = boxWidth * _designHeight / _designWidth;
         if (boxHeight > available) {
@@ -281,7 +286,7 @@ class _Illustration extends StatelessWidget {
           children: [
             Positioned(
               left: (constraints.maxWidth - boxWidth) / 2,
-              bottom: _bottomGap,
+              bottom: gap,
               width: boxWidth,
               height: boxHeight,
               // The phone's screen is drawn by Flutter on top of the photo,
@@ -552,10 +557,18 @@ class _GuardianCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // **The system bar is not ours to draw under.** This screen is a bare
+    // `Stack` filling the window with no `SafeArea`, so a card 34px from the
+    // bottom sits 34px from the *physical* edge - underneath a Galaxy's
+    // three-button bar, which is where it was found on a real phone. The
+    // inset is added rather than a `SafeArea` wrapped round the stack,
+    // because the illustration and the washes are meant to run to the edges.
+    final inset = MediaQuery.viewPaddingOf(context).bottom;
+
     return Positioned(
       left: 20,
       right: 20,
-      bottom: 34,
+      bottom: 34 + inset,
       child: GestureDetector(
         key: SplashScreen.guardianCardKey,
         behavior: HitTestBehavior.opaque,

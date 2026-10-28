@@ -31,10 +31,7 @@ import '../../support/pump_app.dart';
 /// The app's own faces are loaded for the same reason `screenshots_test`
 /// loads them: a test environment registers no bundled fonts, so measuring
 /// against whatever the harness falls back to measures a phone nobody has.
-Future<void> _openSettings(
-  WidgetTester tester, {
-  required bool isHome,
-}) async {
+Future<void> _openSettings(WidgetTester tester, {required bool isHome}) async {
   await pumpApp(
     tester,
     overrides: [

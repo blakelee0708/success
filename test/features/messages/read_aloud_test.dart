@@ -106,7 +106,10 @@ Future<void> _pumpGuardian(WidgetTester tester, Harness h) async {
   addTearDown(auth.dispose);
   await pumpApp(
     tester,
-    overrides: [..._shared(h), guardianAuthRepositoryProvider.overrideWithValue(auth)],
+    overrides: [
+      ..._shared(h),
+      guardianAuthRepositoryProvider.overrideWithValue(auth),
+    ],
   );
   await tester.pumpAndSettle();
   await tester.tap(find.text('메시지'));
@@ -118,8 +121,9 @@ void main() {
     final h = await _family();
     await _pumpSenior(tester, h);
 
-    final incoming = h.messages.byProfile[h.profileId]!
-        .firstWhere((m) => !m.isFromSenior);
+    final incoming = h.messages.byProfile[h.profileId]!.firstWhere(
+      (m) => !m.isFromSenior,
+    );
     await tester.tap(find.byKey(ConversationKeys.read(incoming.id)));
     await tester.pumpAndSettle();
 
@@ -132,8 +136,9 @@ void main() {
     final h = await _family();
     await _pumpSenior(tester, h);
 
-    final own = h.messages.byProfile[h.profileId]!
-        .firstWhere((m) => m.isFromSenior);
+    final own = h.messages.byProfile[h.profileId]!.firstWhere(
+      (m) => m.isFromSenior,
+    );
     expect(find.byKey(ConversationKeys.read(own.id)), findsNothing);
   });
 
@@ -167,8 +172,9 @@ void main() {
     final h = await _family();
     await _pumpSenior(tester, h);
 
-    final incoming = h.messages.byProfile[h.profileId]!
-        .firstWhere((m) => !m.isFromSenior);
+    final incoming = h.messages.byProfile[h.profileId]!.firstWhere(
+      (m) => !m.isFromSenior,
+    );
     await tester.tap(find.byKey(ConversationKeys.read(incoming.id)));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ConversationKeys.read(incoming.id)));

@@ -26,9 +26,8 @@ class RingRequest {
   final String? message;
 
   /// What the screen says when they wrote nothing. Never left blank.
-  String get line => message?.trim().isNotEmpty == true
-      ? message!.trim()
-      : '전화 한 번만 주세요.';
+  String get line =>
+      message?.trim().isNotEmpty == true ? message!.trim() : '전화 한 번만 주세요.';
 }
 
 /// Whether this phone is ringing, and the only two things that can change it.

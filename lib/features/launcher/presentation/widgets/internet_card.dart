@@ -94,7 +94,10 @@ class _InternetCard extends ConsumerWidget {
               doorKey: InternetCardKeys.wifi,
               label: '와이파이 켜러 가기',
               icon: Icons.wifi_rounded,
-              onTap: () => _go(context, ref.read(phoneControlsProvider).openWifiSettings()),
+              onTap: () => _go(
+                context,
+                ref.read(phoneControlsProvider).openWifiSettings(),
+              ),
             ),
           if (status != InternetStatus.wifi && status != InternetStatus.mobile)
             const SizedBox(height: 10),
@@ -160,10 +163,8 @@ class _InternetCard extends ConsumerWidget {
   static String _footnote(InternetStatus status) => switch (status) {
     // Already connected, so the door below is for changing rather than
     // fixing - and the reason to change is money.
-    InternetStatus.wifi =>
-      '데이터로 바꾸시면 요금이 나갈 수 있어요.',
-    InternetStatus.mobile =>
-      '집에서는 와이파이로 바꾸시면 요금이 안 나가요.',
+    InternetStatus.wifi => '데이터로 바꾸시면 요금이 나갈 수 있어요.',
+    InternetStatus.mobile => '집에서는 와이파이로 바꾸시면 요금이 안 나가요.',
     _ => '누르시면 폰 화면이 하나 나와요.\n다 하시면 뒤로 가기를 눌러 주세요.',
   };
 }

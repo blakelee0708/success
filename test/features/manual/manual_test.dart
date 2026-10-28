@@ -119,12 +119,13 @@ void main() {
           matching: find.byType(Scrollable),
         );
         for (final element in body.evaluate()) {
-          final position = (element as StatefulElement).state
-              as ScrollableState;
+          final position =
+              (element as StatefulElement).state as ScrollableState;
           expect(
             position.position.maxScrollExtent,
             0,
-            reason: '${topic.title} overruns the card by '
+            reason:
+                '${topic.title} overruns the card by '
                 '${position.position.maxScrollExtent.toStringAsFixed(0)}px '
                 'at ${size.name}',
           );

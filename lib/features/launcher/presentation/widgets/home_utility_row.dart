@@ -85,62 +85,62 @@ class HomeUtilityRow extends ConsumerWidget {
     return Row(
       children: [
         if (soundButton case final sound?)
-        Expanded(
-          child: HomePill(
-            key: soundKey,
-            // Null is *this phone has not said yet*, never 무음. Under
-            // `flutter test` the channel never answers at all, and a button
-            // claiming the ringer is off when nobody asked is the same
-            // fabrication as a battery reading of 0%.
-            // The state is appended to whatever they called it, so a button
-            // renamed 벨소리 still says which way it is set.
-            label: switch (ringer) {
-              RingerMode.normal => '${sound.label} 켜짐',
-              RingerMode.vibrate => '진동',
-              RingerMode.silent => '${sound.label} 꺼짐',
-              null => sound.label,
-            },
-            // Null gets the speaker too, because the label beside it is the
-            // neutral 소리 and the icon must not contradict it. A vibration
-            // glyph there claims a state nobody has reported yet - the same
-            // fabrication as a battery reading of 0%, in a smaller space.
-            icon: switch (ringer) {
-              RingerMode.vibrate => Icons.vibration_rounded,
-              RingerMode.silent => Icons.volume_off_rounded,
-              RingerMode.normal || null => Icons.volume_up_rounded,
-            },
-            light: sound.lightColor,
-            face: sound.baseColor,
-            deep: sound.deepColor,
-            wall: sound.wallColor,
-            ink: sound.letteringColor,
-            sheen: 0.4,
-            height: height,
-            iconSize: 21,
-            fontSize: 17,
-            onTap: () => _toggleSound(context, ref),
+          Expanded(
+            child: HomePill(
+              key: soundKey,
+              // Null is *this phone has not said yet*, never 무음. Under
+              // `flutter test` the channel never answers at all, and a button
+              // claiming the ringer is off when nobody asked is the same
+              // fabrication as a battery reading of 0%.
+              // The state is appended to whatever they called it, so a button
+              // renamed 벨소리 still says which way it is set.
+              label: switch (ringer) {
+                RingerMode.normal => '${sound.label} 켜짐',
+                RingerMode.vibrate => '진동',
+                RingerMode.silent => '${sound.label} 꺼짐',
+                null => sound.label,
+              },
+              // Null gets the speaker too, because the label beside it is the
+              // neutral 소리 and the icon must not contradict it. A vibration
+              // glyph there claims a state nobody has reported yet - the same
+              // fabrication as a battery reading of 0%, in a smaller space.
+              icon: switch (ringer) {
+                RingerMode.vibrate => Icons.vibration_rounded,
+                RingerMode.silent => Icons.volume_off_rounded,
+                RingerMode.normal || null => Icons.volume_up_rounded,
+              },
+              light: sound.lightColor,
+              face: sound.baseColor,
+              deep: sound.deepColor,
+              wall: sound.wallColor,
+              ink: sound.letteringColor,
+              sheen: 0.4,
+              height: height,
+              iconSize: 21,
+              fontSize: 17,
+              onTap: () => _toggleSound(context, ref),
+            ),
           ),
-        ),
         if (soundButton != null && internetButton != null)
           const SizedBox(width: 12),
         if (internetButton case final internet?)
-        Expanded(
-          child: HomePill(
-            key: internetKey,
-            label: internet.label,
-            icon: internet.category.icon,
-            light: internet.lightColor,
-            face: internet.baseColor,
-            deep: internet.deepColor,
-            wall: internet.wallColor,
-            ink: internet.letteringColor,
-            sheen: 0.4,
-            height: height,
-            iconSize: 21,
-            fontSize: 17,
-            onTap: () => openInternetCard(context, ref),
+          Expanded(
+            child: HomePill(
+              key: internetKey,
+              label: internet.label,
+              icon: internet.category.icon,
+              light: internet.lightColor,
+              face: internet.baseColor,
+              deep: internet.deepColor,
+              wall: internet.wallColor,
+              ink: internet.letteringColor,
+              sheen: 0.4,
+              height: height,
+              iconSize: 21,
+              fontSize: 17,
+              onTap: () => openInternetCard(context, ref),
+            ),
           ),
-        ),
       ],
     );
   }

@@ -66,10 +66,7 @@ class RingSenderDown extends RingOutcome {
 /// `request_phone_ring`, and the Edge Function in front of it only sends. So
 /// this has one method and no rules of its own.
 abstract interface class RingRepository {
-  Future<RingOutcome> ring({
-    required String seniorProfileId,
-    String? message,
-  });
+  Future<RingOutcome> ring({required String seniorProfileId, String? message});
 }
 
 class SupabaseRingRepository implements RingRepository {

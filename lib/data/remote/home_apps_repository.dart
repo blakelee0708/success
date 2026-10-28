@@ -62,8 +62,6 @@ class InMemoryHomeAppsRepository implements HomeAppsRepository {
     replaceCount++;
     // Round-trips through the wire mapping so a test catches a field that
     // would not survive the real repository either.
-    byProfile[seniorProfileId] = launcherAppsFromRows(
-      homeAppsPayload(apps),
-    );
+    byProfile[seniorProfileId] = launcherAppsFromRows(homeAppsPayload(apps));
   }
 }

@@ -71,10 +71,9 @@ class FirebasePushMessaging implements PushMessaging {
   }
 
   @override
-  Stream<Map<String, String>> messages() =>
-      FirebaseMessaging.onMessage.map((m) => m.data.map(
-            (k, v) => MapEntry(k, '$v'),
-          ));
+  Stream<Map<String, String>> messages() => FirebaseMessaging.onMessage.map(
+    (m) => m.data.map((k, v) => MapEntry(k, '$v')),
+  );
 }
 
 /// What a build with no Firebase gets. Silent rather than throwing: the

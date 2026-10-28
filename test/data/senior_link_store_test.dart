@@ -44,16 +44,19 @@ void main() {
     expect(reloaded.isLinked, isTrue);
   });
 
-  test('an unreadable record mints a fresh install rather than throwing', () async {
-    SharedPreferences.resetStatic();
-    SharedPreferences.setMockInitialValues({
-      SharedPreferencesSeniorLinkStore.storageKey: 'not json',
-    });
+  test(
+    'an unreadable record mints a fresh install rather than throwing',
+    () async {
+      SharedPreferences.resetStatic();
+      SharedPreferences.setMockInitialValues({
+        SharedPreferencesSeniorLinkStore.storageKey: 'not json',
+      });
 
-    // Losing the link is recoverable — the guardian reads the code again.
-    // Refusing to start is not: this app is the phone's home screen.
-    final link = await SharedPreferencesSeniorLinkStore().load();
-    expect(link.installId, isNotEmpty);
-    expect(link.isLinked, isFalse);
-  });
+      // Losing the link is recoverable — the guardian reads the code again.
+      // Refusing to start is not: this app is the phone's home screen.
+      final link = await SharedPreferencesSeniorLinkStore().load();
+      expect(link.installId, isNotEmpty);
+      expect(link.isLinked, isFalse);
+    },
+  );
 }

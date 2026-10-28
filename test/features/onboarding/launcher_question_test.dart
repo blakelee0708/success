@@ -18,9 +18,10 @@ Future<FakeAppLauncher> _choose(
   required bool? isDefaultHome,
 }) async {
   final launcher = FakeAppLauncher()..defaultHome = isDefaultHome;
-  await pumpApp(tester, overrides: [
-    appLauncherProvider.overrideWithValue(launcher),
-  ]);
+  await pumpApp(
+    tester,
+    overrides: [appLauncherProvider.overrideWithValue(launcher)],
+  );
   await settleSplashEntrance(tester);
   await tester.tap(find.byKey(SplashScreen.tapTargetKey));
   await settleAfterSplashTap(tester);

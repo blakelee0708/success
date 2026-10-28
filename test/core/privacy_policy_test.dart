@@ -60,8 +60,8 @@ void main() {
     final resolved = jsonDecode(
       File('.flutter-plugins-dependencies').readAsStringSync(),
     );
-    final plugins =
-        (resolved['plugins']['android'] as List).cast<Map<String, Object?>>();
+    final plugins = (resolved['plugins']['android'] as List)
+        .cast<Map<String, Object?>>();
     expect(plugins, isNotEmpty, reason: 'run `flutter pub get` first');
 
     for (final plugin in plugins) {

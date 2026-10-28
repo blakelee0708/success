@@ -28,11 +28,7 @@ class RingSheet extends ConsumerStatefulWidget {
   /// The first is the whole feature in five syllables and is what the server
   /// falls back to anyway. The other two are the two reasons a child rings a
   /// parent who is not picking up.
-  static const phrases = <String>[
-    '전화 한 번만 주세요.',
-    '어디세요?',
-    '괜찮으세요?',
-  ];
+  static const phrases = <String>['전화 한 번만 주세요.', '어디세요?', '괜찮으세요?'];
 
   static Future<void> open(BuildContext context) {
     return showModalBottomSheet<void>(
@@ -73,9 +69,7 @@ class _RingSheetState extends ConsumerState<RingSheet> {
     final sending = state is RingSending;
 
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: DecoratedBox(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -222,24 +216,16 @@ class _Result extends StatelessWidget {
         '부모님 폰이 아직 연결되기 전이에요.',
         false,
       ),
-      RingMissed() => (
-        '부모님 폰에 닿지 않았어요. 폰이 꺼져 있을 수 있어요.',
-        false,
-      ),
+      RingMissed() => ('부모님 폰에 닿지 않았어요. 폰이 꺼져 있을 수 있어요.', false),
       RingRefused(:final message) => (message, false),
-      RingSenderDown() => (
-        '지금은 보낼 수 없어요. 잠시 후에 다시 해 주세요.',
-        false,
-      ),
+      RingSenderDown() => ('지금은 보낼 수 없어요. 잠시 후에 다시 해 주세요.', false),
     };
 
     return Container(
       key: RingSheet.resultKey,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: good
-            ? AppColors.guardianTintGreen
-            : AppColors.guardianTintAmber,
+        color: good ? AppColors.guardianTintGreen : AppColors.guardianTintAmber,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(

@@ -70,7 +70,11 @@ void main() {
           const SeniorSettings(
             screenMode: ScreenMode.easy,
             apps: [
-              LauncherApp(id: 'phone', label: '아들', category: AppCategory.phone),
+              LauncherApp(
+                id: 'phone',
+                label: '아들',
+                category: AppCategory.phone,
+              ),
             ],
           ).toJson(),
         ),

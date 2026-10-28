@@ -25,9 +25,7 @@ Future<void> _pumpHome(WidgetTester tester, ScreenMode mode) async {
       SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
         SeniorSettings(
           screenMode: mode,
-          apps: mode == ScreenMode.easy
-              ? defaultEasyApps
-              : defaultDetailedApps,
+          apps: mode == ScreenMode.easy ? defaultEasyApps : defaultDetailedApps,
         ).toJson(),
       ),
     },

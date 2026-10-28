@@ -40,15 +40,7 @@ void main() {
           koreanDate(DateTime(2026, 10, day)).split(' ').last,
       ];
 
-      expect(names, [
-        '월요일',
-        '화요일',
-        '수요일',
-        '목요일',
-        '금요일',
-        '토요일',
-        '일요일',
-      ]);
+      expect(names, ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']);
     });
 
     test('a single-digit month and day carry no padding', () {

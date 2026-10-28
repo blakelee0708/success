@@ -40,9 +40,11 @@ class SeniorPresence {
     // Calendar days, not 24-hour blocks: 23:50 to 00:10 is twenty minutes and
     // nobody would call that two days, but it is two dates and 어제 is what a
     // person would say. Both ends are floored to midnight first.
-    final days = DateTime(now.year, now.month, now.day)
-        .difference(DateTime(lastSeen.year, lastSeen.month, lastSeen.day))
-        .inDays;
+    final days = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).difference(DateTime(lastSeen.year, lastSeen.month, lastSeen.day)).inDays;
 
     // A phone clock that runs fast stamps a check-in in the future. Reading
     // that literally gives `-1일째`, so anything not yet past counts as now.

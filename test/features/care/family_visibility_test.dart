@@ -147,7 +147,10 @@ void main() {
   testWidgets('설정 has a row that opens it', (tester) async {
     await _pumpSettings(tester);
 
-    expect(find.byKey(SeniorSettingsScreen.familyVisibilityRow), findsOneWidget);
+    expect(
+      find.byKey(SeniorSettingsScreen.familyVisibilityRow),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(SeniorSettingsScreen.familyVisibilityRow));
     await tester.pumpAndSettle();
 

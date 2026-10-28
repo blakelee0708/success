@@ -25,7 +25,11 @@ void main() {
       multiLine: true,
     ).firstMatch(gradle);
 
-    expect(match, isNotNull, reason: 'applicationId is gone from build.gradle.kts');
+    expect(
+      match,
+      isNotNull,
+      reason: 'applicationId is gone from build.gradle.kts',
+    );
     expect(match!.group(1), applicationId);
   });
 

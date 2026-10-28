@@ -28,10 +28,7 @@ Future<void> _pumpDetailedHome(
     ],
     prefs: {
       SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
-        SeniorSettings(
-          screenMode: ScreenMode.detailed,
-          apps: apps,
-        ).toJson(),
+        SeniorSettings(screenMode: ScreenMode.detailed, apps: apps).toJson(),
       ),
     },
   );

@@ -27,8 +27,7 @@ import '../../../domain/device_status.dart';
 class SeniorSettingsScreen extends ConsumerWidget {
   const SeniorSettingsScreen({super.key});
 
-  static const familyVisibilityRow =
-      Key('senior-settings-family-visibility');
+  static const familyVisibilityRow = Key('senior-settings-family-visibility');
   static const homeAppRow = Key('senior-settings-home-app');
   static const stopUsingRow = Key('senior-settings-stop-using');
   static const stopUsingConfirm = Key('senior-settings-stop-using-confirm');
@@ -60,9 +59,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         key: SeniorSettingsScreen.homeAppCoach,
         backgroundColor: AppColors.seniorSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: const HomeAppCoach(direction: HomeAppDirection.take),
         actions: [
           TextButton(
@@ -107,9 +104,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         key: SeniorSettingsScreen.manualKey,
         backgroundColor: AppColors.seniorSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: const Text(
           '이 휴대폰에서는 여기서 바로 정할 수 없어요.\n'
           '휴대폰 설정 → 애플리케이션 → 기본 앱 선택 → 홈 화면 앱\n'
@@ -159,9 +154,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         key: SeniorSettingsScreen.stopUsingConfirm,
         backgroundColor: AppColors.seniorSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         // **전에 쓰시던 화면**, not 원래 화면. The app already calls its own
         // home 첫 화면 (`첫 화면에서 사라집니다`), so a second word for a
         // screen is a second thing to work out — and 원래 does not say which
@@ -229,9 +222,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         key: SeniorSettingsScreen.stopUsingCoach,
         backgroundColor: AppColors.seniorSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: const HomeAppCoach(direction: HomeAppDirection.give),
         actions: [
           TextButton(
@@ -270,9 +261,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         key: SeniorSettingsScreen.stopUsingManual,
         backgroundColor: AppColors.seniorSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: const Text(
           '이 휴대폰에서는 여기서 바로 바꿀 수 없어요.\n'
           '휴대폰 설정 → 애플리케이션 → 기본 앱 선택 → 홈 화면 앱\n'

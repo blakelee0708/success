@@ -60,9 +60,7 @@ Future<void> _ring(
 const _scrim = Offset(8, 300);
 
 void main() {
-  testWidgets('a ring covers the home and names who is asking', (
-    tester,
-  ) async {
+  testWidgets('a ring covers the home and names who is asking', (tester) async {
     await _pumpHome(tester);
     await _ring(tester, message: '엄마, 전화 좀 줘.');
 

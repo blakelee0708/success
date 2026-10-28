@@ -26,10 +26,7 @@ void main() {
       LauncherApp(id: 'c', label: '다', category: AppCategory.gallery),
     ];
 
-    expect(
-      homeAppsPayload(apps).map((row) => row['sort_order']),
-      [0, 1, 2],
-    );
+    expect(homeAppsPayload(apps).map((row) => row['sort_order']), [0, 1, 2]);
   });
 
   test('rows arrive in sort_order however the server returned them', () {
@@ -38,10 +35,7 @@ void main() {
       {'client_id': 'a', 'label': '가', 'icon_key': 'phone', 'sort_order': 0},
     ];
 
-    expect(
-      launcherAppsFromRows(rows).map((a) => a.id),
-      ['a', 'b'],
-    );
+    expect(launcherAppsFromRows(rows).map((a) => a.id), ['a', 'b']);
   });
 
   test('buttons seeded from the defaults are flagged, added ones are not', () {
@@ -50,10 +44,10 @@ void main() {
       LauncherApp(id: 'app7', label: '딸', category: AppCategory.message),
     ];
 
-    expect(
-      homeAppsPayload(apps).map((row) => row['is_default']),
-      [true, false],
-    );
+    expect(homeAppsPayload(apps).map((row) => row['is_default']), [
+      true,
+      false,
+    ]);
   });
 
   test('a row with an unreadable category is dropped, not guessed', () {

@@ -62,7 +62,11 @@ class ManualPill extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 17, color: hollow ? AppColors.seniorInkMuted : ink),
+                    Icon(
+                      icon,
+                      size: 17,
+                      color: hollow ? AppColors.seniorInkMuted : ink,
+                    ),
                     const SizedBox(width: 6),
                   ],
                   Flexible(
@@ -191,12 +195,18 @@ class _Word extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (step case final n?) ...[ManualBadge(n), const SizedBox(width: 5)],
+            if (step case final n?) ...[
+              ManualBadge(n),
+              const SizedBox(width: 5),
+            ],
             if (swatch case final colour?) ...[
               Container(
                 width: 13,
                 height: 13,
-                decoration: BoxDecoration(color: colour, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: colour,
+                  shape: BoxShape.circle,
+                ),
               ),
               const SizedBox(width: 5),
             ],

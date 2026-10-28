@@ -78,7 +78,8 @@ class HomeBody extends ConsumerWidget {
         // band was invented to fix.
         final tile = (constraints.maxWidth - gutter) / 2;
         final square = rows * tile + (rows - 1) * rowGap;
-        final available = constraints.maxHeight -
+        final available =
+            constraints.maxHeight -
             14 -
             (utility ? HomeUtilityRow.height + sectionGap : 0);
 

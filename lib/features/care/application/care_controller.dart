@@ -31,8 +31,7 @@ final careStateProvider = FutureProvider<CareState>((ref) async {
   final care = subscriptions
       .where(
         (s) =>
-            s.plan == SubscriptionPlan.care &&
-            s.seniorProfileId == profile.id,
+            s.plan == SubscriptionPlan.care && s.seniorProfileId == profile.id,
       )
       .firstOrNull;
 
@@ -40,7 +39,8 @@ final careStateProvider = FutureProvider<CareState>((ref) async {
   if (care.isWaitingOnSenior) {
     return CareState(stage: CareStage.waitingOnSenior, subscription: care);
   }
-  if (care.isRefunded || profile.paidConsentStatus == PaidConsentStatus.refused) {
+  if (care.isRefunded ||
+      profile.paidConsentStatus == PaidConsentStatus.refused) {
     return CareState(stage: CareStage.refused, subscription: care);
   }
   // Both halves, and the consent one decides: a paid subscription whose senior

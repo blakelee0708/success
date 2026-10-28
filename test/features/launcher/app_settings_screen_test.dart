@@ -61,10 +61,7 @@ void main() {
     final handle = find.byKey(
       AppSettingsKeys.dragHandle(defaultDetailedApps.first.id),
     );
-    expect(
-      tester.widget(handle),
-      isA<ReorderableDragStartListener>(),
-    );
+    expect(tester.widget(handle), isA<ReorderableDragStartListener>());
   });
 
   testWidgets('it is a target an ageing hand can land on', (tester) async {
@@ -110,7 +107,11 @@ void main() {
 
     expect(find.text('바꾸시면 바로 바뀌어요'), findsOneWidget);
     for (final claim in ['저장', '완료']) {
-      expect(find.textContaining(claim), findsNothing, reason: '$claim is a promise this screen does not need to make');
+      expect(
+        find.textContaining(claim),
+        findsNothing,
+        reason: '$claim is a promise this screen does not need to make',
+      );
     }
   });
 

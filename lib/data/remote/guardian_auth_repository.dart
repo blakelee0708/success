@@ -126,7 +126,8 @@ class SupabaseGuardianAuthRepository implements GuardianAuthRepository {
   final sb.SupabaseClient _client;
 
   @override
-  GuardianSession? get currentSession => _toSession(_client.auth.currentSession);
+  GuardianSession? get currentSession =>
+      _toSession(_client.auth.currentSession);
 
   @override
   Stream<GuardianSession?> sessionChanges() async* {

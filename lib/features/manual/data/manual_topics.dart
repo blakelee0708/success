@@ -53,13 +53,7 @@ final manualTopics = <ManualTopic>[
     title: '첫 화면으로 돌아가기',
     // The one thing seniors get stuck on more than anything else: they go
     // somewhere and cannot get out. It is first for that reason.
-    lines: const [
-      '어느 화면에서든',
-      '맨 아래 빨간 버튼을',
-      '누르시면 됩니다.',
-      '',
-      '홈 버튼을 눌러도 됩니다.',
-    ],
+    lines: const ['어느 화면에서든', '맨 아래 빨간 버튼을', '누르시면 됩니다.', '', '홈 버튼을 눌러도 됩니다.'],
     drawing: const ManualFrame(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -97,14 +91,13 @@ final manualTopics = <ManualTopic>[
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          ManualPill(label: '앱 설정하기', face: AppColors.seniorButtonPurple, height: 34),
-          SizedBox(height: 8),
           ManualPill(
-            label: '글씨 크기 조절하기',
-            face: _green,
-            step: 1,
-            height: 38,
+            label: '앱 설정하기',
+            face: AppColors.seniorButtonPurple,
+            height: 34,
           ),
+          SizedBox(height: 8),
+          ManualPill(label: '글씨 크기 조절하기', face: _green, step: 1, height: 38),
         ],
       ),
     ),
@@ -168,13 +161,7 @@ final manualTopics = <ManualTopic>[
     title: '가족에게 연락하기',
     // Seniors fail at finding *people* far more than at finding apps - 연락처
     // and scrolling is where they give up. This button is the whole answer.
-    lines: const [
-      '첫 화면의 노란 가족 버튼을',
-      '누르세요.',
-      '',
-      '자녀분과 주고받은 이야기가',
-      '나옵니다.',
-    ],
+    lines: const ['첫 화면의 노란 가족 버튼을', '누르세요.', '', '자녀분과 주고받은 이야기가', '나옵니다.'],
     drawing: const ManualFrame(
       child: Row(
         children: [
@@ -200,13 +187,7 @@ final manualTopics = <ManualTopic>[
     title: '전화벨이 안 울릴 때',
     // 엄마가 전화를 안 받아 is why the family installs this app, and a phone
     // left on vibrate is the first cause of it.
-    lines: const [
-      '첫 화면 위쪽의',
-      '소리 버튼을 누르세요.',
-      '',
-      '누를 때마다 소리와 진동이',
-      '바뀝니다.',
-    ],
+    lines: const ['첫 화면 위쪽의', '소리 버튼을 누르세요.', '', '누를 때마다 소리와 진동이', '바뀝니다.'],
     drawing: const ManualFrame(
       child: Row(
         children: [
@@ -252,7 +233,13 @@ final manualTopics = <ManualTopic>[
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          ManualPill(label: '문의하기', face: _green, icon: Icons.support_agent_rounded, step: 1, height: 38),
+          ManualPill(
+            label: '문의하기',
+            face: _green,
+            icon: Icons.support_agent_rounded,
+            step: 1,
+            height: 38,
+          ),
           SizedBox(height: 12),
           Center(child: ManualArrow()),
           SizedBox(height: 8),

@@ -179,7 +179,12 @@ class GuardianLink {
       other.phoneNumber == phoneNumber;
 
   @override
-  int get hashCode =>
-      Object.hash(guardianAccountId, role, status, displayName, email,
-          phoneNumber);
+  int get hashCode => Object.hash(
+    guardianAccountId,
+    role,
+    status,
+    displayName,
+    email,
+    phoneNumber,
+  );
 }

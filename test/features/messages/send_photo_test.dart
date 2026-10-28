@@ -197,9 +197,11 @@ void main() {
     await _pumpGuardian(tester, h, FakePhotoPicker.cancelled());
 
     expect(
-      find.byKey(ConversationKeys.image(
-        (await h.messages.conversation(h.profileId)).single.id,
-      )),
+      find.byKey(
+        ConversationKeys.image(
+          (await h.messages.conversation(h.profileId)).single.id,
+        ),
+      ),
       findsOneWidget,
     );
   });

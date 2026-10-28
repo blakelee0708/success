@@ -176,8 +176,7 @@ class LauncherApp {
   Color get lightColor => color?.lightColor ?? category.lightColor;
   Color get deepColor => color?.deepColor ?? category.deepColor;
   Color get wallColor => color?.wallColor ?? category.wallColor;
-  Color get letteringColor =>
-      color?.letteringColor ?? category.letteringColor;
+  Color get letteringColor => color?.letteringColor ?? category.letteringColor;
 
   LauncherApp copyWith({
     String? label,
@@ -306,8 +305,10 @@ const List<LauncherApp> fixedSlotApps = [
 ];
 
 /// The buttons that go in the grid, in order.
-List<LauncherApp> seniorGridApps(List<LauncherApp> apps) =>
-    [for (final app in apps) if (!app.category.fixedSlot) app];
+List<LauncherApp> seniorGridApps(List<LauncherApp> apps) => [
+  for (final app in apps)
+    if (!app.category.fixedSlot) app,
+];
 
 /// The saved button for [category], or the default if the senior has none.
 ///

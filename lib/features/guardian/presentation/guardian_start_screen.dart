@@ -69,7 +69,6 @@ class GuardianStartScreen extends StatelessWidget {
     ),
   ];
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -283,12 +282,9 @@ class _BenefitCardState extends State<_BenefitCard>
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(
-      Duration(milliseconds: 50 + widget.order * 70),
-      () {
-        if (mounted) _controller.forward();
-      },
-    );
+    Future<void>.delayed(Duration(milliseconds: 50 + widget.order * 70), () {
+      if (mounted) _controller.forward();
+    });
   }
 
   @override
@@ -486,7 +482,12 @@ class _ProviderButton extends ConsumerWidget {
           if (!await SignupConsentSheet.ensure(context, ref)) return;
           if (!context.mounted) return;
           if (destination == null) {
-            await _start(context, ref, provider!, supabaseConfigured: configured);
+            await _start(
+              context,
+              ref,
+              provider!,
+              supabaseConfigured: configured,
+            );
           } else {
             context.go(destination!);
           }

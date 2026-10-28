@@ -25,9 +25,11 @@ String koreanDate(DateTime at) =>
 /// long has the conversation been quiet", and nobody counts that in hours.
 /// Compares calendar days, so 11pm last night is 어제 and not 1일 전.
 String koreanDaysAgo(DateTime at, DateTime now) {
-  final days = DateTime(now.year, now.month, now.day)
-      .difference(DateTime(at.year, at.month, at.day))
-      .inDays;
+  final days = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).difference(DateTime(at.year, at.month, at.day)).inDays;
   return switch (days) {
     <= 0 => '오늘',
     1 => '어제',

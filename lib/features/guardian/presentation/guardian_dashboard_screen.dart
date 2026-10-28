@@ -75,12 +75,8 @@ class _GuardianDashboardScreenState
             index: _index,
             children: [
               _HomeTab(onOpenTab: (i) => setState(() => _index = i)),
-              GuardianLauncherTab(
-                onOpenTab: (i) => setState(() => _index = i),
-              ),
-              GuardianMessageTab(
-                onOpenTab: (i) => setState(() => _index = i),
-              ),
+              GuardianLauncherTab(onOpenTab: (i) => setState(() => _index = i)),
+              GuardianMessageTab(onOpenTab: (i) => setState(() => _index = i)),
               const GuardianCareTab(),
               const GuardianFamilyTab(),
             ],
@@ -141,12 +137,7 @@ class _TabScaffold extends StatelessWidget {
     // Same 26px crown and same 22px gap as 홈 화면, which draws its heading
     // inside its own list. Every tab of this half starts at the same height.
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        20,
-        GuardianHeading.crown,
-        20,
-        28,
-      ),
+      padding: const EdgeInsets.fromLTRB(20, GuardianHeading.crown, 20, 28),
       children: [
         GuardianHeading(title: title, lede: lede),
         const SizedBox(height: GuardianHeading.gap),
@@ -260,9 +251,7 @@ class _HomeTab extends ConsumerWidget {
       // Withheld, the subtitle must not go on describing a phone it is not
       // being told about - `아직 / 연결되기 전이에요` would be the card
       // claiming the parent never set theirs up.
-      lede: locked
-          ? '안심 케어를 시작하시면 부모님 폰 상태를 알려 드려요.'
-          : presence.lede,
+      lede: locked ? '안심 케어를 시작하시면 부모님 폰 상태를 알려 드려요.' : presence.lede,
       children: [
         if ((profiles.value?.length ?? 0) > 1)
           _Card(child: _ParentSwitcher(profiles: profiles.value!)),
@@ -275,9 +264,7 @@ class _HomeTab extends ConsumerWidget {
           // withheld, there is nothing to claim.
           online: !locked && presence.online,
           headline: locked ? '안심 케어로 볼 수 있어요' : presence.headline,
-          caption: locked
-              ? '부모님이 폰을 쓰신 때와 배터리를 알려 드립니다.'
-              : presence.caption,
+          caption: locked ? '부모님이 폰을 쓰신 때와 배터리를 알려 드립니다.' : presence.caption,
           metric: quota == null || quota.unlimited
               ? '무제한'
               : '${quota.textLeft}번',

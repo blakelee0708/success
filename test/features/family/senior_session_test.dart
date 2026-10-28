@@ -96,7 +96,9 @@ _seniorPhone({String? profileId}) {
       seniorAuthProvider.overrideWithValue(auth),
       seniorLinkRepositoryProvider.overrideWithValue(links),
       pairingRepositoryProvider.overrideWithValue(pairing),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       seniorLinkStoreProvider.overrideWithValue(
         InMemorySeniorLinkStore(
           SeniorLink(installId: 'senior-phone', seniorProfileId: profileId),
@@ -131,7 +133,10 @@ void main() {
       greaterThan(0),
       reason: 'start_senior_pairing raises on a null auth.uid()',
     );
-    expect(phone.container.read(seniorPairingControllerProvider).hasError, isFalse);
+    expect(
+      phone.container.read(seniorPairingControllerProvider).hasError,
+      isFalse,
+    );
   });
 
   test('entering a number signs in first too', () async {
@@ -181,14 +186,16 @@ void main() {
     expect(phone.auth.calls, 0);
   });
 
-  test('no session reports nothing rather than touching a row it cannot own',
-      () async {
-    final phone = _seniorPhone(profileId: 'profile-1');
-    phone.auth.succeeds = false;
+  test(
+    'no session reports nothing rather than touching a row it cannot own',
+    () async {
+      final phone = _seniorPhone(profileId: 'profile-1');
+      phone.auth.succeeds = false;
 
-    expect(
-      await phone.container.read(seniorPresenceReporterProvider).report(),
-      isFalse,
-    );
-  });
+      expect(
+        await phone.container.read(seniorPresenceReporterProvider).report(),
+        isFalse,
+      );
+    },
+  );
 }

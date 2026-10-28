@@ -116,4 +116,22 @@ void main() {
 
     expect(find.text('부모님께 이런 걸\n해드릴 수 있어요'), findsOneWidget);
   });
+
+  testWidgets("the guardian card clears the phone's own navigation bar", (
+    tester,
+  ) async {
+    // Found on a real Galaxy. This screen is a bare `Stack` filling the
+    // window with no `SafeArea`, so a card 34px from the bottom sat 34px from
+    // the *physical* edge - underneath the three-button bar, which is where
+    // 가족 및 보호자분들은 ended up.
+    const bar = 48.0;
+    tester.view.viewPadding = const FakeViewPadding(bottom: bar);
+    tester.view.padding = const FakeViewPadding(bottom: bar);
+    await pumpApp(tester);
+
+    final card = tester.getRect(find.byKey(SplashScreen.guardianCardKey));
+    final screen =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(screen - card.bottom, greaterThanOrEqualTo(bar));
+  });
 }

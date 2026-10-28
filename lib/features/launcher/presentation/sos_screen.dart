@@ -202,7 +202,6 @@ class _SosTile extends StatelessWidget {
   }
 }
 
-
 /// Widget keys the tests drive.
 class SosKeys {
   SosKeys._();

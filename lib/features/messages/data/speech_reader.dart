@@ -29,8 +29,7 @@ class MethodChannelSpeechReader implements SpeechReader {
   const MethodChannelSpeechReader();
 
   @override
-  Future<void> speak(String text) =>
-      _call('speak', {'text': text});
+  Future<void> speak(String text) => _call('speak', {'text': text});
 
   @override
   Future<void> stop() => _call('stopSpeaking', const {});

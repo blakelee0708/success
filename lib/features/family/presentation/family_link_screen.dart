@@ -18,6 +18,7 @@ class FamilyLinkKeys {
   FamilyLinkKeys._();
 
   static const showCode = Key('family-link-show-code');
+  static const waiting = Key('family-link-waiting');
   static const shownCode = Key('family-link-shown-code');
   static const code = Key('family-link-code');
   static const submit = Key('family-link-submit');
@@ -142,7 +143,7 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
   void _watchForGuardian() {
     _poll?.cancel();
     _poll = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 3),
       (_) => ref.invalidate(seniorGuardiansProvider),
     );
   }
@@ -150,6 +151,14 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
   @override
   Widget build(BuildContext context) {
     final pairing = ref.watch(seniorPairingControllerProvider);
+    // **Started from the state, not from the tap.** Hanging it off the
+    // button's handler meant one path set the timer and every other way of
+    // arriving at a code - a rebuild, a code already in hand - set nothing,
+    // and the senior was left looking at a number that never stopped being
+    // a number.
+    ref.listen(seniorPairingControllerProvider, (_, next) {
+      if (next is AsyncData && next.value != null) _watchForGuardian();
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -195,12 +204,8 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
               deep: AppColors.seniorButtonRedDeep,
               wall: AppColors.seniorButtonRedWall,
               radius: 30,
-              onTap: () async {
-                await ref
-                    .read(seniorPairingControllerProvider.notifier)
-                    .showCode();
-                _watchForGuardian();
-              },
+              onTap: () =>
+                  ref.read(seniorPairingControllerProvider.notifier).showCode(),
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: FittedBox(
@@ -263,6 +268,35 @@ class _Code extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
+        ),
+        const SizedBox(height: 14),
+        // **A number alone reads as a dead end.** The phone is asking the
+        // server every three seconds whether the child has typed it, and
+        // nothing on screen said so - so the senior waited, decided it was
+        // broken, and pressed 가족 연결 again. The spinner is the whole
+        // message: something is happening and you do not have to do it.
+        Row(
+          key: FamilyLinkKeys.waiting,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2.6),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                '자녀분이 번호를 넣으면\n바로 연결돼요',
+                style: TextStyle(
+                  fontSize: 18,
+                  height: 1.4,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 14),
         // Saying it expires is the difference between a number that stopped

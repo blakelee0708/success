@@ -54,8 +54,10 @@ void main() {
         // it stops reading as an object at all.
         final face = _luminance(colour.color);
         expect(_luminance(colour.wallColor), lessThan(face));
-        expect(_luminance(colour.wallColor),
-            lessThan(_luminance(colour.deepColor)));
+        expect(
+          _luminance(colour.wallColor),
+          lessThan(_luminance(colour.deepColor)),
+        );
         expect(_luminance(colour.lightColor), greaterThan(face));
       });
 
@@ -63,8 +65,11 @@ void main() {
         // Same 3:1 floor as the category faces. Yellow cannot hold white and
         // takes ink, exactly as the 카카오톡 tile does.
         final ink = colour.letteringColor;
-        expect(ink == Colors.white || ink == AppColors.seniorInk, isTrue,
-            reason: 'lettering is white or the app ink, nothing else');
+        expect(
+          ink == Colors.white || ink == AppColors.seniorInk,
+          isTrue,
+          reason: 'lettering is white or the app ink, nothing else',
+        );
         expect(_contrast(colour.color, ink), greaterThanOrEqualTo(3.0));
       });
 
@@ -109,13 +114,17 @@ void main() {
       // measures under 2:1 and the tile is unreadable.
       final yellow = plain.withColor(ButtonColor.yellow);
       expect(yellow.letteringColor, AppColors.seniorInk);
-      expect(_contrast(yellow.baseColor, yellow.letteringColor),
-          greaterThanOrEqualTo(3.0));
+      expect(
+        _contrast(yellow.baseColor, yellow.letteringColor),
+        greaterThanOrEqualTo(3.0),
+      );
     });
 
     test('clearing it goes back to the category', () {
-      expect(plain.withColor(ButtonColor.indigo).withColor(null).baseColor,
-          AppCategory.phone.baseColor);
+      expect(
+        plain.withColor(ButtonColor.indigo).withColor(null).baseColor,
+        AppCategory.phone.baseColor,
+      );
     });
   });
 }

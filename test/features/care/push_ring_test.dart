@@ -57,7 +57,9 @@ Future<void> _pumpSenior(
       appLauncherProvider.overrideWithValue(FakeAppLauncher(defaultHome: true)),
       pushMessagingProvider.overrideWithValue(h.push),
       seniorLinkRepositoryProvider.overrideWithValue(h.store),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       seniorLinkStoreProvider.overrideWithValue(
         InMemorySeniorLinkStore(
           SeniorLink(
@@ -137,11 +139,7 @@ void main() {
       final h = await _family();
       await _pumpSenior(tester, h);
 
-      h.push.deliver({
-        'type': 'ring',
-        'from': '영희',
-        'message': '엄마 전화 좀 줘',
-      });
+      h.push.deliver({'type': 'ring', 'from': '영희', 'message': '엄마 전화 좀 줘'});
       await tester.pumpAndSettle();
 
       expect(find.byKey(SeniorRingLayer.layerKey), findsOneWidget);

@@ -90,17 +90,39 @@ class SeniorPairingController extends AsyncNotifier<PairLink?> {
   /// Records the profile locally and adopts whatever is already waiting for
   /// this parent on the server — a guardian may have arranged their home
   /// screen before the phone ever connected.
+  ///
+  /// **The screen is told the moment the profile is saved**, which is what it
+  /// was waiting on. The buttons and the text size are two more round trips
+  /// after the connection itself is made, and the senior sat through all of
+  /// them watching `연결하는 중이에요` - then pressed 가족 연결 again,
+  /// because nothing on screen had changed. Invalidating here rather than
+  /// after this whole method returns puts 연결되었어요 up while the rest
+  /// carries on behind it.
+  ///
+  /// Not detached into an unawaited future, which was the first attempt: the
+  /// settings controller's own build runs across an await, so a container
+  /// torn down in the meantime leaves it using a `ref` it no longer owns.
+  /// Awaiting keeps the lifetime honest and costs the senior nothing, since
+  /// they are already looking at the connected screen.
   Future<void> _remember(String? profileId) async {
     if (profileId == null) return;
     final store = ref.read(seniorLinkStoreProvider);
     await store.save((await store.load()).copyWith(seniorProfileId: profileId));
     ref.invalidate(seniorLinkControllerProvider);
+    ref.invalidate(seniorGuardiansProvider);
 
+    // Pull before push: a guardian may have arranged the home screen while
+    // waiting for the parent to connect, and that arrangement is the newer
+    // intent. `pull` leaves this phone's buttons alone when the profile has
+    // none, so nothing is lost when it is the first device to connect.
     final settings = ref.read(seniorSettingsControllerProvider.notifier);
     if (!await settings.pullFromServer()) {
       await ref
           .read(seniorSettingsSyncProvider)
-          .push(ref.read(seniorSettingsControllerProvider).value ?? const SeniorSettings());
+          .push(
+            ref.read(seniorSettingsControllerProvider).value ??
+                const SeniorSettings(),
+          );
     }
   }
 }

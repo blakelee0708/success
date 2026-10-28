@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -90,8 +92,19 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
   bool _busy = false;
   String? _error;
 
+  /// How often an open conversation asks for what the other side said.
+  ///
+  /// **Nothing arrived while the screen was open.** The thread was read once
+  /// and never again, so a reply landed only if the person closed the screen
+  /// and came back - which is not how anybody uses a conversation. Five
+  /// seconds while it is on top, and nothing at all when it is not.
+  static const refreshEvery = Duration(seconds: 5);
+
+  Timer? _poll;
+
   @override
   void dispose() {
+    _poll?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -138,9 +151,7 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
     if (quota == null) return false;
     if (text ? quota.canSendText : quota.canSendImage) return false;
     setState(
-      () => _error = text
-          ? '이번 달 무료 메시지를 다 쓰셨어요.'
-          : '이번 달 무료 사진을 다 쓰셨어요.',
+      () => _error = text ? '이번 달 무료 메시지를 다 쓰셨어요.' : '이번 달 무료 사진을 다 쓰셨어요.',
     );
     return true;
   }
@@ -184,6 +195,10 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(messageControllerProvider.notifier).markRead();
+    });
+    _poll = Timer.periodic(refreshEvery, (_) {
+      if (!mounted) return;
+      ref.invalidate(conversationProvider);
     });
   }
 
@@ -242,32 +257,46 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
         Expanded(
           child: messages.isEmpty
               ? _Empty(large: widget.large, title: widget.title)
+              // **Anchored to the bottom, like every messaging app.** It was
+              // an ordinary list, so a short conversation sat at the top of
+              // an empty screen and a long one put the newest message below
+              // the fold with nothing scrolling to it. `reverse` both pins
+              // the newest just above the composer and keeps it in view as
+              // the thread grows, with no scroll controller to drive.
+              //
+              // The order of the data is unchanged - oldest first - so the
+              // index counts back from the end.
               : ListView.builder(
                   key: ConversationKeys.list,
+                  reverse: true,
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                   itemCount: messages.length,
-                  itemBuilder: (context, i) => _Bubble(
-                    message: messages[i],
-                    // On the guardian's phone their own messages sit on the
-                    // right; on the parent's phone theirs do. Same data, and
-                    // each side sees itself where it expects to.
-                    mine: widget.large
-                        ? messages[i].isFromSenior
-                        : !messages[i].isFromSenior,
-                    scale: scale,
-                    // Only on the parent's phone, and only on what came in.
-                    // The guardian can read, and reading someone their own
-                    // message back is noise.
-                    onRead: widget.large && !messages[i].isFromSenior
-                        ? () => _read(messages[i].body)
-                        : null,
-                    // The guardian, on their own messages, once the parent
-                    // has opened them. Never the other way round.
-                    showRead: !widget.large &&
-                        !messages[i].isFromSenior &&
-                        messages[i].isRead,
-                    from: names[messages[i].senderGuardianId],
-                  ),
+                  itemBuilder: (context, row) {
+                    final i = messages.length - 1 - row;
+                    return _Bubble(
+                      message: messages[i],
+                      // On the guardian's phone their own messages sit on the
+                      // right; on the parent's phone theirs do. Same data, and
+                      // each side sees itself where it expects to.
+                      mine: widget.large
+                          ? messages[i].isFromSenior
+                          : !messages[i].isFromSenior,
+                      scale: scale,
+                      // Only on the parent's phone, and only on what came in.
+                      // The guardian can read, and reading someone their own
+                      // message back is noise.
+                      onRead: widget.large && !messages[i].isFromSenior
+                          ? () => _read(messages[i].body)
+                          : null,
+                      // The guardian, on their own messages, once the parent
+                      // has opened them. Never the other way round.
+                      showRead:
+                          !widget.large &&
+                          !messages[i].isFromSenior &&
+                          messages[i].isRead,
+                      from: names[messages[i].senderGuardianId],
+                    );
+                  },
                 ),
         ),
         if (_error case final message?)
@@ -551,19 +580,22 @@ class _Bubble extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: _Photo(key: ConversationKeys.image(message.id),
-                      path: path, scale: scale),
+                  child: _Photo(
+                    key: ConversationKeys.image(message.id),
+                    path: path,
+                    scale: scale,
+                  ),
                 ),
               ),
             if (message.body?.isNotEmpty ?? false)
-            Text(
-              message.body ?? '',
-              style: TextStyle(
-                fontSize: 16 * scale,
-                height: 1.4,
-                color: mine ? scheme.onPrimary : scheme.onSurface,
+              Text(
+                message.body ?? '',
+                style: TextStyle(
+                  fontSize: 16 * scale,
+                  height: 1.4,
+                  color: mine ? scheme.onPrimary : scheme.onSurface,
+                ),
               ),
-            ),
             // Only `읽음`, and only on the guardian's own messages. There is
             // deliberately no 안 읽음: a mark counting how long a busy adult
             // has left their parent waiting would teach a senior to feel
@@ -615,26 +647,28 @@ class _Bubble extends StatelessWidget {
     // The whole bubble is the button, with a speaker beside it so a senior
     // knows it can be pressed. A small icon alone would be a target an
     // ageing hand misses; the bubble is the biggest thing on the row.
-    return withName(Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Flexible(
-          child: InkWell(
-            key: ConversationKeys.read(message.id),
-            onTap: onRead,
-            borderRadius: BorderRadius.circular(16),
-            child: bubble,
+    return withName(
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: InkWell(
+              key: ConversationKeys.read(message.id),
+              onTap: onRead,
+              borderRadius: BorderRadius.circular(16),
+              child: bubble,
+            ),
           ),
-        ),
-        IconButton(
-          onPressed: onRead,
-          iconSize: 28 * scale,
-          color: scheme.primary,
-          tooltip: '읽어드리기',
-          icon: const Icon(Icons.volume_up_rounded),
-        ),
-      ],
-    ));
+          IconButton(
+            onPressed: onRead,
+            iconSize: 28 * scale,
+            color: scheme.primary,
+            tooltip: '읽어드리기',
+            icon: const Icon(Icons.volume_up_rounded),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -663,7 +697,6 @@ class _Empty extends StatelessWidget {
     );
   }
 }
-
 
 /// A photo in a bubble.
 ///

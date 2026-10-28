@@ -76,21 +76,40 @@ void main() {
     await _tapEmail(tester);
 
     final button = find.byKey(SignupConsentSheet.continueKey);
-    expect(tester.widget<Semantics>(
-      find.descendant(of: button, matching: find.byType(Semantics)).first,
-    ).properties.enabled, isFalse);
+    expect(
+      tester
+          .widget<Semantics>(
+            find.descendant(of: button, matching: find.byType(Semantics)).first,
+          )
+          .properties
+          .enabled,
+      isFalse,
+    );
 
     await tester.tap(find.byKey(SignupConsentSheet.termsKey));
     await tester.pumpAndSettle();
-    expect(tester.widget<Semantics>(
-      find.descendant(of: button, matching: find.byType(Semantics)).first,
-    ).properties.enabled, isFalse, reason: 'one of two is not both');
+    expect(
+      tester
+          .widget<Semantics>(
+            find.descendant(of: button, matching: find.byType(Semantics)).first,
+          )
+          .properties
+          .enabled,
+      isFalse,
+      reason: 'one of two is not both',
+    );
 
     await tester.tap(find.byKey(SignupConsentSheet.privacyKey));
     await tester.pumpAndSettle();
-    expect(tester.widget<Semantics>(
-      find.descendant(of: button, matching: find.byType(Semantics)).first,
-    ).properties.enabled, isTrue);
+    expect(
+      tester
+          .widget<Semantics>(
+            find.descendant(of: button, matching: find.byType(Semantics)).first,
+          )
+          .properties
+          .enabled,
+      isTrue,
+    );
   });
 
   testWidgets('the optional item is not required', (tester) async {
@@ -183,8 +202,7 @@ void main() {
     final store = await _pumpStart(tester);
     await _tapEmail(tester);
 
-    Navigator.of(tester.element(find.byKey(SignupConsentSheet.sheetKey)))
-        .pop();
+    Navigator.of(tester.element(find.byKey(SignupConsentSheet.sheetKey))).pop();
     await tester.pumpAndSettle();
 
     expect(store.consent, isNull);

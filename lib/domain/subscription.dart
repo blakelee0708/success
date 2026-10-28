@@ -82,7 +82,8 @@ class Subscription {
       other.refundedAt == refundedAt;
 
   @override
-  int get hashCode => Object.hash(id, plan, status, seniorProfileId, refundedAt);
+  int get hashCode =>
+      Object.hash(id, plan, status, seniorProfileId, refundedAt);
 }
 
 /// Something that happened while the guardian was not looking.

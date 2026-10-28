@@ -115,9 +115,7 @@ void main() {
     expect(h.messages.byProfile[h.profileId]!.single.isRead, isTrue);
   });
 
-  testWidgets('the guardian then sees 읽음 on their own message', (
-    tester,
-  ) async {
+  testWidgets('the guardian then sees 읽음 on their own message', (tester) async {
     final h = await _family();
     await _pumpSenior(tester, h);
     final id = h.messages.byProfile[h.profileId]!.single.id;

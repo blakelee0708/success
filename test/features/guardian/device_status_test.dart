@@ -78,12 +78,18 @@ void main() {
   });
 
   test('the three ringer modes each read as what they mean to a caller', () {
-    expect(lines(DeviceStatus(readAt: now, ringer: RingerMode.silent)).ringer,
-        '소리 꺼짐');
-    expect(lines(DeviceStatus(readAt: now, ringer: RingerMode.vibrate)).ringer,
-        '진동');
-    expect(lines(DeviceStatus(readAt: now, ringer: RingerMode.normal)).ringer,
-        '소리 켜짐');
+    expect(
+      lines(DeviceStatus(readAt: now, ringer: RingerMode.silent)).ringer,
+      '소리 꺼짐',
+    );
+    expect(
+      lines(DeviceStatus(readAt: now, ringer: RingerMode.vibrate)).ringer,
+      '진동',
+    );
+    expect(
+      lines(DeviceStatus(readAt: now, ringer: RingerMode.normal)).ringer,
+      '소리 켜짐',
+    );
   });
 
   test('one value missing does not take the other down with it', () {

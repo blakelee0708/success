@@ -65,7 +65,9 @@ Future<void> _pumpDashboard(WidgetTester tester, Harness h) async {
       pairingRepositoryProvider.overrideWithValue(h.pairing),
       subscriptionRepositoryProvider.overrideWithValue(h.subs),
       ringRepositoryProvider.overrideWithValue(h.ring),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       guardianAuthRepositoryProvider.overrideWithValue(auth),
     ],
   );

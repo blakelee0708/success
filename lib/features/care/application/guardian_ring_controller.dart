@@ -44,10 +44,12 @@ class GuardianRingController extends Notifier<RingSendState> {
     // would be a second way of saying the same thing with nothing enforcing
     // that it keeps meaning it.
     final written = message.trim();
-    final outcome = await ref.read(ringRepositoryProvider).ring(
-      seniorProfileId: profile.id,
-      message: written.isEmpty ? null : written,
-    );
+    final outcome = await ref
+        .read(ringRepositoryProvider)
+        .ring(
+          seniorProfileId: profile.id,
+          message: written.isEmpty ? null : written,
+        );
     state = RingSettled(outcome);
   }
 

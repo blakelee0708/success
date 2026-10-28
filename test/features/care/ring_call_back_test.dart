@@ -89,7 +89,9 @@ Future<_Family> _pumpHome(
       phoneDialerProvider.overrideWithValue(dialer),
       seniorLinkRepositoryProvider.overrideWithValue(links),
       pairingRepositoryProvider.overrideWithValue(pairing),
-      homeAppsRepositoryProvider.overrideWithValue(InMemoryHomeAppsRepository()),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
       seniorLinkStoreProvider.overrideWithValue(
         InMemorySeniorLinkStore(
           SeniorLink(installId: 'senior-phone', seniorProfileId: profile.id),
@@ -192,11 +194,7 @@ void main() {
         (name: '철수', phone: '01033334444'),
       ],
     );
-    await _ring(
-      tester,
-      from: '철수',
-      fromGuardianId: family.guardianIds.last,
-    );
+    await _ring(tester, from: '철수', fromGuardianId: family.guardianIds.last);
 
     await tester.tap(find.byKey(SeniorRingLayer.callKey));
     await tester.pumpAndSettle();
