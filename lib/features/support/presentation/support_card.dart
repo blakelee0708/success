@@ -17,7 +17,12 @@ import '../application/support_code_controller.dart';
 /// the phone is broken. The same rule 긴급 연락's 보호자 tile follows.
 ///
 /// Filling it makes the button appear. Nothing else changes.
-const supportPhoneNumber = '';
+///
+/// Filled 2026-10-28 with the owner's own number, which is what 고객센터 is
+/// until there is a desk. It dials rather than calls - `tel:` resolves to
+/// ACTION_DIAL - exactly as 119 and 보호자 do, because
+/// `06_PERMISSION_AND_POLICY` requires the person press call themselves.
+const supportPhoneNumber = '010-7522-3157';
 
 class SupportCardKeys {
   const SupportCardKeys._();

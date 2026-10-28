@@ -31,14 +31,15 @@ class _RecordingDialer implements PhoneDialer {
 
 Future<void> _pumpSettings(
   WidgetTester tester,
-  InMemorySeniorLinkRepository links,
-) async {
+  InMemorySeniorLinkRepository links, [
+  PhoneDialer? dialer,
+]) async {
   await pumpApp(
     tester,
     overrides: [
       appLauncherProvider.overrideWithValue(FakeAppLauncher(defaultHome: true)),
       seniorLinkRepositoryProvider.overrideWithValue(links),
-      phoneDialerProvider.overrideWithValue(_RecordingDialer()),
+      phoneDialerProvider.overrideWithValue(dialer ?? _RecordingDialer()),
     ],
     prefs: {
       SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
@@ -87,21 +88,25 @@ void main() {
     expect(find.byKey(SupportCardKeys.code), findsOneWidget);
   });
 
-  testWidgets('no 전화하기 button until the 고객센터 number exists', (tester) async {
+  testWidgets('전화하기 follows the constant, and dials it', (tester) async {
     // A call button that dials nothing is worse than no call button: the
     // senior presses it, nothing happens, and they conclude the phone is
-    // broken. Same rule 긴급 연락's 보호자 tile follows.
-    await _openSupport(tester);
+    // broken. Same rule 긴급 연락's 보호자 tile follows, so the button is
+    // drawn from `supportPhoneNumber` rather than always.
+    final dialer = _RecordingDialer();
+    await _pumpSettings(tester, InMemorySeniorLinkRepository(), dialer);
 
     expect(
       find.byKey(SupportCardKeys.call),
       supportPhoneNumber.isEmpty ? findsNothing : findsOneWidget,
       reason: 'the button follows the constant, not the other way round',
     );
-    expect(
-      find.text('전화하기'),
-      supportPhoneNumber.isEmpty ? findsNothing : findsOneWidget,
-    );
+    if (supportPhoneNumber.isEmpty) return;
+
+    await tester.tap(find.byKey(SupportCardKeys.call));
+    await tester.pump();
+    // Opens the dialer rather than placing the call, exactly as 119 does.
+    expect(dialer.dialled, [supportPhoneNumber]);
   });
 
   testWidgets('a failure asks them to try again rather than naming a cause', (
