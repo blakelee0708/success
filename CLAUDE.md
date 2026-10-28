@@ -471,6 +471,56 @@ the footer. The list reads `seniorGridApps` now, and `reorderApps` works on
 the grid's indices, since a saved slot would otherwise have made every index
 after it off by one.
 
+## 사용법, which may not be swiped and may not be scrolled
+
+`lib/features/manual/`. Seven things, each one press from 설정.
+
+**The two gestures are the design.** Swiping sideways and scrolling down are
+what this app's readers fail at most, so the list fits one screen at **every**
+text size and a card is one card. The rows are 72px against 설정's 92, and the
+label scales inside a fixed height - the row does not grow with the type, so
+the list cannot start scrolling at 제일 크게, which is the size the reader who
+needs a manual is most likely to be using. `manual_test.dart` asserts no
+vertical `Scrollable` exists at any of the four, and that every card's own
+scroll extent is zero - which caught two cards overrunning by 58px and 113px
+at the largest size, and both were cut rather than left to scroll.
+
+**A list, not a tour.** Somebody who opens this is stuck on exactly one thing.
+Paging them through six others first is how a manual gets closed, so nothing
+is numbered as a step of anything larger and there is no 다음.
+
+**One button, and it says 이해했어요.** A pair on a card that is only telling
+somebody something is a question where there is none, and this app has already
+had to rewrite two pairs that each read as the other one. There is nothing
+here to agree to, undo or cancel.
+
+**The drawings are of this app's own screens**, in the real colours at a
+smaller size, with ① ② on the thing to press and the pressed control ringed in
+terracotta. A senior reading `앱 설정하기를 누르세요` otherwise has to hold a
+sentence in their head and match it against a screen they have not looked at
+yet; a picture removes the matching step. They are depictions rather than
+screenshots - flat, no live state, carrying badges no screen in the app has -
+so a drawing is never a promise that a screen will not change.
+
+What is in it is what seniors actually get stuck on: 첫 화면으로 돌아가기
+(first, and the commonest), 글씨 크게, 버튼 이름과 색, 버튼 더하기·지우기,
+가족에게 연락, 전화벨이 안 울릴 때, 잘 안 될 때. What is left out is as
+deliberate: `버튼을 누르면 앱이 열려요` is absent because nobody is stuck on
+it, and 긴급 구조 요청 is a red bar across the bottom and its own explanation.
+
+The 버튼 더하기 card carries **버튼은 네 개까지만 줄일 수 있어요**, which is
+the only place the floor is said before somebody meets it.
+
+It sits first in 설정's 이 화면 group, above 앱 설정하기: 설정 is opened either
+to change something or because the person is stuck, and the second one has had
+nowhere to go until now.
+
+Adding that row pushed 가족 연결 설정 below the fold and failed a test in
+`stop_using_test` - which turned out to be a **false pass**. It asserted the
+그대로 있어요 card named 가족 연결, and the string was being read off the
+가족 연결 설정 row sitting behind the dialog. The card's reassurance is
+버튼과 글씨 크기는 그대로 있어요 and never mentioned the family.
+
 ## Layout under large text
 
 Raising the text size is the point of this app, so anything that only fits at

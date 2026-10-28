@@ -183,7 +183,13 @@ void main() {
         .widgetList<Text>(find.byType(Text))
         .map((t) => t.data ?? '')
         .join(' ');
-    for (final kept in ['버튼', '글씨 크기', '가족 연결']) {
+    // **`가족 연결` used to be on this list and was a false pass.** The
+    // reassurance is `버튼과 글씨 크기는 그대로 있어요`, written on the row
+    // itself; the family connection was being read off the 가족 연결 설정
+    // row sitting behind the dialog. Adding 사용법 to 설정 pushed that row
+    // below the fold and the test failed, which is the first time it had
+    // been asked the question it was written to ask.
+    for (final kept in ['버튼', '글씨 크기']) {
       expect(said, contains(kept), reason: '$kept is one of the things kept');
     }
     expect(said, isNot(contains('설정해 두신')));

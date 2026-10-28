@@ -22,6 +22,10 @@ class Routes {
   // the only way into the two screens below it, so it needed a route.
   static const seniorSettings = '/settings';
   static const appSettings = '/settings/apps';
+
+  /// 사용법. First in 설정's list, because somebody who is stuck looks there
+  /// before anywhere else.
+  static const manual = '/settings/manual';
   static const fontSize = '/settings/font-size';
 
   /// What the senior's family can see. Reached from 설정 → 가족,

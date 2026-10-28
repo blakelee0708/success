@@ -10,6 +10,7 @@ import '../../features/messages/presentation/family_message_screen.dart';
 import '../../features/launcher/presentation/detailed_home_screen.dart';
 import '../../features/launcher/presentation/easy_home_screen.dart';
 import '../../features/launcher/presentation/app_settings_screen.dart';
+import '../../features/manual/presentation/manual_screen.dart';
 import '../../features/launcher/presentation/font_size_screen.dart';
 import '../../features/launcher/presentation/senior_settings_screen.dart';
 import '../../features/launcher/presentation/sos_screen.dart';
@@ -73,6 +74,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.appSettings,
         builder: (context, state) => const AppSettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.manual,
+        builder: (context, state) => const ManualScreen(),
       ),
       GoRoute(
         path: Routes.fontSize,

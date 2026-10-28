@@ -41,6 +41,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
   /// Shown before the phone's own chooser, which cannot be changed.
   static const homeAppCoach = Key('senior-settings-home-app-coach');
   static const supportRow = Key('senior-settings-support');
+  static const manualRow = Key('senior-settings-manual');
 
   /// Opens the phone's home-app chooser, and says what to do by hand when the
   /// phone will not open it.
@@ -328,6 +329,22 @@ class SeniorSettingsScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
           children: [
             const _GroupTitle('이 화면'),
+            // First, and above 앱 설정하기 on purpose. Somebody opens 설정
+            // either to change something or because they are stuck, and the
+            // second one has had nowhere to go until now.
+            _Row(
+              key: SeniorSettingsScreen.manualRow,
+              label: '사용법',
+              detail: '막히실 때 보세요',
+              icon: Icons.menu_book_rounded,
+              face: AppColors.seniorButtonYellow,
+              light: AppColors.seniorButtonYellowLight,
+              deep: AppColors.seniorButtonYellowDeep,
+              wall: AppColors.seniorButtonYellowWall,
+              // The yellow cannot hold white, same rule as the 카카오톡 tile.
+              ink: AppColors.seniorInk,
+              onTap: () => context.push(Routes.manual),
+            ),
             _Row(
               label: '앱 설정하기',
               detail: '버튼의 이름과 색, 순서를 바꿉니다',
