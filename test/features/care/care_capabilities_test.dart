@@ -23,16 +23,41 @@ void main() {
     }
   });
 
-  test('everything built and paid is on the consent card', () {
+  test('everything built, paid and about the senior is on the card', () {
     // The other direction, and the one that rots quietly: a capability that
     // starts running without ever being named on the card.
-    for (final c in careCapabilities.where((c) => c.stage == CareReadiness.live)) {
+    for (final c in careCapabilities.where(
+      (c) => c.stage == CareReadiness.live && c.aboutTheSenior,
+    )) {
       expect(
         c.seniorLine,
         isNotNull,
         reason: '${c.key} runs on consent but the card never mentions it',
       );
     }
+  });
+
+  test('a paid capability that watches nobody is not on the card', () {
+    // 가족 메시지 무제한 and 홈 화면 정리 무제한 are bought by the guardian
+    // and collect nothing. Putting them here would pad the one screen whose
+    // value is that every line on it matters - and asking somebody to agree
+    // to their family being allowed to write more often is a question with
+    // one decent answer.
+    for (final c in careCapabilities.where((c) => !c.aboutTheSenior)) {
+      expect(c.seniorLine, isNull, reason: c.key);
+    }
+  });
+
+  test('the paid tier is worth its price', () {
+    // The check this file was missing, and the reason the line moved: for a
+    // long stretch 안심 케어 was two alerts while everything that actually
+    // reassures a child was free. Four is not a magic number - it is the
+    // floor below which somebody should be asked whether 5,900원 is still
+    // the right price rather than quietly shipping it.
+    final paid = careCapabilities.where(
+      (c) => c.stage == CareReadiness.live,
+    );
+    expect(paid.length, greaterThanOrEqualTo(4), reason: paid.map((c) => c.key).toString());
   });
 
   test('nothing free is on the consent card', () {

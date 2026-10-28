@@ -338,9 +338,9 @@ class InMemoryMessageRepository implements MessageRepository {
     return MessageQuota(
       unlimited: unlimited,
       textUsed: sent.where((m) => m.imageUrl == null).length,
-      textLimit: 50,
+      textLimit: 30,
       imageUsed: sent.where((m) => m.imageUrl != null).length,
-      imageLimit: 10,
+      imageLimit: 5,
     );
   }
 }

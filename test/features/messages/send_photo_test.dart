@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/domain/family_message.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/home_apps_repository.dart';
@@ -206,10 +207,10 @@ void main() {
   testWidgets('photos have their own allowance, apart from the text one', (
     tester,
   ) async {
-    // 월 50회 / 이미지 10개. Running out of one does not stop the other,
+    // 월 30회 / 사진 5장. Running out of one does not stop the other,
     // which is the whole reason the server counts them in two columns.
     final h = await _family();
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < MessageQuota.free.imageLimit; i++) {
       await h.messages.send(h.profileId, imagePath: '${h.profileId}/$i.jpg');
     }
     final quota = await h.messages.quota(h.profileId);

@@ -72,7 +72,7 @@ class FamilyMessage {
 
 /// What is left of this month's free allowance.
 ///
-/// The PRD prices it at 월 50회 / 이미지 10개, unlimited with 안심 케어. It
+/// The PRD prices it at 월 30회 / 사진 5장, unlimited with 안심 케어. It
 /// counts only what guardians send: a senior replying to their child is never
 /// rationed, and the allowance exists to price the guardian's use.
 class MessageQuota {
@@ -87,9 +87,9 @@ class MessageQuota {
   static const free = MessageQuota(
     unlimited: false,
     textUsed: 0,
-    textLimit: 50,
+    textLimit: 30,
     imageUsed: 0,
-    imageLimit: 10,
+    imageLimit: 5,
   );
 
   final bool unlimited;
@@ -101,7 +101,7 @@ class MessageQuota {
   int get textLeft => (textLimit - textUsed).clamp(0, textLimit);
   bool get canSendText => unlimited || textLeft > 0;
 
-  /// Photos have their own allowance - 월 50회 / 이미지 10개 in the PRD - and
+  /// Photos have their own allowance - 월 30회 / 사진 5장 in the PRD - and
   /// the server counts them in a separate column. Running out of one does not
   /// stop the other, which is the whole reason they are counted apart.
   int get imageLeft => (imageLimit - imageUsed).clamp(0, imageLimit);
@@ -114,9 +114,9 @@ class MessageQuota {
   static MessageQuota fromJson(Map<String, Object?> json) => MessageQuota(
     unlimited: json['unlimited'] == true,
     textUsed: _int(json['text_used']),
-    textLimit: _int(json['text_limit'], fallback: 50),
+    textLimit: _int(json['text_limit'], fallback: 30),
     imageUsed: _int(json['image_used']),
-    imageLimit: _int(json['image_limit'], fallback: 10),
+    imageLimit: _int(json['image_limit'], fallback: 5),
   );
 
   static int _int(Object? value, {int fallback = 0}) =>

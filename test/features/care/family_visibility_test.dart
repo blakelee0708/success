@@ -51,16 +51,22 @@ void main() {
           .map((v) => v.capabilityKey)
           .whereType<String>()
           .toSet();
+      // Scoped to what the family learns *about the senior*. 가족 메시지
+      // 무제한 and 홈 화면 정리 무제한 are paid and tell them nothing, so
+      // they have no place on a screen answering 무엇을 보나요.
       for (final c in careCapabilities.where(
-        (c) => c.stage == CareReadiness.live,
+        (c) => c.stage == CareReadiness.live && c.aboutTheSenior,
       )) {
         expect(named, contains(c.key), reason: '${c.key} is sold and unlisted');
       }
     });
 
     test('every free capability is named too', () {
-      // These go to the family whatever the senior answers, which is exactly
-      // why they belong here and not on the consent card.
+      // These would go to the family whatever the senior answers, which is
+      // exactly why they would belong here and not on the consent card.
+      // `free` is empty since the 2026-10-28 pricing decision; the rule
+      // stays because the next capability added free is the one that would
+      // slip through.
       final named = familyVisibility
           .map((v) => v.capabilityKey)
           .whereType<String>()

@@ -366,7 +366,7 @@ class _Quota extends StatelessWidget {
         children: [
           Text(
             // Both numbers, because the composer can send either and they are
-            // counted apart - 월 50회 / 이미지 10개 in the PRD, two columns on
+            // counted apart - 월 30회 / 사진 5장 in the PRD, two columns on
             // the server. Showing only the text one meant a guardian whose
             // photos had run out was told they had 46 sends left and then
             // refused, with nothing on screen having warned them.

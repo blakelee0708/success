@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/domain/family_message.dart';
 import 'package:app/core/clock.dart';
 import 'package:app/core/theme/app_colors.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
@@ -137,7 +138,7 @@ void main() {
     // Nothing sent yet, so the whole free monthly allowance is there.
     await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 20, 14, 30));
 
-    expect(find.text('50번'), findsOneWidget);
+    expect(find.text('${MessageQuota.free.textLimit}번'), findsOneWidget);
     expect(find.textContaining('메시지'), findsWidgets);
   });
 

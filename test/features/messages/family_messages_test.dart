@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/domain/family_message.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/home_apps_repository.dart';
@@ -128,14 +129,18 @@ void main() {
       final h = await _family();
       final quota = await h.messages.quota(h.profileId);
 
-      expect(quota.textLimit, 50);
-      expect(quota.imageLimit, 10);
+      // Read from the constant rather than typed here. Typed, these were
+      // two of nine tests that failed on a one-line pricing change -
+      // which says nothing about the change and everything about the
+      // numbers living in ten places.
+      expect(quota.textLimit, MessageQuota.free.textLimit);
+      expect(quota.imageLimit, MessageQuota.free.imageLimit);
       expect(quota.unlimited, isFalse);
     });
 
     test('the guardian is stopped once it is spent', () async {
       final h = await _family();
-      for (var i = 0; i < 50; i++) {
+      for (var i = 0; i < MessageQuota.free.textLimit; i++) {
         await h.messages.send(h.profileId, body: '$i');
       }
 
@@ -147,7 +152,7 @@ void main() {
 
     test('the parent can still reply with the quota spent', () async {
       final h = await _family();
-      for (var i = 0; i < 50; i++) {
+      for (var i = 0; i < MessageQuota.free.textLimit; i++) {
         await h.messages.send(h.profileId, body: '$i');
       }
 
@@ -167,7 +172,9 @@ void main() {
 
     test('it warns before it runs out, not after', () async {
       final h = await _family();
-      for (var i = 0; i < 46; i++) {
+      // Four short of the limit, wherever the limit happens to be. Typed as
+      // 46 it only meant *four short* while the limit was 50.
+      for (var i = 0; i < MessageQuota.free.textLimit - 4; i++) {
         await h.messages.send(h.profileId, body: '$i');
       }
 
@@ -196,7 +203,8 @@ void main() {
       await _pumpGuardianMessages(tester, h);
 
       expect(
-        find.text('이번 달 메시지 50번, 사진 10장 더 보낼 수 있어요'),
+        find.text('이번 달 메시지 ${MessageQuota.free.textLimit}번, '
+            '사진 ${MessageQuota.free.imageLimit}장 더 보낼 수 있어요'),
         findsOneWidget,
       );
     });
@@ -205,13 +213,14 @@ void main() {
       tester,
     ) async {
       final h = await _family();
-      for (var i = 0; i < 47; i++) {
+      for (var i = 0; i < MessageQuota.free.textLimit - 3; i++) {
         await h.messages.send(h.profileId, body: '$i');
       }
       await _pumpGuardianMessages(tester, h);
 
       expect(
-        find.text('이번 달 메시지 3번, 사진 10장 더 보낼 수 있어요'),
+        find.text('이번 달 메시지 3번, '
+            '사진 ${MessageQuota.free.imageLimit}장 더 보낼 수 있어요'),
         findsOneWidget,
       );
       expect(find.textContaining('안심 케어를 시작하시면'), findsOneWidget);
@@ -219,7 +228,7 @@ void main() {
 
     testWidgets('says so plainly when the allowance is spent', (tester) async {
       final h = await _family();
-      for (var i = 0; i < 50; i++) {
+      for (var i = 0; i < MessageQuota.free.textLimit; i++) {
         await h.messages.send(h.profileId, body: '$i');
       }
       await _pumpGuardianMessages(tester, h);

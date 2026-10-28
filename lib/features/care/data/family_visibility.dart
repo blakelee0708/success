@@ -50,17 +50,20 @@ class FamilyVisibility {
 /// reason to mention and a senior has every reason to want.
 const familyVisibility = <FamilyVisibility>[
   // --- 늘 보입니다 ---------------------------------------------------------
-  FamilyVisibility(
-    sees: FamilySees.always,
-    line: '마지막으로 폰 쓰신 때',
-    capabilityKey: 'device_status',
-  ),
-  FamilyVisibility(sees: FamilySees.always, line: '배터리가 얼마나 남았는지'),
-  FamilyVisibility(sees: FamilySees.always, line: '소리가 켜져 있는지, 진동인지'),
+  // Two lines, and it used to be five. 마지막으로 폰 쓰신 때, 배터리 and
+  // 소리 moved to 안심 케어 on 2026-10-28, which is what the pricing
+  // decision was for - and it leaves the free tier collecting almost nothing
+  // about the senior. The consent card and what actually happens now say the
+  // same thing, which they did not before.
   FamilyVisibility(sees: FamilySees.always, line: '홈 화면 버튼과 글씨 크기'),
   FamilyVisibility(sees: FamilySees.always, line: '주고받은 메시지'),
 
   // --- 안심 케어를 허락하시면 ----------------------------------------------
+  FamilyVisibility(
+    sees: FamilySees.withCare,
+    line: '폰을 쓰신 때, 배터리와 소리',
+    capabilityKey: 'device_status',
+  ),
   FamilyVisibility(
     sees: FamilySees.withCare,
     line: '배터리가 얼마 안 남으면 알려 드립니다',

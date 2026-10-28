@@ -259,36 +259,51 @@ void main() {
     final h = await _family();
     await _pumpCareTab(tester, h);
 
+    // Read off the list rather than typed here. Both halves of this test
+    // were hard-coded titles and both went stale the day the paid tier was
+    // repriced - which is the failure the one-list design exists to stop,
+    // reproduced in the test that guards it.
     final notice = tester.getRect(find.textContaining('아직 준비 중입니다'));
-    for (final built in ['기기 상태 확인', '배터리 부족 알림', '폰 미사용 알림', '읽음 확인']) {
+    for (final built in builtCareCapabilities) {
       expect(
-        tester.getRect(find.text(built)).top,
+        tester.getRect(find.text(built.title)).top,
         lessThan(notice.top),
-        reason: '$built 가 준비 중 안내 아래에 있습니다',
+        reason: '${built.title} 가 준비 중 안내 아래에 있습니다',
       );
     }
-    for (final unbuilt in ['소리 울리기', '5분 주기 상태 갱신']) {
+    for (final unbuilt in plannedCareCapabilities) {
       expect(
-        tester.getRect(find.text(unbuilt)).top,
+        tester.getRect(find.text(unbuilt.title)).top,
         greaterThan(notice.bottom),
-        reason: '$unbuilt 가 준비 중 안내 위에 있습니다',
+        reason: '${unbuilt.title} 가 준비 중 안내 위에 있습니다',
       );
     }
   });
 
-  testWidgets('the free half is not sold as part of 안심 케어', (tester) async {
-    // The PRD's 무료 list says 폰 상태 앱 실행 시 1회 갱신 in as many words.
-    // What 안심 케어 adds is the 5분 주기 refresh, so that is what the paid
-    // list has to name — selling back a feature the family already has is
-    // the quietest way to make a paid screen dishonest.
+  testWidgets('every paid capability is named on the tab', (tester) async {
+    // The gap this replaced a test for. 가족 메시지 무제한 was enforced on
+    // the server and named on no screen, so a guardian paying 5,900원 could
+    // not see one of the things they were buying; 홈 화면 정리 무제한 was
+    // the same once it existed. The old test here asserted the opposite
+    // arrangement - that 폰 상태 was free and only the 5분 주기 was sold -
+    // and that stopped being true when the line moved.
     final h = await _family();
     await _pumpCareTab(tester, h);
 
-    expect(find.text('5분 주기 상태 갱신'), findsOneWidget);
-    expect(
-      find.text('부모님이 폰을 쓰실 때마다 배터리와 소리를 확인합니다'),
-      findsOneWidget,
-    );
+    for (final c in careCapabilities) {
+      expect(find.text(c.title), findsOneWidget, reason: c.key);
+    }
+  });
+
+  testWidgets('nothing paid is described as happening anyway', (tester) async {
+    // 기기 상태 was free and said so, which is why it could not be sold.
+    // Now that it is paid, a line telling the guardian it happens on every
+    // check-in regardless would be the screen undercutting its own price.
+    final h = await _family();
+    await _pumpCareTab(tester, h);
+
+    expect(find.textContaining('무료로 제공'), findsNothing);
+    expect(find.textContaining('이미 받고 계십니다'), findsNothing);
   });
 
   testWidgets('the care tab does not promise what 기기 상태 does not do', (

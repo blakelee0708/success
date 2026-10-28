@@ -8,9 +8,17 @@ import '../../../core/theme/app_colors.dart';
 /// subscription flow — notBought, waitingOnSenior, refused, active — and the
 /// two would read as the same idea on screens that use both.
 enum CareReadiness {
-  /// In the PRD's 무료 list and already running. It happens whether or not
-  /// anyone subscribes, so it is never something to ask the senior about —
-  /// putting it on a consent screen would imply that refusing stops it.
+  /// Running whether or not anyone subscribes, so never something to ask the
+  /// senior about - putting it on a consent screen would imply that refusing
+  /// stops it.
+  ///
+  /// **Nothing is in here as of 2026-10-28, and that is the result of the
+  /// pricing decision rather than an oversight.** 기기 상태 was free, which
+  /// meant three of the things that reassure the *child* cost nothing and
+  /// the paid tier was two alerts. The line is now 무료는 부모님 폰을 편하게
+  /// 만드는 것, 유료는 부모님이 어떻게 지내시는지 아는 것 - and everything in
+  /// this file is the second half by definition, so it empties. What is free
+  /// is the launcher, and the launcher is not a care capability.
   free,
 
   /// Paid and built. The moment a subscription exists and the senior has
@@ -47,6 +55,7 @@ class CareCapability {
     required this.icon,
     required this.tint,
     required this.tintInk,
+    this.aboutTheSenior = true,
     this.seniorLine,
   });
 
@@ -61,6 +70,17 @@ class CareCapability {
   final Color tint;
   final Color tintInk;
 
+  /// Whether this tells the family something **about the senior**.
+  ///
+  /// Most paid capabilities do, and those are what the consent card asks
+  /// about. Two do not: 가족 메시지 무제한 and 홈 화면 정리 무제한 are
+  /// conveniences bought by the guardian that collect nothing and change
+  /// nothing a senior would want a say in. Putting them on the consent card
+  /// would pad a screen whose whole value is that every line on it matters,
+  /// and asking somebody to agree to their family being allowed to write to
+  /// them more often is a question with one decent answer.
+  final bool aboutTheSenior;
+
   /// The senior's wording, on the consent card. Required for [CareReadiness.live]
   /// and meaningless for the others — there is a test for both halves of
   /// that.
@@ -72,14 +92,21 @@ class CareCapability {
 }
 
 const careCapabilities = <CareCapability>[
+  // Free until 2026-10-28, and moving it is most of what sharpened the line.
+  // It is the single most reassuring thing the app can tell a child, and it
+  // was costing nothing - so the paid tier was two alerts about a phone the
+  // guardian could already watch. The first week is still free, which is
+  // what lets somebody see it before deciding; `care_trial_ends_at` is the
+  // server's half of that.
   CareCapability(
     key: 'device_status',
-    stage: CareReadiness.free,
-    title: '기기 상태 확인',
-    detail: '부모님이 폰을 쓰실 때마다 배터리와 소리를 확인합니다',
-    icon: Icons.battery_charging_full_rounded,
+    stage: CareReadiness.live,
+    title: '안부 신호와 폰 상태',
+    detail: '폰을 쓰신 때, 배터리와 소리를 알려 드립니다',
+    icon: Icons.favorite_rounded,
     tint: AppColors.guardianTintBlue,
     tintInk: AppColors.guardianTintBlueInk,
+    seniorLine: '폰을 쓰신 때와 배터리',
   ),
   CareCapability(
     key: 'battery_low',
@@ -120,14 +147,37 @@ const careCapabilities = <CareCapability>[
     tint: AppColors.guardianTintAmber,
     tintInk: AppColors.guardianTintAmberInk,
   ),
+  // **5분 주기 상태 갱신 was here and is gone.** It needed a foreground
+  // service, which Android 14 makes a Play Console submission with a
+  // description, a user-impact statement and a demo video - and the review
+  // standard is work the user started or can perceive, which reading a
+  // battery every five minutes is neither. It would also have left a
+  // permanent notification on the senior's status bar. Selling it while it
+  // could not be built was the thing worth stopping.
+  //
+  // Two capabilities arrive instead, and both were already enforced on the
+  // server while appearing on no screen - so a guardian paying 5,900원 could
+  // not see two of the things they were buying.
   CareCapability(
-    key: 'status_sync',
-    stage: CareReadiness.planned,
-    title: '5분 주기 상태 갱신',
-    detail: '폰을 쓰지 않으셔도 배터리를 계속 확인합니다',
-    icon: Icons.sync_rounded,
-    tint: AppColors.guardianTintBlue,
-    tintInk: AppColors.guardianTintBlueInk,
+    key: 'message_unlimited',
+    stage: CareReadiness.live,
+    title: '가족 메시지 무제한',
+    detail: '무료는 월 30회, 사진 5장까지입니다',
+    icon: Icons.all_inclusive_rounded,
+    tint: AppColors.guardianTintViolet,
+    tintInk: AppColors.guardianTintVioletInk,
+    // Nothing about the senior, so it is not on the consent card.
+    aboutTheSenior: false,
+  ),
+  CareCapability(
+    key: 'home_edits',
+    stage: CareReadiness.live,
+    title: '홈 화면 정리 무제한',
+    detail: '무료는 2번까지. 부모님 폰에서는 언제나 무제한입니다',
+    icon: Icons.grid_view_rounded,
+    tint: AppColors.guardianTintGreen,
+    tintInk: AppColors.guardianTintGreenInk,
+    aboutTheSenior: false,
   ),
 ];
 
@@ -137,8 +187,12 @@ Iterable<CareCapability> get builtCareCapabilities =>
     careCapabilities.where((c) => c.stage != CareReadiness.planned);
 
 /// What the senior is actually being asked about.
-Iterable<CareCapability> get consentedCareCapabilities =>
-    careCapabilities.where((c) => c.stage == CareReadiness.live);
+///
+/// `live` is not enough on its own: 가족 메시지 무제한 and 홈 화면 정리
+/// 무제한 are paid and built and tell the family nothing about the person
+/// reading this card.
+Iterable<CareCapability> get consentedCareCapabilities => careCapabilities
+    .where((c) => c.stage == CareReadiness.live && c.aboutTheSenior);
 
 /// What is sold but not built.
 Iterable<CareCapability> get plannedCareCapabilities =>
