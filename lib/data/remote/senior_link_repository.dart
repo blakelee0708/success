@@ -92,6 +92,16 @@ abstract interface class SeniorLinkRepository {
   /// `push_token`, written into its migration so nobody tries it twice.
   Future<SeniorReadings> readings(String seniorProfileId);
 
+  /// 문의하기's number: six digits the senior reads out to the support desk.
+  ///
+  /// **It creates the profile when this install has none**, which is the
+  /// point. The senior this is for has no family on the phone at all, so
+  /// nothing has ever made one for them - and a number is the only thing in
+  /// the app that has to work for somebody with nobody to ask. Showing a
+  /// pairing code does the same thing, and 연결됨 has never meant *a profile
+  /// exists*; it means a guardian is attached.
+  Future<String?> supportCode(String installId, {String? platform});
+
   /// Pushes the two settings that live on the profile rather than in
   /// `home_apps`, so the guardian's dashboard can show what the parent chose.
   Future<void> updateProfileSettings(
@@ -276,6 +286,19 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
           .from('senior_profiles')
           .update(patch)
           .eq('id', seniorProfileId);
+    } on sb.PostgrestException catch (e) {
+      throw SeniorLinkException(e.message);
+    }
+  }
+
+  @override
+  Future<String?> supportCode(String installId, {String? platform}) async {
+    try {
+      final code = await _client.rpc(
+        'ensure_senior_support_code',
+        params: {'p_install_id': installId, 'p_platform': platform},
+      );
+      return code is String && code.isNotEmpty ? code : null;
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);
     }
@@ -560,6 +583,16 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     );
   }
 
+  /// The number 문의하기 shows. Fixed rather than random so a screenshot and
+  /// a test can both name it.
+  String supportCodeValue = '482913';
+
+  @override
+  Future<String?> supportCode(String installId, {String? platform}) async {
+    if (offline) throw const SeniorLinkException('번호를 읽지 못했어요.');
+    return supportCodeValue;
+  }
+
   @override
   Future<void> updateProfileSettings(
     String seniorProfileId, {
@@ -568,14 +601,13 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   }) async {
     final profile = profiles[seniorProfileId];
     if (profile == null) return;
-    profiles[seniorProfileId] = SeniorProfile(
-      id: profile.id,
-      displayName: profile.displayName,
-      customerCode: profile.customerCode,
-      ageBand: profile.ageBand,
+    // `copyWith`, not a rebuild by hand. Listing the fields dropped
+    // `pendingPrimaryGuardianId` and `guardianHomeEdits`, so a settings push
+    // in a test silently cancelled a pending handover and refunded the
+    // guardian's spent edits.
+    profiles[seniorProfileId] = profile.copyWith(
       screenMode: screenMode ?? profile.screenMode,
       fontSize: fontSize ?? profile.fontSize,
-      paidConsentStatus: profile.paidConsentStatus,
     );
   }
 }

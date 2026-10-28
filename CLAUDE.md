@@ -118,6 +118,8 @@ and a run on a real phone, all four of which have since happened. As of
   it and it is built.
 - **The paid watchers**: 5분 주기 갱신 and anything else `CareReadiness
   .planned` still covers.
+- **고객센터 번호**: `supportPhoneNumber` is blank, so 문의하기 shows the
+  number and no call button. One constant; see `## 문의하기` below.
 
 Route `/` is a launch gate, not a screen: a senior with a saved screen mode
 lands on their home instead of the splash, because this app becomes the phone's
@@ -2147,6 +2149,95 @@ the parent land on the card when they turn the screen on, because this app
 (`POST_NOTIFICATIONS`) and no Play declaration - and it would be the first
 `uses-permission` in this manifest, so `privacy_policy_test` and
 `site/privacy.html` change in the same commit as the Kotlin.
+
+## The parent's phone was never signed in
+
+Every senior-side database function opens with `if auth.uid() is null then
+raise exception 'not authenticated'`. `senior_devices.auth_user_id` has been
+the documented tie between an anonymous user and the profile RLS lets it touch
+since Phase 4. And **nothing in `lib/` ever called `signInAnonymously`** until
+2026-10-28, so on a real phone every one of those calls failed from the day it
+was written. 번호 보여주기 came back as `번호를 받지 못했어요. 인터넷 연결을
+확인해 주세요.` - a sentence about the network, for a failure that had nothing
+to do with it, pointing the one person who could not act on it at their
+router.
+
+**Nothing in this repository could have caught it, and that is the part worth
+keeping.** `flutter test` runs on the in-memory twins, which need no session,
+so every test passed. Every `tool/verify_*` script signs *itself* in with its
+own `/auth/v1/signup` before it starts, because it is standing in for the
+phone - so every verifier passed too. The one caller nobody exercised was the
+app's own, and the live project answered the probe correctly the whole time.
+
+`SeniorAuth.ensure()` signs in only when `currentSession` is null, and folds
+concurrent callers into one. It is awaited, which does not break the rule
+about platform channels: a request either answers or fails, where a channel
+may never answer at all.
+
+**It is not called at start-up**, and that is the decision in it. A session
+minted in `main` would hand the *guardian's* phone an anonymous session before
+they reach their own sign-in screen, and an anonymous session looks like a
+session to everything that asks whether somebody is signed in. So it is called
+from the senior's own paths: 번호 보여주기, 번호 입력하기, the check-in and the
+settings sync. The last two call it **after** the link guard, because
+`HomeKeyListener` wraps the whole router and runs on both halves - a phone with
+a profile is a parent's phone.
+
+One hazard is recorded rather than fixed: `touch_senior_device` is scoped to
+`auth_user_id = auth.uid()`, so a phone whose anonymous session is lost and
+replaced would update no rows and tell nobody. `attach_senior_device` rebinds
+that column on conflict by `install_id`, so showing a code or calling
+문의하기 repairs it; nothing repairs it on its own.
+
+## 문의하기, for the senior with nobody to ask
+
+The case nothing else in the app covers. Every other route out of 설정 assumes
+a child at the other end: 가족 메시지 needs somebody to write to, 가족 연결
+설정 somebody to connect, and 긴급 연락's 보호자 tile stays disabled until a
+guardian leaves a number. A senior who installed this alone, or whose child set
+it up and then could not be reached, had no way to ask anybody anything - on an
+app that **is** their home screen.
+
+`senior_profiles.support_code` (`20261028030000_support_code.sql`, applied
+live) is six digits, and **not `customer_code`**. That column already
+identifies a profile uniquely and is written on every creation path, so it was
+the obvious answer - and it is eight characters from a 32-letter alphabet,
+`K7PQR2ST`. This number's whole job is being **spoken down a telephone by an
+eighty-year-old to a stranger**. Six digits read as two groups of three, which
+is how a person says a number out loud; eight mixed letters and digits is the
+reading task this app exists because its users cannot do. Four digits was the
+first thought and 10,000 is too few to stay unique.
+
+**A trigger fills it, not a line in each function.** Four paths insert a
+profile, and the one that would get forgotten is the one added next.
+
+`ensure_senior_support_code` **creates the profile when this install has
+none**, which is the point rather than a side effect: the senior this is for
+has never had one made for them. That is not new - 번호 보여주기 does the same
+thing, and 연결됨 has never meant *a profile exists*, it means a guardian is
+attached. It mints **no pair link**: 문의하기 is not a way of connecting
+anybody, and a 4-digit secret nobody asked for, live for ten minutes, would be
+created by a screen with no use for one.
+
+**The 고객센터 number is blank and only the owner can fill it.** One constant,
+`supportPhoneNumber`, with the same rule as `site/privacy.html`'s six 사업자
+fields: it cannot be invented, and a wrong one sends a confused
+eighty-year-old to a stranger. While it is blank the card shows the number and
+**no 전화하기 button**, because a call button that dials nothing is worse than
+none - the senior presses it, nothing happens, and they conclude the phone is
+broken. Same rule 긴급 연락's 보호자 tile follows. Filling the constant makes
+the button appear and changes nothing else.
+
+The provider returns **null on failure rather than an error state**. The card
+has one sentence for *no number yet* and it is the same sentence either way, so
+a second path to the same words is a path nothing exercises.
+
+`tool/verify_supabase_support_code.py` walks 16 checks against the live
+project. Two of them cannot be answered by reading the SQL, and they are why it
+exists: that every profile has a number whichever path created it, and that a
+phone with no profile gets one. A third caught a real mistake - the generator
+answered a client with a fresh code, because `revoke ... from anon,
+authenticated` leaves Supabase's default grant to PUBLIC standing.
 
 ## 폰에 있는 앱, and the two ways in
 

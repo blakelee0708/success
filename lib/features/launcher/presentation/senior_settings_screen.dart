@@ -6,6 +6,7 @@ import 'widgets/go_home_bar.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
+import '../../support/presentation/support_card.dart';
 import '../data/app_launcher.dart';
 import 'widgets/home_app_coach.dart';
 import 'widgets/home_utility_row.dart';
@@ -39,6 +40,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
 
   /// Shown before the phone's own chooser, which cannot be changed.
   static const homeAppCoach = Key('senior-settings-home-app-coach');
+  static const supportRow = Key('senior-settings-support');
 
   /// Opens the phone's home-app chooser, and says what to do by hand when the
   /// phone will not open it.
@@ -458,6 +460,26 @@ class SeniorSettingsScreen extends ConsumerWidget {
               deep: AppColors.seniorMoreDeep,
               wall: AppColors.seniorMoreWall,
               onTap: () => openInternetPanel(context, ref),
+            ),
+            const SizedBox(height: 26),
+            // Its own group, and the only one on the senior's phone that does
+            // not need a family. Every other row here leads somewhere that
+            // assumes a child: 가족 메시지 needs somebody to write to, 가족
+            // 연결 설정 somebody to connect, and 긴급 연락's 보호자 tile
+            // stays disabled until a guardian leaves a number. A senior who
+            // installed this alone had nobody to ask about the screen their
+            // phone now sits on.
+            const _GroupTitle('문의'),
+            _Row(
+              key: SeniorSettingsScreen.supportRow,
+              label: '문의하기',
+              detail: '고객센터에 불러주실 번호가 나옵니다',
+              icon: Icons.support_agent_rounded,
+              face: AppColors.seniorButtonGreen,
+              light: AppColors.seniorButtonGreenLight,
+              deep: AppColors.seniorButtonGreenDeep,
+              wall: AppColors.seniorButtonGreenWall,
+              onTap: () => openSupportCard(context, ref),
             ),
           ],
         ),
