@@ -78,29 +78,17 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
               color: AppColors.seniorInk,
             ),
           ),
-          content: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '한 번만 정해두면, 홈 버튼을 누를 때마다\n이 화면이 나옵니다.',
-                style: TextStyle(
-                  fontSize: 18,
-                  height: 1.55,
-                  color: AppColors.seniorInkMuted,
-                ),
-              ),
-              SizedBox(height: 18),
-              Divider(height: 1, color: AppColors.seniorHairline),
-              SizedBox(height: 14),
-              // Pressing 첫 화면으로 정하기 opens Android's own chooser, and
-              // none of it can be changed — including that it starts with
-              // the other app selected. This is the first time most seniors
-              // meet it, so it is the most important of the three places to
-              // say what is coming.
-              HomeAppCoach(direction: HomeAppDirection.take),
-            ],
-          ),
+          // Pressing 첫 화면으로 정하기 opens Android's own chooser, and none
+          // of it can be changed — including that it starts with the other app
+          // selected. This is the first time most seniors meet it, so it is
+          // the most important of the three places to say what is coming.
+          //
+          // The card used to open with `한 번만 정해두면, 홈 버튼을 누를
+          // 때마다 이 화면이 나옵니다.` above a rule, and the coach's own
+          // closing pair says that: one promise, stated twice, on a card that
+          // now also carries a drawing of the dialog. Keeping both overflowed
+          // it by 139px at phone width.
+          content: const HomeAppCoach(direction: HomeAppDirection.take),
           actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
           actions: [
             TextButton(

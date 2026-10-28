@@ -226,11 +226,26 @@ void main() {
         .map((t) => t.data ?? '')
         .join(' ');
     // `그러면` is what joins the two, and it has to come before the result.
-    expect(said.indexOf('그러면'), greaterThan(said.indexOf('눌러 주세요')));
+    expect(said.indexOf('그러면'), greaterThan(said.indexOf('누르세요')));
     expect(said, contains('One UI 홈'));
-    // Samsung's flow is two steps: the list, then a second dialog. A
-    // one-step instruction strands them on the second one.
-    expect(said, contains('변경'));
-    expect(said, contains('비슷한 말'));
+    // The button the dialog actually carries. This test asked for `변경` for
+    // weeks, because the card described a two-dialog Samsung flow where
+    // choosing a row raised a second question with 현재 버전 유지 / 변경. On a
+    // Galaxy running One UI today it is **one** dialog: both rows and
+    // 취소 / 기본 앱으로 설정 together, and no 변경 anywhere on it. A senior
+    // following the old card looked for a button that was not there.
+    //
+    // It was found by looking at a real phone, which is the only way a claim
+    // about somebody else's dialog is ever checked — the chooser is
+    // `RoleManager`'s, the Kotlin that opens it has never run in this
+    // environment, and a test can only confirm the card says what it was
+    // written to say.
+    expect(said, contains('기본 앱으로 설정'));
+    expect(
+      said,
+      isNot(contains('변경')),
+      reason: 'the chooser has no 변경 button',
+    );
+    expect(said, contains('폰에 따라'));
   });
 }

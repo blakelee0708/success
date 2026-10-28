@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/supabase/senior_auth.dart';
 import '../../../core/supabase/supabase_providers.dart';
 import '../../../data/remote/home_apps_repository.dart';
 import '../../../data/remote/senior_link_repository.dart';
@@ -19,19 +20,27 @@ class SeniorSettingsSync {
     required SeniorLinkStore linkStore,
     required HomeAppsRepository homeApps,
     required SeniorLinkRepository links,
+    SeniorAuth auth = const OpenSeniorAuth(),
   }) : _linkStore = linkStore,
        _homeApps = homeApps,
-       _links = links;
+       _links = links,
+       _auth = auth;
 
   final SeniorLinkStore _linkStore;
   final HomeAppsRepository _homeApps;
   final SeniorLinkRepository _links;
+
+  /// The parent's anonymous session. Defaulted rather than required because a
+  /// build with no project has nothing to sign in to and every repository
+  /// here is already an in-memory twin.
+  final SeniorAuth _auth;
 
   /// Sends the current arrangement up. Returns false when this phone is not
   /// linked yet or the write did not land.
   Future<bool> push(SeniorSettings settings) async {
     final profileId = (await _linkStore.load()).seniorProfileId;
     if (profileId == null) return false;
+    if (!await _auth.ensure()) return false;
     try {
       await _homeApps.replace(profileId, settings.apps);
       await _links.updateProfileSettings(
@@ -54,6 +63,7 @@ class SeniorSettingsSync {
   Future<SeniorSettings?> pull(SeniorSettings current) async {
     final profileId = (await _linkStore.load()).seniorProfileId;
     if (profileId == null) return null;
+    if (!await _auth.ensure()) return null;
     try {
       final profile = await _links.fetchProfile(profileId);
       final apps = await _homeApps.fetch(profileId);
@@ -101,5 +111,6 @@ final seniorSettingsSyncProvider = Provider<SeniorSettingsSync>(
     linkStore: ref.watch(seniorLinkStoreProvider),
     homeApps: ref.watch(homeAppsRepositoryProvider),
     links: ref.watch(seniorLinkRepositoryProvider),
+    auth: ref.watch(seniorAuthProvider),
   ),
 );

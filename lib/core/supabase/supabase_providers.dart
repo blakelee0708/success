@@ -8,6 +8,7 @@ import '../../data/remote/pairing_repository.dart';
 import '../../data/remote/ring_repository.dart';
 import '../../data/remote/senior_link_repository.dart';
 import '../../data/remote/subscription_repository.dart';
+import 'senior_auth.dart';
 import 'supabase_config.dart';
 
 /// The build's Supabase settings. Overridden in tests that need to pretend a
@@ -24,6 +25,20 @@ final supabaseConfigProvider = Provider<SupabaseConfig>(
 final supabaseClientProvider = Provider<sb.SupabaseClient?>((ref) {
   if (!ref.watch(supabaseConfigProvider).isConfigured) return null;
   return sb.Supabase.instance.client;
+});
+
+/// The parent's phone's session. Anonymous, because the senior is never asked
+/// to make an account — and required, because every senior-side database
+/// function refuses a caller with no `auth.uid()`.
+///
+/// It is read only on the senior's own paths. Signing in at start-up instead
+/// would hand the guardian's phone an anonymous session before they reach
+/// their own sign-in screen, which is a session that looks like one to
+/// anything asking whether somebody is signed in.
+final seniorAuthProvider = Provider<SeniorAuth>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return const OpenSeniorAuth();
+  return SupabaseSeniorAuth(client);
 });
 
 /// Each repository resolves to its Supabase implementation when the app has a

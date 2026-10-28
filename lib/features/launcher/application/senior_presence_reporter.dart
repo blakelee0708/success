@@ -66,6 +66,16 @@ class SeniorPresenceReporter {
     final link = await _ref.read(seniorLinkStoreProvider).load();
     if (link.seniorProfileId == null) return false;
 
+    // After the guard, for the same reason the repository is read after it:
+    // this runs on the guardian's phone too, and theirs must never be handed
+    // an anonymous session. A phone with a profile is a parent's phone.
+    //
+    // Awaited, unlike the two channel reads below. A session restored from
+    // disk returns at once, and with none there is nothing to report to:
+    // `touch_senior_device` is scoped to `auth_user_id = auth.uid()` and a
+    // call with no session updates no rows.
+    if (!await _ref.read(seniorAuthProvider).ensure()) return false;
+
     // Started, never awaited. A platform channel is not obliged to reply —
     // `flutter test` is such a platform, and so is a phone whose launcher
     // service has wedged — so waiting for one here would trade the check-in,

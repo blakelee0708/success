@@ -33,6 +33,7 @@ class SeniorPairingController extends AsyncNotifier<PairLink?> {
   Future<void> showCode() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      await _signIn();
       final link = await ref.read(seniorLinkStoreProvider).load();
       final pair = await ref
           .read(pairingRepositoryProvider)
@@ -51,6 +52,7 @@ class SeniorPairingController extends AsyncNotifier<PairLink?> {
   /// invite: the senior was told "type this number", not which kind it is, and
   /// making them choose would be asking them to explain their own situation.
   Future<SeniorProfile> enterCode(String code) async {
+    await _signIn();
     final link = await ref.read(seniorLinkStoreProvider).load();
     final pairing = ref.read(pairingRepositoryProvider);
     final platform = defaultTargetPlatform.name;
@@ -73,6 +75,17 @@ class SeniorPairingController extends AsyncNotifier<PairLink?> {
     await _remember(profile.id);
     return profile;
   }
+
+  /// The parent's phone has no account, so it signs in anonymously — and
+  /// nothing did that until now, which is why both paths on this screen
+  /// failed on a real phone with `번호를 받지 못했어요`. Every function they
+  /// call raises `not authenticated` on a null `auth.uid()`.
+  ///
+  /// A failure is not reported from here. The call that follows is the one
+  /// that knows what the senior is trying to do, so it is the one whose error
+  /// the screen should show; a second message about signing in would name a
+  /// thing this app never asked them to do.
+  Future<void> _signIn() => ref.read(seniorAuthProvider).ensure();
 
   /// Records the profile locally and adopts whatever is already waiting for
   /// this parent on the server — a guardian may have arranged their home
