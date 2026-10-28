@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 748 tests, all passing
+flutter test             # currently 758 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -2764,6 +2764,47 @@ the icon that nothing reads.
 drawable, and this icon's whole argument is that one warm colour on white is
 what a senior's eye finds. Adding one is a drawing decision rather than a
 build step, and it was not made.
+
+## 부모님 폰 앱이 오래됐어요
+
+**A launcher is the app Play will not update.** Play installs an update while
+the app is not the one in front of the user, and this app *is* the home
+screen - the same reason a kiosk app sits on one build forever. Add the
+Wi-Fi-only default, on a phone whose owner may have no Wi-Fi at all, and an
+update can simply never arrive.
+
+The senior is the last person who should be asked to fix that, so the version
+rides up on the check-in and the **guardian's** dashboard is what says
+something: one `GuardianFact` reading `부모님 폰 앱 · 오래됐어요`, in the amber
+the low battery already uses.
+
+- **Build numbers, not version names.** A name is marketing and can go
+  sideways; a build number only goes up, so 부모님 폰이 더 낮다 is a question
+  with an answer.
+- **Silence has two meanings and neither is 오래됐어요.** A phone that has not
+  reported a version says nothing, and two phones on the same build say
+  nothing - a row that is always there is furniture. Same rule the battery
+  follows: null is what the other side could not say.
+- **It is free, and deliberately not a reading.** 안부 신호, the battery and
+  the ringer are what 안심 케어 sells and go through `senior_readings`. Which
+  build a phone runs is housekeeping about the app, and a family locked out of
+  it is a family that cannot help.
+
+`lib/core/app_version.dart` holds the constant, and **not `package_info_plus`**:
+a new plugin changes the merged manifest that `privacy_policy_test` walks, and
+adds a platform channel `flutter test` cannot answer. What the plugin would
+have bought - a value that cannot fall out of step - is bought by
+`app_version_test`, which reads `pubspec.yaml` off disk, exactly as
+`application_id_test` holds the Gradle copy of `com.jalboine.app` to the Dart
+one. **Bumping the version means bumping both**, and that test is what says so.
+
+`20261028050000_app_version.sql` adds the column and the seventh parameter,
+coalesced like the rest, and is applied to the live project.
+
+**What this does not do is update anything.** The in-app update API - the app
+asking Play for the new build itself and offering the senior one button - is
+the half that actually fixes it, and it needs native code and a Play Console.
+This is the half that can be built today: telling the person who can act.
 
 ## Conventions
 

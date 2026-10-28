@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/clock.dart';
 import '../../../core/format/korean_clock.dart';
+import '../../../core/app_version.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/family_message.dart';
@@ -399,11 +400,39 @@ class _HomeTab extends ConsumerWidget {
                 GuardianFact(label: '소리', value: status.ringer),
                 GuardianFact(label: '읽은 때', value: status.age),
               ],
+              // **Only when the parent's phone is behind this one.** Play
+              // installs an update while the app is not the one in front of
+              // the user, and this app is the home screen - so a launcher is
+              // the app least likely to update itself, and the senior is the
+              // last person who should be asked to fix that.
+              //
+              // Nothing is said when the phone has not reported a version,
+              // or when the two agree: a row that is always there is
+              // furniture, and 말할 수 없음 is not 오래됐어요.
+              if (_isBehind(device?.appVersion))
+                GuardianFact(
+                  key: GuardianHomeKeys.appOutOfDate,
+                  label: '부모님 폰 앱',
+                  value: '오래됐어요',
+                  warn: true,
+                ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  /// Whether the parent's phone is running an older build than this one.
+  ///
+  /// Build numbers, not version names: a name is marketing and can go
+  /// sideways, a build number only goes up. Anything unreadable on either
+  /// side answers false - a phone that did not say is never reported old.
+  static bool _isBehind(String? theirs) {
+    final parent = buildNumberOf(theirs);
+    final mine = buildNumberOf(appVersion);
+    if (parent == null || mine == null) return false;
+    return parent < mine;
   }
 
   /// How long the conversation has been quiet, which is the only thing about
@@ -425,6 +454,7 @@ class GuardianHomeKeys {
   static const trial = Key('guardian-home-trial');
   static const care = Key('guardian-home-care');
   static const ring = Key('guardian-home-ring');
+  static const appOutOfDate = Key('guardian-home-app-out-of-date');
 }
 
 class _ParentSwitcher extends ConsumerWidget {

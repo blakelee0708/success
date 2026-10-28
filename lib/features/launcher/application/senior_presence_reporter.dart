@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/supabase/supabase_providers.dart';
+import '../../../core/app_version.dart';
 import '../../../data/senior_link_store.dart';
 import '../../../domain/device_status.dart';
 import '../../care/data/push_messaging.dart';
@@ -106,6 +107,11 @@ class SeniorPresenceReporter {
             link.installId,
             status: _lastRead,
             pushToken: _lastToken,
+            // Sent every time rather than once, because the phone that
+            // matters is the one that just updated and the server coalesces
+            // anyway. It is a constant, so no channel is involved and
+            // nothing can fail to answer for it.
+            appVersion: appVersion,
           );
       _reportedToken = _lastToken;
       return true;
@@ -166,7 +172,12 @@ class SeniorPresenceReporter {
     try {
       await _ref
           .read(seniorLinkRepositoryProvider)
-          .touchDevice(installId, status: _lastRead, pushToken: _lastToken);
+          .touchDevice(
+            installId,
+            status: _lastRead,
+            pushToken: _lastToken,
+            appVersion: appVersion,
+          );
       _reportedToken = _lastToken;
     } on Object {
       // The next resume tries again, because `_reportedToken` is unchanged.

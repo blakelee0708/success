@@ -14,6 +14,7 @@ class SeniorDevice {
     this.platform,
     this.lastSeenAt,
     this.status,
+    this.appVersion,
   });
 
   final String id;
@@ -26,6 +27,14 @@ class SeniorDevice {
   /// The last battery / ringer reading this phone sent, or null when it has
   /// sent none. Never an empty reading: see [DeviceStatus].
   final DeviceStatus? status;
+
+  /// Which build of this app the parent's phone is running, as `1.0.0+3`.
+  ///
+  /// Free, and not one of the readings: it says nothing about the parent and
+  /// everything about the app, and a family that cannot be told their mother
+  /// is on an old build cannot help her off it. Null means the phone has not
+  /// said - never that it is old.
+  final String? appVersion;
 
   static SeniorDevice? fromRow(Map<String, Object?> row) {
     final id = row['id'];
@@ -42,6 +51,7 @@ class SeniorDevice {
         _ => null,
       },
       status: DeviceStatus.fromRow(row),
+      appVersion: row['app_version'] as String?,
     );
   }
 

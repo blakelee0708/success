@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/domain/family_message.dart';
+import 'package:app/core/app_version.dart';
 import 'package:app/core/clock.dart';
 import 'package:app/core/theme/app_colors.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
@@ -33,6 +34,7 @@ Future<void> _pumpHome(
   WidgetTester tester, {
   DateTime? lastSeenAt,
   DeviceStatus? status,
+  String? appVersion,
 }) async {
   final auth = InMemoryGuardianAuthRepository()
     ..seedSignedIn(const GuardianSession(userId: 'u1', email: 'g@example.com'));
@@ -49,6 +51,7 @@ Future<void> _pumpHome(
       deviceLabel: '갤럭시 A54',
       lastSeenAt: lastSeenAt,
       status: status,
+      appVersion: appVersion,
     );
   }
 
@@ -264,5 +267,60 @@ void main() {
     );
 
     expect(find.textContaining('인터넷'), findsNothing);
+  });
+
+  group('부모님 폰 앱', () {
+    /// The row is the last thing on the last card, and 홈 is a `ListView` -
+    /// a phone-sized viewport leaves it out of the tree entirely.
+    Future<void> reveal(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390, 2400);
+      await tester.pumpAndSettle();
+    }
+
+    // Play installs an update while the app is not the one in front of the
+    // user, and this app is the home screen - so a launcher is the app least
+    // likely to update itself, and the senior is the last person who should
+    // be asked to fix that. The guardian is told instead.
+    testWidgets('an older build on the parent\'s phone is said', (
+      tester,
+    ) async {
+      // Build 0, because this app is still at build 1 and nothing else is
+      // lower. The comparison is on build numbers, not on names.
+      await _pumpHome(tester, lastSeenAt: _now, appVersion: '0.9.0+0');
+      await reveal(tester);
+
+      expect(find.byKey(GuardianHomeKeys.appOutOfDate), findsOneWidget);
+      expect(find.text('오래됐어요'), findsOneWidget);
+    });
+
+    testWidgets('the same build says nothing', (tester) async {
+      // A row that is always there is furniture.
+      await _pumpHome(tester, lastSeenAt: _now, appVersion: appVersion);
+      await reveal(tester);
+
+      expect(find.byKey(GuardianHomeKeys.appOutOfDate), findsNothing);
+    });
+
+    testWidgets('a phone that has not said is never called old', (
+      tester,
+    ) async {
+      // 말할 수 없음 is not 오래됐어요, which is the same rule the battery
+      // and the check-in follow: null is what the other side could not say.
+      await _pumpHome(tester, lastSeenAt: _now);
+      await reveal(tester);
+
+      expect(find.byKey(GuardianHomeKeys.appOutOfDate), findsNothing);
+    });
+
+    testWidgets('a newer build on the parent\'s phone says nothing either', (
+      tester,
+    ) async {
+      // The guardian updating later than their parent is not a problem to
+      // report on the parent's card.
+      await _pumpHome(tester, lastSeenAt: _now, appVersion: '9.9.9+999');
+      await reveal(tester);
+
+      expect(find.byKey(GuardianHomeKeys.appOutOfDate), findsNothing);
+    });
   });
 }

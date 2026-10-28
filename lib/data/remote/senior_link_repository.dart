@@ -74,6 +74,7 @@ abstract interface class SeniorLinkRepository {
     String installId, {
     DeviceStatus? status,
     String? pushToken,
+    String? appVersion,
   });
 
   Future<SeniorProfile> fetchProfile(String seniorProfileId);
@@ -197,6 +198,7 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
     String installId, {
     DeviceStatus? status,
     String? pushToken,
+    String? appVersion,
   }) async {
     try {
       await _client.rpc(
@@ -210,6 +212,10 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
           // Coalesced server-side like the rest: a resume that could not read
           // a token leaves the last good one in place.
           'p_push_token': pushToken,
+          // Why the guardian can be told 부모님 폰의 앱이 오래됐어요: Play
+          // will not update the app that is in front of the user, and this
+          // app is the home screen.
+          'p_app_version': appVersion,
         },
       );
     } on sb.PostgrestException catch (e) {
@@ -249,7 +255,9 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
           // `senior_readings` for them and never selects them here. Which
           // phone is connected stays free - a family has to be able to see
           // they attached the right handset.
-          .select('id, install_id, is_active, device_label, platform')
+          .select(
+            'id, install_id, is_active, device_label, platform, app_version',
+          )
           .eq('senior_profile_id', seniorProfileId)
           .eq('is_active', true)
           .maybeSingle();
@@ -537,6 +545,7 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     String installId, {
     DeviceStatus? status,
     String? pushToken,
+    String? appVersion,
   }) async {
     if (offline) throw const SeniorLinkException('연결하지 못했어요.');
     touchCount++;
@@ -554,6 +563,7 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
         // A phone that could read nothing leaves the last real reading
         // standing rather than wiping it.
         status: status ?? device.status,
+        appVersion: appVersion ?? device.appVersion,
       );
     }
   }
