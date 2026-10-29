@@ -482,6 +482,19 @@ class InMemoryPairingRepository implements PairingRepository {
         displayName: store.guardianNames[entry.key],
         phoneNumber: store.guardianPhones[entry.key],
       ),
+    // **A waiting guardian is on this list too**, because the server's
+    // `guardians_for_senior` returns every row that is not `removed`. Left
+    // out, this twin could not express the state where the guardian has
+    // typed the number and the parent has not answered - and that is the
+    // state in which the senior's screen wrongly said 가족과 연결되었어요.
+    if (store.pendingAskedBy[seniorProfileId] case final asked?)
+      GuardianLink(
+        guardianAccountId: asked,
+        role: 'primary',
+        status: 'pending',
+        displayName: store.guardianNames[asked],
+        phoneNumber: store.guardianPhones[asked],
+      ),
   ];
 
   @override

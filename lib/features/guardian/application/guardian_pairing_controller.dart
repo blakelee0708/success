@@ -47,7 +47,7 @@ class GuardianPairingController extends Notifier<void> {
     final link = await ref
         .read(pairingRepositoryProvider)
         .createSeniorInvite(displayName: displayName);
-    ref.invalidate(linkedSeniorProfilesProvider);
+    _connected();
 
     // Not awaited. The invite exists whether or not the messaging app opens,
     // and the app cannot see what happens there anyway — so holding the
@@ -79,7 +79,7 @@ class GuardianPairingController extends Notifier<void> {
           displayName: displayName,
           phoneNumber: phoneNumber,
         );
-    ref.invalidate(linkedSeniorProfilesProvider);
+    _connected();
   }
 
   Future<PairLink> createRecoveryCode(String seniorProfileId) =>
@@ -90,7 +90,20 @@ class GuardianPairingController extends Notifier<void> {
 
   Future<void> redeemFamilyInvite(String code) async {
     await ref.read(pairingRepositoryProvider).redeemFamilyInvite(code);
+    _connected();
+  }
+
+  /// Both halves of 연결됨, because a new link is 'pending' now.
+  ///
+  /// `linkedSeniorProfilesProvider` is active-only, so on its own it comes
+  /// back empty and the dashboard goes on saying 아직 연결된 부모님이 없어요
+  /// to a guardian who has just connected one. The first thing they would do
+  /// is do it again - and the second attempt meets the family-plan gate,
+  /// which counts pending links, so they are told 가족 플랜이 필요해요 about
+  /// their first parent.
+  void _connected() {
     ref.invalidate(linkedSeniorProfilesProvider);
+    ref.invalidate(pendingSeniorLinksProvider);
   }
 
   Future<void> requestPrimary(String seniorProfileId) async {

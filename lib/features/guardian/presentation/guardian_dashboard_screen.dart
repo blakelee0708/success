@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -159,6 +161,51 @@ class _TabScaffold extends StatelessWidget {
   }
 }
 
+/// Asks again while the guardian is looking at 기다리고 있어요.
+///
+/// **Nothing else would tell them.** The answer is pressed on their parent's
+/// phone, so no action of theirs produces it, and this half of the app has no
+/// equivalent of the launcher's check-in to ride on. Without this the card
+/// stays up until the app is relaunched - on the one screen whose whole
+/// content is 허락하시면 바로 이어집니다.
+///
+/// It is scoped to the waiting state rather than put on the dashboard: the
+/// widget goes away the moment the parent agrees, and with it the timer, so
+/// a connected guardian polls nothing.
+class _ConsentWatcher extends ConsumerStatefulWidget {
+  const _ConsentWatcher({required this.child});
+
+  final Widget child;
+
+  static const every = Duration(seconds: 5);
+
+  @override
+  ConsumerState<_ConsentWatcher> createState() => _ConsentWatcherState();
+}
+
+class _ConsentWatcherState extends ConsumerState<_ConsentWatcher> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(_ConsentWatcher.every, (_) {
+      if (!mounted) return;
+      ref.invalidate(pendingSeniorLinksProvider);
+      ref.invalidate(linkedSeniorProfilesProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
 class _Card extends StatelessWidget {
   const _Card({super.key, required this.child});
 
@@ -214,33 +261,35 @@ class _HomeTab extends ConsumerWidget {
         return _TabScaffold(
           title: '부모님 동의를 기다리고 있어요',
           children: [
-            _Card(
-              key: GuardianHomeKeys.waitingForConsent,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    who == null || who.isEmpty
-                        ? '부모님 폰에 여쭤봤어요'
-                        : '$who님 폰에 여쭤봤어요',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.4,
-                      color: AppColors.guardianInk,
+            _ConsentWatcher(
+              child: _Card(
+                key: GuardianHomeKeys.waitingForConsent,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      who == null || who.isEmpty
+                          ? '부모님 폰에 여쭤봤어요'
+                          : '$who님 폰에 여쭤봤어요',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
+                        color: AppColors.guardianInk,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '부모님 폰에 연결해도 되는지 여쭤보는 화면이 떠 있어요. '
-                    '허락하시면 바로 이어집니다.',
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      height: 1.55,
-                      color: AppColors.guardianInkSoft,
+                    const SizedBox(height: 8),
+                    const Text(
+                      '부모님 폰에 연결해도 되는지 여쭤보는 화면이 떠 있어요. '
+                      '허락하시면 바로 이어집니다.',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        height: 1.55,
+                        color: AppColors.guardianInkSoft,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

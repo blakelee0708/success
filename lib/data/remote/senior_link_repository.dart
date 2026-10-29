@@ -520,7 +520,17 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
       ageBand: ageBand,
     );
     profiles[profile.id] = profile;
-    link(profile.id, guardianAccountId, 'primary');
+    // The server leaves this waiting on the parent's own phone too, which it
+    // has not got yet - the card is drawn the moment one connects. Behind
+    // [pendingLinkConsent] for the same reason `claimSeniorPairingCode` is:
+    // mirroring it by default would mean rewriting the harness of every test
+    // that adds a parent.
+    if (pendingLinkConsent) {
+      pendingLinks[profile.id] = 'link-${profile.id}-$guardianAccountId';
+      pendingAskedBy[profile.id] = guardianAccountId;
+    } else {
+      link(profile.id, guardianAccountId, 'primary');
+    }
     return profile;
   }
 

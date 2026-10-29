@@ -16,6 +16,11 @@ final pendingGuardianLinkProvider = FutureProvider<PendingGuardianLink?>((
   // all - the trap this codebase has walked into twice.
   final link = await ref.watch(seniorLinkControllerProvider.future);
   if (link.seniorProfileId == null) return null;
+  // The same `ensure()` every other senior-side call makes. The function
+  // behind this reads `auth.uid()`, so a phone whose anonymous session was
+  // lost would cache a null here and never draw the card again - which on
+  // 경로 B is the one screen the whole consent rests on.
+  if (!await ref.read(seniorAuthProvider).ensure()) return null;
   return ref.watch(pairingRepositoryProvider).pendingGuardianLink();
 });
 

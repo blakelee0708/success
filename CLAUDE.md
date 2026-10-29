@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 777 tests, all passing
+flutter test             # currently 781 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -114,12 +114,10 @@ and a run on a real phone, all four of which have since happened. As of
   only the owner can do.
 - **소리 울리기**: the background wake-up and the guardian's button. Both are
   blocked on things outside this environment; see `## Firebase`.
-- **설정**: 아직 준비 중 is gone. 진동/벨소리 전환 was the only row left in
-  it and it is built.
 - **The paid watchers**: 5분 주기 갱신 and anything else `CareReadiness
   .planned` still covers.
-- **고객센터 번호**: `supportPhoneNumber` is blank, so 문의하기 shows the
-  number and no call button. One constant; see `## 문의하기` below.
+- **고객센터 번호**: filled now. See `## 문의하기` below for what the blank
+  constant used to cost.
 
 Route `/` is a launch gate, not a screen: a senior with a saved screen mode
 lands on their home instead of the splash, because this app becomes the phone's
@@ -799,17 +797,34 @@ picked is the thing about to appear on the home screen, and on the guardian's
 half that is the one place the senior's clay belongs — it is a depiction of
 their mother's phone, not chrome for this one.
 
-## 설정 is six rows of three kinds
+## 설정 is one screen of seven rows, and the groups are gone
 
 Six identical Material cards in the warm brown ink that came out of the
 palette, which made this look like a different app from the home it opens
-off. They are the same clay object the home screen is made of now, and
-grouped, because the six are not six of a kind: **이 화면** (앱 설정하기, 글씨
-크기, and 첫 화면으로 정하기 when it applies), **가족** (메시지, 연결 설정) and
-**아직 준비 중** (진동/벨소리, 사용하지 않기).
+off. They are the same clay object the home screen is made of now.
 
-**잘보이네 사용하지 않기 left that last group and joined the first.** It sat
-in 아직 준비 중 with no `onTap`, which was honest and useless: a senior who
+**Three group headings used to stand over them** - 이 화면, 가족, 아직 준비
+중 - and they are gone as of 2026-10-29, on the owner's call. Six rows is not
+a list that needs sorting into kinds, and the headings cost what matters more
+here than tidiness: height. **The rows must fit one screen at every text
+size**, because scrolling is the gesture this app's readers fail at most, and
+`settings_fits_test.dart` asserts a scroll extent of exactly zero at all four
+sizes. The rows came down from 92px to 84 in the same change, and putting the
+92 back fails that test by 46px at 제일 크게 - measured.
+
+**Every row says 누르세요.** 앱 설정하기 alone does not tell a senior that the
+thing in front of them is pressable, and the ones who open this screen are
+the ones least sure of that.
+
+**소리 and 인터넷 are not rows here, and that is the home screen's job.**
+They are `fixedSlot` buttons on both home screens, two presses closer than a
+settings row would be. The cost is the same one 긴급 구조 요청 carries and it
+is recorded the same way: a family who takes those buttons off leaves no
+route to the ringer or to Wi-Fi anywhere, and the way back is 설정 → 앱
+설정하기 → 버튼 추가하기.
+
+**잘보이네 사용하지 않기 used to sit in 아직 준비 중 with no `onTap`**, which
+was honest and useless: a senior who
 wants their old home screen back had no way to say so, on the one app that
 took the home screen over. Android gives an app **no way to unset itself** as
 the home app — there is no "clear default" to call — so the phone's own
@@ -818,20 +833,15 @@ That needed no new Kotlin: `openHomeSettings` asks for the HOME *role* only
 when this app does not hold it, so holding it, the call falls through to
 `ACTION_HOME_SETTINGS`, which is the picker.
 
-The two live side by side in **이 화면** because they are one setting seen
-from two sides, and exactly one of them is ever shown — `isDefaultHome`
-decides which. It asks first, because it changes what pressing Home does on
+The two live side by side because they are one setting seen from two sides,
+and exactly one of them is ever shown — `isDefaultHome` decides which. It asks first, because it changes what pressing Home does on
 someone's phone, and the dialog says **nothing is lost**: the buttons, the
 text size and the family connection all stay, and a senior left to guess that
 reads a reversible choice as a final one. The same manual-path dialog covers
 a phone that refuses to open its chooser.
 
-**아직 준비 중 is gone.** 진동/벨소리 전환 was the only thing left in it and
-it is built; the group existed to be honest about a row that could not be
-pressed, and keeping an empty heading would be a different dishonesty. 소리
-and 인터넷 sit in **이 폰** now. 가족 메시지 is
-lettered in ink because its amber cannot hold white, the same rule as
-everywhere else.
+가족 메시지 is lettered in ink because its amber cannot hold white, the same
+rule as everywhere else.
 
 ## 긴급 연락 is three colours now, and the sizes go to four
 
@@ -2706,7 +2716,7 @@ there was nothing to tap. The screen has had a third button, 이메일로
 guardian actually walks. `screenshots_test.dart` was walking the dead path
 too.
 
-628 passing when that was written; 748 now, 0 failing, about 3 minutes.
+628 passing when that was written; 781 now, 0 failing, about 3 minutes.
 
 ## The app icon is a document, not a drawing
 
@@ -2893,6 +2903,57 @@ It is not their legal name, the same rule the parent's own field follows:
 one. 연결 관리 is where it is changed later, and an empty answer there leaves
 the old name standing - this is the one field in the app that may not become
 blank, because a senior's card reads it.
+
+## 동의는 양쪽 폰에서 일어나고, 어느 쪽도 그걸 알지 못했다
+
+The review that followed the verifier sweep found one theme and three faults
+in it, and the theme is what makes them worth recording: **가족 연결 동의 is
+asked on one phone and answered on another, so neither end is produced by
+anything the person looking at it does.** Every other state in this app
+arrives on the back of a tap. These do not, and all three providers involved
+were cached, non-`autoDispose` `FutureProvider`s read once.
+
+- **The card was never drawn on the path it exists for.** 경로 B is: the
+  senior presses 번호 보여주기, reads the number out, puts the phone down -
+  and their child types it a minute later. `pendingGuardianLinkProvider` was
+  read at launch and at pairing and invalidated nowhere else, and a launcher
+  runs for weeks between restarts. `HomeKeyListener` re-asks on its 15초
+  tick and on resume now, which is the same timer that already carries the
+  settings pull, and both providers guard on this phone having a profile
+  before they reach the network - which is what makes it safe to run from a
+  widget that wraps the whole router and therefore runs on the guardian's
+  phone too.
+- **The senior's screen said 가족과 연결되었어요 before the card was
+  answered.** `guardians_for_senior` returns every row that is not
+  `removed`, pending included, and three screens read that list with
+  `.isNotEmpty`: both homes relabelled their 가족 button with the child's
+  name and offered a conversation every table behind it would have refused.
+  `seniorGuardiansProvider` filters to `isActive` now. The only place a
+  waiting guardian belongs on this phone is the card asking about them.
+- **The guardian's dashboard said 아직 연결된 부모님이 없어요 to a guardian
+  who had just connected one.** `linkedSeniorProfilesProvider` is
+  active-only, so invalidating it alone changes nothing, and
+  `pendingSeniorLinksProvider` kept its cached empty list. The next thing
+  that guardian would do is connect again - and the second attempt meets the
+  family-plan gate, which counts pending links, so they would be told
+  가족 플랜이 필요해요 about their first parent. Both are invalidated
+  together now, and 기다리고 있어요 carries a 5초 poll so the card goes when
+  the parent agrees. The poll is on the waiting card rather than on the
+  dashboard: the widget goes away the moment they agree, and with it the
+  timer, so a connected guardian polls nothing.
+
+**The twins could not express any of it, which is why no test caught it.**
+`InMemoryPairingRepository.guardiansFor` listed only linked rows, so a
+pending guardian simply did not exist on this side; `createSeniorProfile`
+linked immediately. Both mirror the server now, the first always and the
+second behind `pendingLinkConsent`, and the four tests added with the fixes
+each fail on the code they replace - checked one at a time by putting the old
+line back.
+
+`pendingGuardianLinkProvider` also now makes the `SeniorAuth.ensure()` call
+every other senior-side caller makes. The function behind it reads
+`auth.uid()`, so a phone whose anonymous session was lost would cache a null
+and never draw the card again.
 
 ## 열네 개를 전부 돌려 봤더니 두 개가 깨져 있었다
 

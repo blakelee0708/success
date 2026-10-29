@@ -133,12 +133,24 @@ class SeniorPairingController extends AsyncNotifier<PairLink?> {
 /// creates the profile, and a phone whose code nobody has typed yet is not
 /// connected to anybody. Saying otherwise would tell a senior their family had
 /// arrived when it had not.
+///
+/// **A pending guardian is not family yet**, and that is load-bearing rather
+/// than tidy. `guardians_for_senior` returns every row that is not `removed`,
+/// so without this filter the moment a guardian typed the 4-digit number
+/// their parent's screen said 가족과 연결되었어요 - before the consent card
+/// had been answered, and while every table behind that claim would still
+/// refuse them. The only place a waiting guardian appears on this phone is
+/// the card asking about them.
 final seniorGuardiansProvider = FutureProvider<List<GuardianLink>>((ref) async {
   final link = await ref.watch(seniorLinkControllerProvider.future);
   final profileId = link.seniorProfileId;
   if (profileId == null) return const [];
   try {
-    return await ref.watch(pairingRepositoryProvider).guardiansFor(profileId);
+    if (!await ref.read(seniorAuthProvider).ensure()) return const [];
+    final all = await ref
+        .watch(pairingRepositoryProvider)
+        .guardiansFor(profileId);
+    return all.where((g) => g.isActive).toList(growable: false);
   } on Object {
     // The launcher has to keep working with no signal. An unknown answer is
     // shown as "not yet", which is the state the screen can act on.

@@ -10,6 +10,7 @@ import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
 import 'package:app/features/family/presentation/link_consent_prompt.dart';
+import 'package:app/features/launcher/application/home_key_listener.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/launcher/presentation/widgets/senior_notice_layer.dart';
 
@@ -23,7 +24,11 @@ import '../../support/pump_app.dart';
 Future<
   ({InMemorySeniorLinkRepository store, InMemoryPairingRepository pairing})
 >
-_pumpSeniorHome(WidgetTester tester, {String? guardianName}) async {
+_pumpSeniorHome(
+  WidgetTester tester, {
+  String? guardianName,
+  bool asked = true,
+}) async {
   final store = InMemorySeniorLinkRepository();
   final pairing = InMemoryPairingRepository(store)
     ..store.pendingLinkConsent = true;
@@ -31,10 +36,12 @@ _pumpSeniorHome(WidgetTester tester, {String? guardianName}) async {
     await store.ensureGuardianAccount(displayName: guardianName);
   }
   final started = await pairing.startSeniorPairing(installId: 'senior-phone');
-  final profile = await pairing.claimSeniorPairingCode(
-    code: started.code,
-    displayName: '어머니',
-  );
+  final profile = asked
+      ? await pairing.claimSeniorPairingCode(
+          code: started.code,
+          displayName: '어머니',
+        )
+      : store.profiles.values.first;
 
   await pumpApp(
     tester,
@@ -116,6 +123,58 @@ void main() {
 
     expect(find.textContaining('가족이'), findsOneWidget);
     expect(find.textContaining('보호자님이'), findsNothing);
+  });
+
+  testWidgets('a waiting guardian is not yet family', (tester) async {
+    // **The screen said 연결되었어요 before the card was answered.**
+    // `guardians_for_senior` returns every row that is not `removed`, so the
+    // moment a guardian typed the 4-digit number the senior's home relabelled
+    // its 가족 button with their child's name and offered the conversation -
+    // which every table behind it would still have refused. The only place a
+    // waiting guardian belongs on this phone is the card asking about them.
+    final h = await _pumpSeniorHome(tester, guardianName: '영희');
+
+    expect(
+      await h.pairing.guardiansFor(h.store.profiles.keys.first),
+      hasLength(1),
+      reason: 'the twin has to hold the pending row the server returns',
+    );
+    expect(find.byKey(LinkConsentPrompt.promptKey), findsOneWidget);
+    expect(find.text('가족 연결'), findsWidgets);
+    expect(find.text('영희'), findsNothing);
+
+    await tester.tap(find.byKey(LinkConsentPrompt.approveKey));
+    await tester.pumpAndSettle();
+
+    // And afterwards they are.
+    expect(find.text('가족 연결'), findsNothing);
+  });
+
+  testWidgets('the card arrives while the senior is looking at the home', (
+    tester,
+  ) async {
+    // **The ask comes from another phone.** The senior presses 번호 보여주기,
+    // reads the number out and puts the phone down; their child types it a
+    // minute later. Read once at launch, this card would never be drawn at
+    // all on the path it exists for - a launcher runs for weeks between
+    // restarts, so `HomeKeyListener` re-asks on its tick.
+    final h = await _pumpSeniorHome(tester, guardianName: '영희', asked: false);
+    expect(find.byKey(LinkConsentPrompt.promptKey), findsNothing);
+
+    // The child types the number now.
+    final started = await h.pairing.startSeniorPairing(
+      installId: 'senior-phone',
+    );
+    await h.pairing.claimSeniorPairingCode(
+      code: started.code,
+      displayName: '어머니',
+    );
+
+    await tester.pump(HomeKeyListener.refreshEvery);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(LinkConsentPrompt.promptKey), findsOneWidget);
+    expect(find.textContaining('영희님이'), findsOneWidget);
   });
 
   test(

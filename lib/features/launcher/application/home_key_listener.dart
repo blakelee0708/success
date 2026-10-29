@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../care/application/push_ring_listener.dart';
+import '../../family/application/senior_pairing_controller.dart';
+import '../../family/presentation/link_consent_prompt.dart';
 import '../data/app_launcher.dart';
 import 'senior_presence_reporter.dart';
 import 'senior_settings_controller.dart';
@@ -26,12 +28,6 @@ class HomeKeyListener extends ConsumerStatefulWidget {
   final GoRouter router;
   final Widget child;
 
-  @override
-  ConsumerState<HomeKeyListener> createState() => _HomeKeyListenerState();
-}
-
-class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
-    with WidgetsBindingObserver {
   /// How often the parent's phone re-reads what their family arranged.
   ///
   /// **Start-up and resume were not enough, and the gap was the whole
@@ -47,6 +43,12 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
   /// nothing.
   static const refreshEvery = Duration(seconds: 15);
 
+  @override
+  ConsumerState<HomeKeyListener> createState() => _HomeKeyListenerState();
+}
+
+class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
+    with WidgetsBindingObserver {
   Timer? _tick;
 
   @override
@@ -77,10 +79,27 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
   /// a resume never leaves two timers behind.
   void _startTicking() {
     _tick?.cancel();
-    _tick = Timer.periodic(refreshEvery, (_) {
+    _tick = Timer.periodic(HomeKeyListener.refreshEvery, (_) {
       if (!mounted) return;
       ref.read(seniorSettingsControllerProvider.notifier).refresh();
+      _refreshFamily();
     });
+  }
+
+  /// Who is attached to this phone, and whether anybody is waiting to be.
+  ///
+  /// **Nothing else re-asks either question.** 가족 연결 동의 is answered on
+  /// this phone and *asked* from another one: the senior presses 번호
+  /// 보여주기 and puts the phone down, and their child types the number a
+  /// minute later. Read once at launch, the card would never be drawn at all
+  /// on the path it exists for - a launcher runs for weeks between restarts.
+  ///
+  /// Both providers guard on this phone having a profile before they reach
+  /// the network, which is what makes this safe to run from here: this widget
+  /// wraps the whole router, so it is on the guardian's phone too.
+  void _refreshFamily() {
+    ref.invalidate(pendingGuardianLinkProvider);
+    ref.invalidate(seniorGuardiansProvider);
   }
 
   @override
@@ -108,6 +127,7 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
     }
     _startTicking();
     ref.read(seniorSettingsControllerProvider.notifier).refresh();
+    _refreshFamily();
     // The commoner half of 안부 신호 by far. A launcher may go weeks without
     // being restarted, so start-up alone would report once and then go quiet
     // while the parent used the phone every day.
