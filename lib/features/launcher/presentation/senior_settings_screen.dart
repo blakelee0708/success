@@ -9,9 +9,6 @@ import '../../../core/widgets/clay_pad.dart';
 import '../../support/presentation/support_card.dart';
 import '../data/app_launcher.dart';
 import 'widgets/home_app_coach.dart';
-import 'widgets/internet_card.dart';
-import '../application/ringer_controller.dart';
-import '../../../domain/device_status.dart';
 
 /// 설정 — everything a senior can change about their own phone.
 ///
@@ -27,7 +24,6 @@ import '../../../domain/device_status.dart';
 class SeniorSettingsScreen extends ConsumerWidget {
   const SeniorSettingsScreen({super.key});
 
-  static const familyVisibilityRow = Key('senior-settings-family-visibility');
   static const homeAppRow = Key('senior-settings-home-app');
   static const stopUsingRow = Key('senior-settings-stop-using');
   static const stopUsingConfirm = Key('senior-settings-stop-using-confirm');
@@ -315,16 +311,15 @@ class SeniorSettingsScreen extends ConsumerWidget {
       bottomNavigationBar: const SafeArea(child: GoHomeBar()),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
           children: [
-            const _GroupTitle('이 화면'),
             // First, and above 앱 설정하기 on purpose. Somebody opens 설정
             // either to change something or because they are stuck, and the
             // second one has had nowhere to go until now.
             _Row(
               key: SeniorSettingsScreen.manualRow,
               label: '사용법',
-              detail: '막히실 때 보세요',
+              detail: '막히실 때 누르세요',
               icon: Icons.menu_book_rounded,
               face: AppColors.seniorButtonYellow,
               light: AppColors.seniorButtonYellowLight,
@@ -336,7 +331,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
             ),
             _Row(
               label: '앱 설정하기',
-              detail: '버튼의 이름과 색, 순서를 바꿉니다',
+              detail: '버튼을 바꾸려면 누르세요',
               icon: Icons.grid_view_rounded,
               face: AppColors.seniorButtonPurple,
               light: AppColors.seniorButtonPurpleLight,
@@ -346,7 +341,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
             ),
             _Row(
               label: '글씨 크기 조절하기',
-              detail: '보통부터 제일 크게까지',
+              detail: '글씨를 키우려면 누르세요',
               icon: Icons.format_size_rounded,
               face: AppColors.seniorButtonGreen,
               light: AppColors.seniorButtonGreenLight,
@@ -358,7 +353,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
               _Row(
                 key: SeniorSettingsScreen.homeAppRow,
                 label: '첫 화면으로 정하기',
-                detail: '홈 버튼을 누르면 이 화면이 나옵니다',
+                detail: '첫 화면으로 하려면 누르세요',
                 icon: Icons.home_rounded,
                 face: AppColors.seniorSos,
                 light: AppColors.seniorSosLight,
@@ -387,11 +382,9 @@ class SeniorSettingsScreen extends ConsumerWidget {
                 wall: AppColors.seniorMoreWall,
                 onTap: () => _stopUsing(context, ref),
               ),
-            const SizedBox(height: 26),
-            const _GroupTitle('가족'),
             _Row(
               label: '가족 메시지',
-              detail: '자녀분과 주고받은 이야기',
+              detail: '자녀분과 이야기하려면 누르세요',
               icon: Icons.chat_bubble_rounded,
               face: AppColors.seniorFamily,
               light: AppColors.seniorFamilyLight,
@@ -400,30 +393,9 @@ class SeniorSettingsScreen extends ConsumerWidget {
               ink: AppColors.seniorInk,
               onTap: () => context.push(Routes.familyMessages),
             ),
-            // **The consent card asks once and goes away.** After it, a
-            // senior who wanted to know what their children can see had
-            // nowhere to look - which is the gap Play's rules about
-            // collecting an adult's data are aimed at, and a fair question
-            // for somebody whose home screen this is. It sits in 가족 rather
-            // than in 이 폰 because what it is about is the family, not the
-            // handset.
-            _Row(
-              key: SeniorSettingsScreen.familyVisibilityRow,
-              label: '자녀가 보는 것',
-              detail: '자녀분께 무엇이 전해지는지',
-              icon: Icons.visibility_rounded,
-              face: AppColors.seniorButtonYellow,
-              light: AppColors.seniorButtonYellowLight,
-              deep: AppColors.seniorButtonYellowDeep,
-              wall: AppColors.seniorButtonYellowWall,
-              // Yellow cannot hold white lettering, the same rule the
-              // 카카오톡 tile and the amber 가족 button follow.
-              ink: AppColors.seniorInk,
-              onTap: () => context.push(Routes.familyVisibility),
-            ),
             _Row(
               label: '가족 연결 설정',
-              detail: '누가 이 폰을 돌봐 드리는지',
+              detail: '가족을 보시려면 누르세요',
               icon: Icons.family_restroom,
               face: AppColors.seniorButtonPink,
               light: AppColors.seniorButtonPinkLight,
@@ -431,55 +403,10 @@ class SeniorSettingsScreen extends ConsumerWidget {
               wall: AppColors.seniorButtonPinkWall,
               onTap: () => context.push(Routes.familyLink),
             ),
-            const SizedBox(height: 26),
-            // 아직 준비 중 is gone: 진동/벨소리 전환 was the only thing left in
-            // it, and it is built. The group existed to be honest about a row
-            // that could not be pressed; keeping an empty heading would be a
-            // different kind of dishonesty.
-            const _GroupTitle('이 폰'),
-            _Row(
-              label: switch (ref.watch(ringerControllerProvider)) {
-                RingerMode.normal => '소리 켜짐',
-                RingerMode.vibrate => '진동',
-                RingerMode.silent => '소리 꺼짐',
-                null => '소리와 진동',
-              },
-              // 무음 is not offered, so this says what the press does rather
-              // than listing three states one of which never appears.
-              detail: '누르시면 소리와 진동이 바뀝니다',
-              icon: ref.watch(ringerControllerProvider) == RingerMode.normal
-                  ? Icons.volume_up_rounded
-                  : Icons.vibration_rounded,
-              face: AppColors.seniorMore,
-              light: AppColors.seniorMoreLight,
-              deep: AppColors.seniorMoreDeep,
-              wall: AppColors.seniorMoreWall,
-              onTap: () => ref.read(ringerControllerProvider.notifier).toggle(),
-            ),
-            const SizedBox(height: 12),
-            _Row(
-              label: '인터넷',
-              detail: '와이파이를 켜고 끕니다',
-              icon: Icons.wifi_rounded,
-              face: AppColors.seniorMore,
-              light: AppColors.seniorMoreLight,
-              deep: AppColors.seniorMoreDeep,
-              wall: AppColors.seniorMoreWall,
-              onTap: () => openInternetCard(context, ref),
-            ),
-            const SizedBox(height: 26),
-            // Its own group, and the only one on the senior's phone that does
-            // not need a family. Every other row here leads somewhere that
-            // assumes a child: 가족 메시지 needs somebody to write to, 가족
-            // 연결 설정 somebody to connect, and 긴급 연락's 보호자 tile
-            // stays disabled until a guardian leaves a number. A senior who
-            // installed this alone had nobody to ask about the screen their
-            // phone now sits on.
-            const _GroupTitle('문의'),
             _Row(
               key: SeniorSettingsScreen.supportRow,
               label: '문의하기',
-              detail: '고객센터에 불러주실 번호가 나옵니다',
+              detail: '번호를 받으시려면 누르세요',
               icon: Icons.support_agent_rounded,
               face: AppColors.seniorButtonGreen,
               light: AppColors.seniorButtonGreenLight,
@@ -494,29 +421,6 @@ class SeniorSettingsScreen extends ConsumerWidget {
   }
 }
 
-class _GroupTitle extends StatelessWidget {
-  const _GroupTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 0, 0, 10),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w900,
-          letterSpacing: -0.3,
-          color: AppColors.seniorInkMuted,
-        ),
-      ),
-    );
-  }
-}
-
-/// One setting, drawn as the same object the home screen is made of.
 class _Row extends StatelessWidget {
   const _Row({
     super.key,
@@ -550,7 +454,7 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onTap != null;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Semantics(
         button: true,
         enabled: enabled,
@@ -561,7 +465,7 @@ class _Row extends StatelessWidget {
         child: Opacity(
           opacity: enabled ? 1 : 0.6,
           child: SizedBox(
-            height: 92,
+            height: 84,
             child: ClayPad(
               light: light,
               face: face,

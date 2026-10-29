@@ -4,7 +4,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
 
@@ -19,6 +21,7 @@ class FamilyLinkKeys {
 
   static const showCode = Key('family-link-show-code');
   static const waiting = Key('family-link-waiting');
+  static const visibility = Key('family-link-visibility');
   static const shownCode = Key('family-link-shown-code');
   static const code = Key('family-link-code');
   static const submit = Key('family-link-submit');
@@ -91,27 +94,100 @@ class _FamilyLinkScreenState extends ConsumerState<FamilyLinkScreen> {
             // the field grow with it rather than being pinned small.
             minScaleFactor: scale?.scale ?? 1.0,
             maxScaleFactor: scale?.scale ?? 1.0,
-            child: connected
-                ? const _Connected()
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const _ShowCode(),
-                      const SizedBox(height: 34),
-                      const Divider(
-                        height: 2,
-                        thickness: 2,
-                        color: AppColors.seniorHairline,
-                      ),
-                      const SizedBox(height: 26),
-                      _EnterCode(
-                        controller: _code,
-                        busy: _busy,
-                        error: _error,
-                        onSubmit: _enterCode,
-                      ),
-                    ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (connected)
+                  const _Connected()
+                else ...[
+                  const _ShowCode(),
+                  const SizedBox(height: 34),
+                  const Divider(
+                    height: 2,
+                    thickness: 2,
+                    color: AppColors.seniorHairline,
                   ),
+                  const SizedBox(height: 26),
+                  _EnterCode(
+                    controller: _code,
+                    busy: _busy,
+                    error: _error,
+                    onSubmit: _enterCode,
+                  ),
+                ],
+                const SizedBox(height: 30),
+                // **자녀가 보는 것 lives here now.** It was a row in 설정 and 설정 had
+                // to fit one screen without scrolling - the rule 사용법 has had from
+                // the start and this one never did, with more than half the list
+                // below the fold. This screen is where it belongs anyway: what the
+                // children can see is about the family, and the question only has a
+                // subject once there is one.
+                SizedBox(
+                  key: FamilyLinkKeys.visibility,
+                  height: 84,
+                  child: ClayPad(
+                    light: AppColors.seniorButtonYellowLight,
+                    face: AppColors.seniorButtonYellow,
+                    deep: AppColors.seniorButtonYellowDeep,
+                    wall: AppColors.seniorButtonYellowWall,
+                    radius: 26,
+                    onTap: () => context.push(Routes.familyVisibility),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 18),
+                      child: Row(
+                        children: [
+                          // Yellow cannot hold white lettering, the same rule the
+                          // 카카오톡 tile and the amber 가족 button follow.
+                          Icon(
+                            Icons.visibility_rounded,
+                            size: 34,
+                            color: AppColors.seniorInk,
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '자녀가 보는 것',
+                                    style: TextStyle(
+                                      fontSize: 23,
+                                      height: 1.2,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.5,
+                                      color: AppColors.seniorInk,
+                                    ),
+                                  ),
+                                  SizedBox(height: 3),
+                                  Text(
+                                    '무엇이 전해지는지 누르세요',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.seniorInk,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 28,
+                            color: AppColors.seniorInk,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

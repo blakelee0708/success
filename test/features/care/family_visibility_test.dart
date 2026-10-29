@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/family/presentation/family_link_screen.dart';
 import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
@@ -10,7 +11,6 @@ import 'package:app/features/care/data/care_capabilities.dart';
 import 'package:app/features/care/data/family_visibility.dart';
 import 'package:app/features/care/presentation/family_visibility_screen.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
-import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
 
 import '../../support/pump_app.dart';
 
@@ -38,6 +38,26 @@ Future<void> _pumpSettings(WidgetTester tester) async {
   );
   await tester.pumpAndSettle();
   await tester.tap(find.text('설정'));
+  await tester.pumpAndSettle();
+}
+
+/// 설정 > 가족 연결 설정 > 자녀가 보는 것.
+///
+/// **It used to be a row in 설정 and is not any more.** 설정 had to fit one
+/// screen without scrolling - the rule 사용법 has had from the start and this
+/// one never did, with more than half the list below the fold - and this was
+/// one of the three rows cut to get there. It belongs here anyway: what the
+/// children can see is about the family, and the question has no subject
+/// until there is one, which is why it sits under 연결되었어요.
+Future<void> _openVisibility(WidgetTester tester) async {
+  await _pumpSettings(tester);
+  await tester.tap(find.text('가족 연결 설정'));
+  await tester.pumpAndSettle();
+  // Last on a screen that scrolls, so a tap aimed at it lands on nothing
+  // until it is brought up.
+  await tester.ensureVisible(find.byKey(FamilyLinkKeys.visibility));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(FamilyLinkKeys.visibility));
   await tester.pumpAndSettle();
 }
 
@@ -144,23 +164,14 @@ void main() {
     });
   });
 
-  testWidgets('설정 has a row that opens it', (tester) async {
-    await _pumpSettings(tester);
-
-    expect(
-      find.byKey(SeniorSettingsScreen.familyVisibilityRow),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(SeniorSettingsScreen.familyVisibilityRow));
-    await tester.pumpAndSettle();
+  testWidgets('the route still opens it', (tester) async {
+    await _openVisibility(tester);
 
     expect(find.byKey(FamilyVisibilityScreen.listKey), findsOneWidget);
   });
 
   testWidgets('the screen draws every line and every heading', (tester) async {
-    await _pumpSettings(tester);
-    await tester.tap(find.byKey(SeniorSettingsScreen.familyVisibilityRow));
-    await tester.pumpAndSettle();
+    await _openVisibility(tester);
 
     for (final sees in FamilySees.values) {
       expect(find.text(familySeesTitle(sees)), findsOneWidget, reason: '$sees');
@@ -174,9 +185,7 @@ void main() {
     // It is not a second consent screen. The card asks *may we turn this on*;
     // this answers *what do they see*, and a button here would make a senior
     // think an answer was wanted.
-    await _pumpSettings(tester);
-    await tester.tap(find.byKey(SeniorSettingsScreen.familyVisibilityRow));
-    await tester.pumpAndSettle();
+    await _openVisibility(tester);
 
     final inList = find.descendant(
       of: find.byKey(FamilyVisibilityScreen.listKey),
@@ -188,9 +197,7 @@ void main() {
   testWidgets('첫 화면으로 가기 leaves it, like every other senior screen', (
     tester,
   ) async {
-    await _pumpSettings(tester);
-    await tester.tap(find.byKey(SeniorSettingsScreen.familyVisibilityRow));
-    await tester.pumpAndSettle();
+    await _openVisibility(tester);
 
     await tester.tap(find.text('첫 화면으로 가기'));
     await tester.pumpAndSettle();
