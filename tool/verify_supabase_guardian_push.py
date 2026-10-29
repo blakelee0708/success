@@ -9,8 +9,8 @@ container that cannot run Deno.
 
 The one worth reading twice is the caller check. This function is reached by
 the **parent's own phone**, right after it sends. A guardian who could call it
-would be able to make every sibling's phone buzz with a line they wrote
-themselves, so being a guardian of the family is not enough - the caller has
+would be able to make their own phone buzz with a line they wrote
+themselves, so being the parent's guardian is not enough - the caller has
 to be the device the message was sent from.
 
 Run with:
@@ -80,7 +80,7 @@ def approve(phone_token):
     Every path that attaches a guardian writes `pending` since
     `20261029010000_link_consent.sql`, so a script standing in for the
     parent's phone has to answer the card before anything that needs an
-    active link. A loop, because a sibling joining raises a second card.
+    active link. A loop, so any card left waiting is answered too.
     """
     while True:
         st, card = call("/rest/v1/rpc/pending_guardian_link",

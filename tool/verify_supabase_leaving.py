@@ -143,34 +143,25 @@ def account_id(token):
     return rows[0]["id"]
 
 
-def family(senior_name="어머니", guardians=("영희",)):
-    """A parent's phone with a profile, and N guardians attached and agreed."""
+def family(senior_name="어머니", guardian_name="영희"):
+    """A parent's phone with a profile, and its one guardian attached and agreed.
+
+    One, because the product is 1대1 - 무조건 자녀 하나, 부모 하나.
+    """
     phone, install = device()
     st, pair = call("/rest/v1/rpc/start_senior_pairing", token=phone,
                     body={"p_install_id": install, "p_platform": "android"})
     assert st == 200, (st, pair)
     profile_id = pair["senior_profile_id"]
     created_profiles.append(profile_id)
-    tokens = []
-    for i, gname in enumerate(guardians):
-        g = guardian(f"g{i}-{uuid.uuid4().hex[:4]}", gname)
-        if i == 0:
-            st, _ = call("/rest/v1/rpc/claim_senior_pairing_code", token=g,
-                         body={"p_code": pair["code"],
-                               "p_display_name": senior_name,
-                               "p_phone_number": "01012345678"})
-            assert st == 200, (st, _)
-            approve(phone)
-        else:
-            # **Seeded past the 1대1 gate**, which refuses a second guardian
-            # since 2026-10-29 - the refusal is checked in
-            # `tool/verify_supabase_one_to_one.py`. The two-child cases below
-            # are what makes the 마지막 자녀가 갈 때만 꺼진다 rule testable at
-            # all, and that rule is still in the server whether or not a
-            # second child can currently arrive.
-            seed_sibling(profile_id, g)
-        tokens.append(g)
-    return phone, install, profile_id, tokens
+    g = guardian(f"g-{uuid.uuid4().hex[:4]}", guardian_name)
+    st, _ = call("/rest/v1/rpc/claim_senior_pairing_code", token=g,
+                 body={"p_code": pair["code"],
+                       "p_display_name": senior_name,
+                       "p_phone_number": "01012345678"})
+    assert st == 200, (st, _)
+    approve(phone)
+    return phone, install, profile_id, g
 
 
 def links_of(profile_id):
@@ -195,35 +186,11 @@ def care_on(profile_id):
     return rows[0]["on"]
 
 
-
-def seed_sibling(profile_id, guardian_token, *, role="family", status="active"):
-    """Attaches a second guardian **with the service key**, past the 1대1 gate.
-
-    `assert_can_add_guardian` refuses a second child on a parent, and
-    `assert_can_add_senior` a second parent on a child - the lock the owner
-    asked for on 2026-10-29. The server code those paths lead to is
-    untouched and still works, so the checks below are still worth running;
-    what they cannot do any more is *arrive* through an invite.
-
-    Seeding is setup rather than a test: the gate itself is checked by
-    `tool/verify_supabase_one_to_one.py`. When the lock lifts, this goes back
-    to being a `create_family_invite` / `redeem_family_invite` pair.
-    """
-    st, rows = call("/rest/v1/guardian_accounts?select=id,auth_user_id",
-                    token=guardian_token, method="GET")
-    assert st == 200 and rows, (st, rows)
-    st, made = call("/rest/v1/guardian_senior_links", key=SERVICE,
-                    body={"guardian_account_id": rows[0]["id"],
-                          "senior_profile_id": profile_id,
-                          "role": role, "status": status})
-    assert st in (200, 201, 204), (st, made)
-    return rows[0]["id"]
-
 try:
     # ======================================================================
     # 1. 어르신이 끊는다
     # ======================================================================
-    phone, install, profile_id, (g1,) = family()
+    phone, install, profile_id, g1 = family()
     g1_id = account_id(g1)
 
     st, mine = call("/rest/v1/senior_profiles?select=id", token=g1, method="GET")
@@ -295,21 +262,12 @@ try:
           st == 200 and len(mine or []) == 1, (st, mine))
 
     # ======================================================================
-    # 2. 두 자녀 중 하나만 끊을 때
+    # 2. 안심 케어를 산 자녀
     # ======================================================================
-    phone2, _i2, profile2, (a1, a2) = family("아버지", ("영희", "철수"))
-    a1_id, a2_id = account_id(a1), account_id(a2)
+    phone2, _i2, profile2, a2 = family("아버지", "철수")
+    a2_id = account_id(a2)
     buy_and_agree(a2, phone2, profile2)
-    check("the sibling who paid has 안심 케어 on", care_on(profile2))
-
-    st, _ = call("/rest/v1/rpc/remove_guardian_link", token=phone2,
-                 body={"p_guardian_account_id": a1_id})
-    assert st in (200, 204), (st, _)
-    check("cutting one child leaves the other's 안심 케어 alone",
-          care_on(profile2))
-    st, mine = call("/rest/v1/senior_profiles?select=id", token=a2, method="GET")
-    check("and the child who was kept still sees their parent",
-          st == 200 and len(mine or []) == 1, (st, mine))
+    check("the child who paid has 안심 케어 on", care_on(profile2))
 
     # ======================================================================
     # 3. 누가 끊을 수 있는가
@@ -352,7 +310,7 @@ try:
           st == 200 and not cards, (st, cards))
 
     # 해지하기 is the other door, and the difference is the refund.
-    phone3, _i3, profile3, (c1,) = family("할머니")
+    phone3, _i3, profile3, c1 = family("할머니")
     buy_and_agree(c1, phone3, profile3)
     st, out = call("/rest/v1/rpc/cancel_care_subscription", token=c1,
                    body={"p_senior_profile_id": profile3})
@@ -382,7 +340,7 @@ try:
     # ======================================================================
     # 5. 부모님이 폰을 바꾸셨을 때
     # ======================================================================
-    phone4, old_install, profile4, (d1,) = family("어머니")
+    phone4, old_install, profile4, d1 = family("어머니")
     st, _ = call("/rest/v1/rpc/send_family_message", token=d1,
                  body={"p_senior_profile_id": profile4, "p_body": "잘 계세요?"})
     assert st == 200, (st, _)
@@ -434,7 +392,7 @@ try:
           (st, mine))
 
     # --- only an empty one may be absorbed ---------------------------------
-    phone5, _i5, profile5, (e1,) = family("남의 어머니")
+    phone5, _i5, profile5, e1 = family("남의 어머니")
     st, pair5 = call("/rest/v1/rpc/start_senior_pairing", token=phone5,
                      body={"p_install_id": _i5, "p_platform": "android"})
     assert st == 200, (st, pair5)
@@ -457,7 +415,7 @@ try:
     # ======================================================================
     # 6. 계정 삭제
     # ======================================================================
-    phone7, _i7, profile7, (f1, f2) = family("아버지", ("영희", "철수"))
+    phone7, _i7, profile7, f1 = family("아버지", "영희")
     f1_id = account_id(f1)
     st, _ = call("/rest/v1/rpc/send_family_message", token=f1,
                  body={"p_senior_profile_id": profile7, "p_body": "아버지 안녕"})
@@ -490,8 +448,9 @@ try:
                % profile7)
     check("the parent's profile survives, because they are still holding "
           "that phone", rows[0]["n"] == 1, rows)
-    st, mine = call("/rest/v1/senior_profiles?select=id", token=f2, method="GET")
-    check("and the sibling who stayed still sees them",
+    st, mine = call("/rest/v1/senior_profiles?select=id", token=phone7,
+                    method="GET")
+    check("and the parent's own phone still reads it",
           st == 200 and len(mine or []) == 1, (st, mine))
 
     # --- the half-made profile nobody ever used ----------------------------

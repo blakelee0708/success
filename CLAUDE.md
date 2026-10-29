@@ -3102,7 +3102,7 @@ inside the app.
 
 ### What proves it
 
-`tool/verify_supabase_leaving.py`, 50 checks against the live project, and it
+`tool/verify_supabase_leaving.py`, 48 checks against the live project, and it
 is **the only thing that can**: the in-memory twins have no RLS, so a removed
 guardian reads everything there and every widget test passes. What it walks is
 the five things a removed guardian must no longer reach - the profile, the
@@ -3230,11 +3230,13 @@ which also survives switching tabs and coming back.
 including the two things that must keep working: the same child re-entering
 a number for their own parent, and a removed child freeing the seat.
 
-Six other verifiers needed a second guardian to test something that has
-nothing to do with the lock, and they **seed the link with the service key**
-rather than inviting. Seeding is setup; the gate is checked in one place. The
-helper is called `seed_sibling` and says so in each file, so lifting the lock
-means putting an invite back there.
+**No verifier builds a second guardian or a second parent any more.** Six of
+them used to, seeding a sibling past the gate with the service key to test
+paths the lock had closed. They were taken out on the owner's word - 무조건
+자녀 하나, 부모 하나 - along with the family-invite, primary-handover and
+family-plan checks that only a second person could reach. The 아니요 check
+in `verify_supabase_link_consent.py` now refuses a parent's only child on a
+fresh pair instead.
 
 ## 두 폰으로 처음 써 봤더니 네 개가 깨져 있었다
 
@@ -3290,7 +3292,7 @@ The server fix is `20261029090000_leaving_refunds.sql`, with two new checks
 in `verify_supabase_leaving.py`. It also makes `remove_guardian_link` refund
 unconditionally, which under 1대1 is what it already did - the cut child is
 always the only one. Applied to the live project on
-the owner's approval; `verify_supabase_leaving.py` (50) and
+the owner's approval; `verify_supabase_leaving.py` (48) and
 `verify_supabase_care_cancel.py` (28) both pass against it.
 
 Dependabot (`.github/dependabot.yml`) was added in the same pass, monthly

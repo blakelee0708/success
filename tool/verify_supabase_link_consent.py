@@ -1,8 +1,7 @@
 """End-to-end check of 가족 연결 동의 against the live project.
 
 A guardian typed a number and was connected. Nothing ever asked the person
-whose phone it is: on the install-SMS path they did nothing at all, and a
-sibling joining by invitation was never mentioned to their mother. Play's
+whose phone it is: on the install-SMS path they did nothing at all. Play's
 rule for an app that looks at another adult's phone is that the adult knows
 and agrees, on their own device.
 
@@ -123,30 +122,6 @@ def links_of(profile_id):
     return rows or []
 
 
-
-def seed_sibling(profile_id, guardian_token, *, role="family", status="active"):
-    """Attaches a second guardian **with the service key**, past the 1대1 gate.
-
-    `assert_can_add_guardian` refuses a second child on a parent, and
-    `assert_can_add_senior` a second parent on a child - the lock the owner
-    asked for on 2026-10-29. The server code those paths lead to is
-    untouched and still works, so the checks below are still worth running;
-    what they cannot do any more is *arrive* through an invite.
-
-    Seeding is setup rather than a test: the gate itself is checked by
-    `tool/verify_supabase_one_to_one.py`. When the lock lifts, this goes back
-    to being a `create_family_invite` / `redeem_family_invite` pair.
-    """
-    st, rows = call("/rest/v1/guardian_accounts?select=id,auth_user_id",
-                    token=guardian_token, method="GET")
-    assert st == 200 and rows, (st, rows)
-    st, made = call("/rest/v1/guardian_senior_links", key=SERVICE,
-                    body={"guardian_account_id": rows[0]["id"],
-                          "senior_profile_id": profile_id,
-                          "role": role, "status": status})
-    assert st in (200, 201, 204), (st, made)
-    return rows[0]["id"]
-
 try:
     # --- 경로 B: the number the parent read out ----------------------------
     phone, install = device()
@@ -227,44 +202,39 @@ try:
     check("an answered link is not re-openable",
           links_of(profile_id)[0]["status"] == "active", links_of(profile_id))
 
-    # --- 가족 초대: the gap that was widest --------------------------------
-    #
-    # **The arriving half is locked now.** 가족 초대하기 is off every screen
-    # and `redeem_family_invite` refuses a second guardian, so a sibling can
-    # no longer walk in - the refusal itself is checked in
-    # `tool/verify_supabase_one_to_one.py`.
-    #
-    # What is checked here is the half that still has to be right if the lock
-    # ever lifts: a waiting second guardian is named on the parent's card, and
-    # 아니요 takes the row away. Seeded past the gate, because how the row
-    # arrived is not what this file is about.
+    # --- 아니요, on a different parent --------------------------------------
+    # One child, one parent: a fresh pair, so the refusal is the only link
+    # that parent ever had.
+    phone_r, install_r = device()
+    st, link_r = call("/rest/v1/rpc/start_senior_pairing", token=phone_r,
+                      body={"p_install_id": install_r, "p_platform": "android"})
+    assert st == 200, (st, link_r)
+    profile_r = link_r["senior_profile_id"]
+    remember({"id": profile_r})
     g2 = guardian("g2")
     call("/rest/v1/rpc/ensure_guardian_account", token=g2,
          body={"p_display_name": "철수"})
-    seed_sibling(profile_id, g2, status="pending")
-    check("a seeded sibling waits alongside the one who was approved",
-          sorted(r["status"] for r in links_of(profile_id))
-              == ["active", "pending"], links_of(profile_id))
+    st, _ = call("/rest/v1/rpc/claim_senior_pairing_code", token=g2,
+                 body={"p_code": link_r["code"], "p_display_name": "아버지"})
+    assert st == 200, (st, _)
 
-    st, card = call("/rest/v1/rpc/pending_guardian_link", token=phone, body={})
-    check("and the parent is told it is the sibling",
+    st, card = call("/rest/v1/rpc/pending_guardian_link", token=phone_r,
+                    body={})
+    check("the parent is told who is asking",
           st == 200 and len(card or []) == 1
           and card[0]["guardian_name"] == "철수", (st, card))
 
-    # --- 아니요 ------------------------------------------------------------
-    st, answered = call("/rest/v1/rpc/answer_guardian_link", token=phone,
+    st, answered = call("/rest/v1/rpc/answer_guardian_link", token=phone_r,
                         body={"p_link_id": card[0]["link_id"],
                               "p_approve": False})
     check("a refusal is accepted", st == 200 and answered is True,
           (st, answered))
     check("and removes the row rather than marking it",
-          len(links_of(profile_id)) == 1, links_of(profile_id))
-    check("leaving the guardian who was approved alone",
-          links_of(profile_id)[0]["status"] == "active", links_of(profile_id))
+          len(links_of(profile_r)) == 0, links_of(profile_r))
 
     st, mine = call("/rest/v1/senior_profiles?select=id", token=g2,
                     method="GET")
-    check("the refused sibling has no parent",
+    check("the refused child has no parent",
           st != 200 or not mine, (st, mine))
 
     # --- the install-SMS path ----------------------------------------------

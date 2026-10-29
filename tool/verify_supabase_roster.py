@@ -4,7 +4,7 @@ Who may know who is looking after this parent. Before this function existed,
 `guardian_accounts` had one policy — auth_user_id = auth.uid() — and the
 embedded read in `guardiansFor` inherited it, so the senior's phone saw
 nothing at all about its guardians and each guardian saw only their own row.
-긴급 연락's 보호자 button and 연결된 가족 were both built on that.
+긴급 연락's 보호자 button was built on that.
 
 Run with:
     SSL_CERT_FILE=/root/.ccr/ca-bundle.crt python3 tool/verify_supabase_roster.py
@@ -80,7 +80,7 @@ def approve(phone_token):
     Every path that attaches a guardian writes `pending` since
     `20261029010000_link_consent.sql`, so a script standing in for the
     parent's phone has to answer the card before anything that needs an
-    active link. A loop, because a sibling joining raises a second card.
+    active link. A loop, so any card left waiting is answered too.
     """
     while True:
         st, card = call("/rest/v1/rpc/pending_guardian_link",
@@ -135,33 +135,8 @@ def by_role(rows):
     return {r["role"]: r for r in (rows or [])}
 
 
-
-def seed_sibling(profile_id, guardian_token, *, role="family", status="active"):
-    """Attaches a second guardian **with the service key**, past the 1대1 gate.
-
-    `assert_can_add_guardian` refuses a second child on a parent, and
-    `assert_can_add_senior` a second parent on a child - the lock the owner
-    asked for on 2026-10-29. The server code those paths lead to is
-    untouched and still works, so the checks below are still worth running;
-    what they cannot do any more is *arrive* through an invite.
-
-    Seeding is setup rather than a test: the gate itself is checked by
-    `tool/verify_supabase_one_to_one.py`. When the lock lifts, this goes back
-    to being a `create_family_invite` / `redeem_family_invite` pair.
-    """
-    st, rows = call("/rest/v1/guardian_accounts?select=id,auth_user_id",
-                    token=guardian_token, method="GET")
-    assert st == 200 and rows, (st, rows)
-    st, made = call("/rest/v1/guardian_senior_links", key=SERVICE,
-                    body={"guardian_account_id": rows[0]["id"],
-                          "senior_profile_id": profile_id,
-                          "role": role, "status": status})
-    assert st in (200, 201, 204), (st, made)
-    return rows[0]["id"]
-
 try:
-    # One parent, their phone, and two guardians — the primary and a sibling
-    # who joined by family invite.
+    # One parent, their phone, and their one child. 무조건 자녀 하나, 부모 하나.
     phone, install = device()
     st, link = call("/rest/v1/rpc/start_senior_pairing", token=phone,
                     body={"p_install_id": install, "p_platform": "android"})
@@ -177,20 +152,12 @@ try:
     approve(phone)
     assert st == 200
 
-    g2 = guardian("g2")
-    call("/rest/v1/rpc/ensure_guardian_account", token=g2,
-         body={"p_display_name": "철수", "p_phone_number": "01011110002"})
-    # Seeded past the 1대1 gate rather than invited - see `seed_sibling`.
-    # What this file is about is whether the roster can be *read*, and that
-    # question is unchanged by how the second row got there.
-    seed_sibling(profile_id, g2)
-
     # --- the senior's own phone ---------------------------------------------
     # This is the one the SOS button depends on, and the one that used to come
     # back as two rows of nulls.
     st, rows = roster(phone, profile_id)
     check("the parent's phone can read its own roster", st == 200, (st, rows))
-    check("it sees both guardians", len(rows or []) == 2, rows)
+    check("it sees its one guardian", len(rows or []) == 1, rows)
 
     seen = by_role(rows)
     check("with their names", seen.get("primary", {}).get("display_name") == "영희",
@@ -203,16 +170,12 @@ try:
     check("and no email is handed to the phone",
           all(r.get("email") is None for r in rows), rows)
 
-    # --- a guardian sees their sibling --------------------------------------
+    # --- the guardian themselves --------------------------------------------
     st, rows = roster(g1, profile_id)
     seen = by_role(rows)
-    check("a guardian can read the roster", st == 200 and len(rows) == 2, rows)
-    check("a sibling now has a name rather than reading as 보호자",
-          seen.get("family", {}).get("display_name") == "철수", seen.get("family"))
-    check("the caller still sees their own email",
+    check("the guardian can read the roster", st == 200 and len(rows) == 1, rows)
+    check("and sees their own email",
           seen.get("primary", {}).get("email") is not None, seen.get("primary"))
-    check("but not their sibling's",
-          seen.get("family", {}).get("email") is None, seen.get("family"))
 
     # --- nobody else ---------------------------------------------------------
     outsider = guardian("outsider")
@@ -230,11 +193,10 @@ try:
 
     # --- a removed guardian leaves the roster -------------------------------
     st, _ = call("/rest/v1/guardian_senior_links?senior_profile_id=eq."
-                 + profile_id + "&role=eq.family", key=SERVICE, method="PATCH",
+                 + profile_id, key=SERVICE, method="PATCH",
                  body={"status": "removed"})
     st, rows = roster(phone, profile_id)
-    check("a removed guardian is not on it",
-          st == 200 and len(rows) == 1 and rows[0]["role"] == "primary", rows)
+    check("a removed guardian is not on it", st == 200 and not rows, rows)
 
 finally:
     for pid in created_profiles:

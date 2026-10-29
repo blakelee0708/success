@@ -74,7 +74,7 @@ def approve(phone_token):
     Every path that attaches a guardian writes `pending` since
     `20261029010000_link_consent.sql`, so a script standing in for the
     parent's phone has to answer the card before anything that needs an
-    active link. A loop, because a sibling joining raises a second card.
+    active link. A loop, so any card left waiting is answered too.
     """
     while True:
         st, card = call("/rest/v1/rpc/pending_guardian_link",
@@ -107,30 +107,6 @@ def device():
     created_users.append(sess["user"]["id"])
     return sess["access_token"], "install-" + uuid.uuid4().hex[:10]
 
-
-
-def seed_sibling(profile_id, guardian_token, *, role="family", status="active"):
-    """Attaches a second guardian **with the service key**, past the 1대1 gate.
-
-    `assert_can_add_guardian` refuses a second child on a parent, and
-    `assert_can_add_senior` a second parent on a child - the lock the owner
-    asked for on 2026-10-29. The server code those paths lead to is
-    untouched and still works, so the checks below are still worth running;
-    what they cannot do any more is *arrive* through an invite.
-
-    Seeding is setup rather than a test: the gate itself is checked by
-    `tool/verify_supabase_one_to_one.py`. When the lock lifts, this goes back
-    to being a `create_family_invite` / `redeem_family_invite` pair.
-    """
-    st, rows = call("/rest/v1/guardian_accounts?select=id,auth_user_id",
-                    token=guardian_token, method="GET")
-    assert st == 200 and rows, (st, rows)
-    st, made = call("/rest/v1/guardian_senior_links", key=SERVICE,
-                    body={"guardian_account_id": rows[0]["id"],
-                          "senior_profile_id": profile_id,
-                          "role": role, "status": status})
-    assert st in (200, 201, 204), (st, made)
-    return rows[0]["id"]
 
 try:
     g1 = guardian("g1")
@@ -169,15 +145,6 @@ try:
                         body={"p_senior_profile_id": pid, "p_body": "누구세요"})
     check("an unrelated guardian cannot send", st >= 400, stranger)
 
-    # A sibling has to see what was already said. Seeded past the 1대1 gate
-    # rather than invited - see `seed_sibling`.
-    g2 = guardian("g2")
-    seed_sibling(pid, g2)
-    st, sibling = call(f"/rest/v1/messages?senior_profile_id=eq.{pid}&select=body",
-                       token=g2, method="GET")
-    check("a sibling sees the conversation they joined",
-          st == 200 and len(sibling) == 2, sibling)
-
     # --- the quota -----------------------------------------------------------
     st, quota = call("/rest/v1/rpc/family_message_quota", token=g1,
                      body={"p_senior_profile_id": pid})
@@ -200,11 +167,6 @@ try:
     st, blocked = call("/rest/v1/rpc/send_family_message", token=g1,
                        body={"p_senior_profile_id": pid, "p_body": "하나 더"})
     check("the 31st guardian message is refused", st >= 400, blocked)
-
-    st, siblingBlocked = call("/rest/v1/rpc/send_family_message", token=g2,
-                              body={"p_senior_profile_id": pid, "p_body": "저도요"})
-    check("the allowance is the family's, not each guardian's",
-          st >= 400, siblingBlocked)
 
     # The one that matters.
     st, seniorStill = call("/rest/v1/rpc/send_family_message", token=phone,

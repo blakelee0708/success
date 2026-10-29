@@ -74,7 +74,7 @@ def approve(phone_token):
     Every path that attaches a guardian writes `pending` since
     `20261029010000_link_consent.sql`, so a script standing in for the
     parent's phone has to answer the card before anything that needs an
-    active link. A loop, because a sibling joining raises a second card.
+    active link. A loop, so any card left waiting is answered too.
     """
     while True:
         st, card = call("/rest/v1/rpc/pending_guardian_link",
@@ -122,30 +122,6 @@ def paired(guardian_token, name):
     approve(phone)
     return profile, phone
 
-
-
-def seed_sibling(profile_id, guardian_token, *, role="family", status="active"):
-    """Attaches a second guardian **with the service key**, past the 1대1 gate.
-
-    `assert_can_add_guardian` refuses a second child on a parent, and
-    `assert_can_add_senior` a second parent on a child - the lock the owner
-    asked for on 2026-10-29. The server code those paths lead to is
-    untouched and still works, so the checks below are still worth running;
-    what they cannot do any more is *arrive* through an invite.
-
-    Seeding is setup rather than a test: the gate itself is checked by
-    `tool/verify_supabase_one_to_one.py`. When the lock lifts, this goes back
-    to being a `create_family_invite` / `redeem_family_invite` pair.
-    """
-    st, rows = call("/rest/v1/guardian_accounts?select=id,auth_user_id",
-                    token=guardian_token, method="GET")
-    assert st == 200 and rows, (st, rows)
-    st, made = call("/rest/v1/guardian_senior_links", key=SERVICE,
-                    body={"guardian_account_id": rows[0]["id"],
-                          "senior_profile_id": profile_id,
-                          "role": role, "status": status})
-    assert st in (200, 201, 204), (st, made)
-    return rows[0]["id"]
 
 try:
     g1 = guardian("g1")
@@ -233,49 +209,16 @@ try:
                       body={"p_senior_profile_id": pid})
     check("only then is 안심 케어 active", active is True, active)
 
-    # --- 가족 플랜 is still here, and no longer unlocks anything ------------
-    #
-    # **The owner locked the app to 1대1 on 2026-10-29.** The plan, its
-    # subscription kind and `has_family_plan()` are all untouched; what went
-    # is the carve-out in `assert_can_add_senior` that let it raise the
-    # limit, and the card that sold it. So these checks say the opposite of
-    # what they used to, deliberately: buying it changes nothing about how
-    # many parents a guardian may have.
-    #
-    # It costs nothing today either way - there is no Play Billing, so the
-    # plan could not have been sold. Opening it again is one condition, and
-    # `20261029080000_one_to_one.sql` leaves it written out in a comment.
+    # --- 부모님은 한 분 -----------------------------------------------------
+    # 무조건 자녀 하나, 부모 하나. A second parent is refused, and nothing
+    # this guardian buys changes that.
     st, blocked = call("/rest/v1/rpc/create_senior_profile", token=g1,
                        body={"p_display_name": "아버지"})
     check("a second parent is refused", st >= 400, blocked)
 
-    st, has = call("/rest/v1/rpc/has_family_plan", token=g1, body={})
-    check("and the plan is reported as absent", has is False, has)
-
-    st, plan = call("/rest/v1/rpc/start_family_plan", token=g1, body={})
-    check("the family plan can still be bought, and needs no senior consent",
-          st == 200 and plan["status"] == "active", plan)
-
-    st, stillBlocked = call("/rest/v1/rpc/create_senior_profile", token=g1,
-                            body={"p_display_name": "아버지"})
-    check("and a second parent is refused even with it", st >= 400, stillBlocked)
-
     st, mine = call("/rest/v1/senior_profiles?select=id", token=g1, method="GET")
     check("so the dashboard still has exactly the one parent",
           st == 200 and len(mine) == 1, mine)
-
-    # A sibling is the other half of the same lock. Seeded past the gate
-    # because what is checked here is the plan, not the arrival - see
-    # `seed_sibling` and `tool/verify_supabase_one_to_one.py`.
-    g2 = guardian("g2")
-    seed_sibling(pid, g2)
-
-    st, hasPlan = call("/rest/v1/rpc/has_family_plan", token=g2, body={})
-    check("a sibling has no plan of their own", hasPlan is False, hasPlan)
-
-    st, blocked2 = call("/rest/v1/rpc/create_senior_profile", token=g2,
-                        body={"p_display_name": "장모님"})
-    check("and cannot take on a parent of their own either", st >= 400, blocked2)
 
     st, otherAlerts = call(f"/rest/v1/alerts?senior_profile_id=eq.{pid}",
                            token=guardian("g3"), method="GET")

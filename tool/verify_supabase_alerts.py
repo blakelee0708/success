@@ -83,7 +83,7 @@ def approve(phone_token):
     Every path that attaches a guardian writes `pending` since
     `20261029010000_link_consent.sql`, so a script standing in for the
     parent's phone has to answer the card before anything that needs an
-    active link. A loop, because a sibling joining raises a second card.
+    active link. A loop, so any card left waiting is answered too.
     """
     while True:
         st, card = call("/rest/v1/rpc/pending_guardian_link",
