@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 748 tests, all passing
+flutter test             # currently 772 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -108,7 +108,10 @@ and a run on a real phone, all four of which have since happened. As of
   account, and Play Billing. Until Billing exists the buy button makes a
   subscription with no money. The privacy-policy URL is no longer one of
   these — `site/privacy.html` is written, and what it still wants is the
-  사업자 fields nobody but the owner can supply; see `## 개인정보처리방침`.
+  공고일 and 시행일 only the owner can set; see `## 개인정보처리방침`. 계정
+  삭제 was a release blocker and is built, in the app and at
+  `site/delete-account.html`; that address has to go in the Play Console's
+  own field.
 - **Guardian sign-in**: Google and Kakao OAuth clients, and the project's mail
   settings — see `### Email sign-up cannot work` below. Both are console work
   only the owner can do.
@@ -2900,8 +2903,222 @@ The same pass found `verify_supabase_pricing.py` still expecting 홈 화면
 first time - nothing had ever sent a sixth photo.
 
 281 checks across the fourteen, all green against the live project. Two of
-the fourteen were 소리 울리기's and went with it, so what is run now is
-**thirteen scripts, 288 checks.**
+the fourteen were 소리 울리기's and went with it, and `verify_supabase_
+leaving.py` arrived with 끊기, so what is run now is **fourteen scripts, 336
+checks.**
+
+## 끊기, 해지, 계정 삭제 - 네 개의 문, 규칙은 하나
+
+Built 2026-10-29 from `docs/superpowers/specs/2026-10-29-leaving-and-refunds.md`.
+Four things were missing and all four are the same shape: somebody wants out
+and the app had no way to say so. `guardian_senior_links.status` has carried
+`'removed'` since Phase 4 and **nothing ever wrote it.**
+
+**끊는 것은 언제나 즉시 되고, 묻지 않고, 되돌릴 수 있다.** Neither side needs
+the other's permission - a leaving that needs the other party's consent is not
+a leaving - and neither loses anything that cannot be had back. The senior's
+buttons, colours, text size and contact numbers are untouched, because leaving
+is stopping somebody looking, not putting a phone back how it was.
+
+And one more, which is the rule the whole product rests on: **the senior is
+never the one charged.** If the senior cuts the link and their child can no
+longer use what they paid for, the money goes back.
+
+### 어르신이 끊는다
+
+설정 → 가족 연결 설정, one child per row, each with its own 끊기. A single
+가족 연결을 끊기 that took everybody off was considered and refused: the person
+a mother is cross with is usually one of them, and a button that cannot tell
+her children apart makes her choose between all of them and none.
+
+**Only the phone the link is about may cut it.** `remove_guardian_link` is
+scoped through the **active device**, the same check `answer_guardian_link`
+makes - a guardian who could remove a sibling would be deciding for their
+parent, and this is the one decision that is hers.
+
+**안심 케어 goes off only when the last child goes.** Two children and one
+cut: the one who was kept did nothing wrong, and taking away what they paid
+for would be the app punishing the wrong person.
+
+### 자녀가 끊는다, and the two doors are not the same door
+
+| | 남은 기간 | 환불 |
+|---|---|---|
+| 해지하기 | 그대로 쓴다 | 없음 |
+| 연결 끊기 | 쓸 수 없다 | 남은 기간만큼 |
+
+That is the whole distinction, and `settle_care_after_leaving` takes a
+`p_refund` for it. 해지 is on 안심 케어 at the bottom; 연결 끊기 is in 연결
+관리. **The parent is not told when a child leaves** - nothing changes on their
+phone beyond the 가족 button going back to 가족 연결, and a notice would be the
+app explaining somebody's child to them.
+
+**`care_is_active` did not look at the link at all**, which is the defect that
+was fixed before anything was added. A guardian whose link was removed would
+have gone on being told their parent's battery, because the gate asked only
+about the subscription and the consent. RLS would have refused the rows, so
+what shipped would have been two layers disagreeing - and the one deciding
+what a family is *charged for* was the permissive one.
+
+**`CareStage.cancelling` is new and its absence was a real defect.** A
+cancelled row fell through to `waitingOnSenior`, so a guardian who pressed
+해지하기 was told 부모님의 허락을 기다리고 있어요 about a parent who had agreed
+months before.
+
+### `alerts` could not carry the one line the app owes
+
+`guardian_notices` (`20261029070000_leaving.sql`) exists for one sentence, and
+the reason is worth reading twice. Alerts hang off the senior's profile and
+`alerts_read` is `guardian_manages`, which goes **false the instant a link is
+removed** - so an alert saying 연결이 끊어졌습니다 would be readable by every
+guardian except the one it is about. Probed against the live project rather
+than assumed.
+
+It could not name the parent either: a removed guardian cannot read
+`senior_profiles`, so the name is **copied in at write time.** A snapshot on
+purpose - it is their own mother's name, and the sentence is useless without it
+to somebody looking after two parents.
+
+**No reason is given, and that is deliberate.** Why a mother cut the link is
+her business, and an app guessing at it in writing is worse than silence. What
+it can say is what to do, which is ask her.
+
+### 부모님이 폰을 바꾸셨을 때, answered on the child's phone
+
+복구 코드 has always existed and **the senior does not know the path.** What a
+parent with a broken phone actually does is switch on the new one and press
+번호 보여주기 as always - which makes a *second, empty profile*, loses the
+conversation, puts two parents on their child's screen and meets the
+family-plan gate.
+
+So the senior is taught nothing new and **the question is asked on the child's
+phone**, because the child is who knows a handset was replaced. They type the
+four digits as usual and the app asks before spending the code: 어머니 폰을
+바꿨어요 / 다른 분이에요.
+
+**Not the six-digit 고객센터 번호, which does survive a new phone.** It never
+expires, so it cannot be a key: a million values, and one leak hands that
+family's phone over for good. The 4-digit code lives ten minutes *and* the
+person answering is already an active guardian of that parent. Both halves are
+needed.
+
+`move_senior_to_new_phone` takes **only an empty profile** - no guardian, no
+messages. Merging one that has either is a different act entirely, and allowing
+it would let anyone holding a code swallow another family.
+
+### 계정 삭제, which was blocking release
+
+Play's user-data policy requires an account made in the app to be deletable
+**in the app and from a web page**, and says in as many words that
+deactivating, disabling or suspending does not count. There was nothing: `lib/`
+held no 탈퇴 and no `deleteAccount`, only 로그아웃. **It does not reach the
+senior** - they never make an account, their phone signs in anonymously.
+
+- In the app: 연결 관리 맨 아래, **below** 로그아웃, which is what almost
+  everyone looking for a way out actually wants.
+- On the web: `site/delete-account.html`, which **deletes rather than
+  collecting a request** - email and password, then the same
+  `delete_guardian_account` the app's row calls. An email form would be a
+  promise with one person in the loop.
+
+What survives is the part worth reading, and all three decisions have the same
+shape: **deleting your own account may not take somebody else's things with
+it.**
+
+- **어르신의 프로필과 폰 설정은 남는다.** The parent is still holding that
+  phone, and a child deleting their account must not collapse their mother's
+  home screen. The first rule of this app is that the senior is neither the one
+  paying nor the one deciding; making them the one who loses most would be the
+  exact inversion of it.
+- **대화는 지우지 않고 보낸 사람만 지운다.** Those messages are also something
+  the parent received.
+- **A profile no guardian and no phone was ever attached to goes with the last
+  account.** Left behind it is a row nobody can reach or delete.
+
+**`one_sender` made the cascade impossible**, and reading found it before
+trying it did. `messages.sender_guardian_id` is `on delete set null`, and
+nulling it on a row whose `sender_device_id` is also null violated
+`(a is null) <> (b is null)` - a check is re-tested on update, and
+`on delete set null` **is** an update. So deleting a guardian who had ever sent
+a message would have failed with a constraint violation, on the one path Play
+requires to work. It is now *never both*, with *exactly one* enforced where the
+rows are written: `send_family_message` is the only writer and `messages` has
+no insert policy at all.
+
+### 연결 관리 moved to 홈, and the bug that move exposed
+
+Nothing in it was about 안심 케어 - leaving, inviting a sibling, reconnecting a
+phone, a name, a number, signing out - and a guardian who had not bought the
+tier had no reason to open that tab, which left them with no route to any of
+it.
+
+**A guardian with no parent connected could not reach it at all**, because 홈
+returns early in that case. That is the person most likely to want 계정 삭제:
+somebody who signed up, connected nobody and changed their mind. Both branches
+draw the block now, and it renders no second connect form because every part
+needing a parent is guarded on having one.
+
+**Moving it broke the connect form in a way worth keeping written down.**
+Creating a second parent makes the parent switcher appear *above* this block,
+and an unkeyed child in a list is matched by position - so every card shifted
+down one, the form's `State` was thrown away mid-submit, and the code it had
+just issued vanished with it. The guardian was left looking at an empty form as
+though nothing had happened. Every card in the block carries a key now, and so
+does the block.
+
+### 전화번호 두 칸, and the live-project bug behind them
+
+One field labelled 부모님 전화번호 went to two different places:
+
+| 모드 | 가는 곳 | |
+|---|---|---|
+| 설치 문자 | 문자 받는 사람 | 맞다 |
+| 번호 입력 | `guardian_accounts.phone_number` | **자녀 번호 자리다** |
+
+So connecting by code gave a mother a 긴급 연락 보호자 button that **rang her
+own phone**. There are accounts on the live project already saved that way.
+
+It is two fields now: 부모님 전화번호 only where it is the parent's (the SMS
+recipient), and **내 전화번호 on both paths**, carrying why it is being asked -
+`부모님 폰의 긴급 연락에서 이 번호로 전화가 갑니다`. That also closes a second
+gap: 경로 A never asked for the guardian's own number at all, so their parent's
+보호자 tile stayed 자녀분 전화번호가 아직 없어요 forever.
+
+**내 전화번호 is also a row in 연결 관리**, because it was the one number this
+app holds and the one it could not change. A guardian who changes number and
+cannot correct it leaves their mother's 보호자 button ringing a dead line, at
+the moment she is least able to work out why.
+
+### 전에 쓰시던 방법으로 로그인해 주세요
+
+A guardian changing handset needs no reconnecting at all - `guardian_accounts`
+is unique on `auth_user_id`, so the same account is the same family,
+subscription and conversation. But signing in **another way** makes a different
+person: email first and then Kakao is an empty account with no parent, and
+connecting their mother again meets the family-plan gate, which tells them
+가족 플랜이 필요해요 about the parent they already had. One line on the login
+screen, before they can do it, because afterwards it cannot be undone from
+inside the app.
+
+### What proves it
+
+`tool/verify_supabase_leaving.py`, 48 checks against the live project, and it
+is **the only thing that can**: the in-memory twins have no RLS, so a removed
+guardian reads everything there and every widget test passes. What it walks is
+the five things a removed guardian must no longer reach - the profile, the
+conversation, the photos, the home buttons, the paid readings - each refused by
+its own policy.
+
+`test/features/family/leaving_test.dart` is the other half, 22 tests, and what
+it checks is the screen: that the way out exists, that it says what is **not**
+lost before what is, and that the app stops showing a family that has gone.
+
+### Still owner-only
+
+`site/terms.html` and `site/privacy.html` have 공고일 and 시행일 left as `「 」`,
+which need the Play 심사 제출 예정일. The deletion URL has to go in the Play
+Console's own field. And no money moves until Play Billing exists, so the
+refund table is a rule the server already follows with nothing to refund.
 
 ## Conventions
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/supabase/supabase_providers.dart';
+import '../../../domain/guardian_notice.dart';
 import '../../../domain/pair_link.dart';
 import 'guardian_home_apps_controller.dart';
 import 'guardian_session_controller.dart';
@@ -16,6 +17,21 @@ import 'guardian_session_controller.dart';
 /// than at each call site for that reason, and it can never be changed once a
 /// listing exists.
 const applicationId = 'com.jalboine.app';
+
+/// What the app owes this guardian, which today is one line: their parent
+/// cut the link.
+///
+/// It is read on the dashboard rather than pushed, because a removed
+/// guardian has nothing else left on that screen - every other provider
+/// behind it is refused by RLS from the moment the link goes, so without
+/// this the app simply shows them an empty dashboard and says nothing.
+final guardianNoticesProvider = FutureProvider<List<GuardianNotice>>((
+  ref,
+) async {
+  final session = ref.watch(guardianSessionProvider);
+  if (!session.hasValue || session.value == null) return const [];
+  return ref.watch(pairingRepositoryProvider).guardianNotices();
+});
 
 /// Everyone looking after the selected parent.
 final guardiansForSelectedProvider = FutureProvider<List<GuardianLink>>((
@@ -104,6 +120,38 @@ class GuardianPairingController extends Notifier<void> {
   void _connected() {
     ref.invalidate(linkedSeniorProfilesProvider);
     ref.invalidate(pendingSeniorLinksProvider);
+  }
+
+  /// 부모님 연결 끊기, from 연결 관리.
+  ///
+  /// Their own link and nobody else's. The parent is not told: nothing
+  /// changes on their phone beyond the 가족 button going back to saying
+  /// 가족 연결, and a notice would be the app explaining somebody's child to
+  /// them.
+  ///
+  /// The remaining month is refunded, which is what separates this from
+  /// 해지하기 - that one keeps the days already paid for.
+  Future<void> leaveSenior(String seniorProfileId) async {
+    await ref.read(pairingRepositoryProvider).leaveSenior(seniorProfileId);
+    ref.invalidate(guardiansForSelectedProvider);
+    _connected();
+  }
+
+  /// 어머니 폰을 바꿨어요, answered here because the child is who knows.
+  ///
+  /// The parent pressed 번호 보여주기 on the new handset as always, which
+  /// made a second, empty profile. This takes the four digits that profile is
+  /// holding and moves the phone onto the original, so the conversation, the
+  /// buttons and the text size are all where they were.
+  Future<void> movePhone({
+    required String code,
+    required String seniorProfileId,
+  }) async {
+    await ref
+        .read(pairingRepositoryProvider)
+        .moveSeniorToNewPhone(code: code, seniorProfileId: seniorProfileId);
+    ref.invalidate(selectedSeniorDeviceProvider);
+    _connected();
   }
 
   Future<void> requestPrimary(String seniorProfileId) async {

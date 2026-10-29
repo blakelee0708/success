@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../family/application/senior_pairing_controller.dart';
+import '../../guardian/application/guardian_pairing_controller.dart';
+import '../../guardian/application/guardian_session_controller.dart';
 import '../../family/presentation/link_consent_prompt.dart';
 import '../data/app_launcher.dart';
 import 'senior_presence_reporter.dart';
@@ -97,6 +99,29 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
     ref.invalidate(seniorGuardiansProvider);
   }
 
+  /// The guardian's half of the same question, and **on resume only.**
+  ///
+  /// Their dashboard is built from cached `FutureProvider`s, and a Riverpod
+  /// container lives as long as the process - so a parent who cut the link
+  /// left their child looking at a screen that still named them until the
+  /// app was killed, with the notice explaining it sitting unread behind the
+  /// same cache. An ordinary app is backgrounded and resumed constantly, so
+  /// that is the moment to ask again.
+  ///
+  /// Not on the 15-second tick. That timer exists because a launcher is the
+  /// screen a phone *sits* on and may never be backgrounded at all; a
+  /// guardian's phone is not, and polling every fifteen seconds while they
+  /// read the dashboard would be network nobody asked for.
+  ///
+  /// Each of the three answers empty without a guardian session, which is
+  /// what makes this safe here: this widget wraps the whole router, so it
+  /// runs on the parent's phone too.
+  void _refreshGuardian() {
+    ref.invalidate(linkedSeniorProfilesProvider);
+    ref.invalidate(pendingSeniorLinksProvider);
+    ref.invalidate(guardianNoticesProvider);
+  }
+
   @override
   void dispose() {
     _tick?.cancel();
@@ -123,6 +148,7 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
     _startTicking();
     ref.read(seniorSettingsControllerProvider.notifier).refresh();
     _refreshFamily();
+    _refreshGuardian();
     // The commoner half of 안부 신호 by far. A launcher may go weeks without
     // being restarted, so start-up alone would report once and then go quiet
     // while the parent used the phone every day.

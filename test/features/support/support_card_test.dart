@@ -10,6 +10,7 @@ import 'package:app/domain/senior_settings.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/launcher/data/phone_dialer.dart';
 import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
+import 'package:app/core/support_contact.dart';
 import 'package:app/features/support/presentation/support_card.dart';
 
 import '../../support/pump_app.dart';

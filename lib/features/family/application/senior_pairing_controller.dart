@@ -85,6 +85,25 @@ class SeniorPairingController extends AsyncNotifier<PairLink?> {
   /// that knows what the senior is trying to do, so it is the one whose error
   /// the screen should show; a second message about signing in would name a
   /// thing this app never asked them to do.
+  /// 가족 연결을 끊는다, one child at a time.
+  ///
+  /// Nothing about the phone changes - the buttons, colours, text size and
+  /// contact numbers all stay. And it is reversible: the same child can be
+  /// connected again, and the old conversation comes back with them, because
+  /// it is the same profile and the person agreeing is the senior herself.
+  ///
+  /// 안심 케어 goes off only when the **last** child goes. Two children and
+  /// one cut: the one who was kept did nothing wrong, and taking away what
+  /// they paid for would be the app punishing the wrong person. The server
+  /// decides that, not this.
+  Future<void> removeGuardian(String guardianAccountId) async {
+    await _signIn();
+    await ref
+        .read(pairingRepositoryProvider)
+        .removeGuardianLink(guardianAccountId);
+    ref.invalidate(seniorGuardiansProvider);
+  }
+
   Future<void> _signIn() => ref.read(seniorAuthProvider).ensure();
 
   /// Records the profile locally and adopts whatever is already waiting for

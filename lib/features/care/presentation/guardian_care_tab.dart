@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/support_contact.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../data/care_capabilities.dart';
@@ -7,7 +11,6 @@ import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/subscription.dart';
 import '../../guardian/application/guardian_home_apps_controller.dart';
 import '../application/care_controller.dart';
-import '../../guardian/presentation/guardian_family_tab.dart';
 import '../../guardian/presentation/widgets/guardian_surfaces.dart';
 
 /// Widget keys the tests drive.
@@ -21,6 +24,10 @@ class GuardianCareKeys {
   static const familyPlan = Key('care-family-plan');
   static const message = Key('care-message');
   static const alerts = Key('care-alerts');
+  static const cancel = Key('care-cancel');
+  static const cancelConfirm = Key('care-cancel-confirm');
+  static const cancelling = Key('care-cancelling');
+  static const contact = Key('care-contact');
 }
 
 /// 돌봄 — 안심 케어 and the family plan.
@@ -67,12 +74,15 @@ class GuardianCareTab extends ConsumerWidget {
         const _Card(child: _Features()),
         _Card(child: _FamilyPlan()),
         if (profile != null) _Card(child: _Alerts(seniorProfileId: profile.id)),
-        // 가족 was a fifth destination and is not any more. What it held that
-        // a guardian needs on day one - 부모님 연결하기 - is on 홈 now, under
-        // the sentence saying no parent is connected. The rest is
-        // once-in-a-while work, so it rides at the bottom of the one tab
-        // that already scrolls.
-        const GuardianFamilySection(),
+        // **연결 관리 was here and moved to 홈.** Nothing in it was about
+        // 안심 케어 - leaving a parent, inviting a sibling, reconnecting a
+        // phone, a name, a number, signing out - and a guardian who has not
+        // bought the tier has no reason to open this tab, which left them
+        // with no route to any of it.
+        //
+        // What belongs here instead is the two things this tab owes: a way
+        // out of what it sells, and somewhere to write.
+        const _Bottom(),
       ],
     );
   }
@@ -110,6 +120,23 @@ class _CareState extends ConsumerWidget {
           noticeKey: GuardianCareKeys.active,
           title: '안심 케어가 켜져 있어요',
           detail: '$seniorName님이 허락하셨습니다.',
+        ),
+        // 해지했고, 남은 기간은 그대로 쓴다. Said as what is still true
+        // first: a guardian who reads 해지되었습니다 and then finds the
+        // readings still working thinks something went wrong.
+        CareStage.cancelling => _Notice(
+          noticeKey: GuardianCareKeys.cancelling,
+          title: '남은 기간까지 쓰실 수 있어요',
+          detail: switch (value.subscription?.currentPeriodEnd) {
+            final end? =>
+              '${end.year}년 ${end.month}월 ${end.day}일까지 그대로 쓰실 수 있어요.\n'
+                  '그 뒤로는 다음 결제가 없습니다.',
+            // No Billing yet, so nothing knows the date. Saying 남은 기간
+            // without one is true; inventing a day is not.
+            null =>
+              '다음 결제는 없습니다. 남은 기간까지는 지금처럼 쓰실 수 있어요.\n'
+                  '부모님 폰은 그대로입니다.',
+          },
         ),
       },
       AsyncError() => const Text('안심 케어 상태를 읽지 못했어요.'),
@@ -491,6 +518,157 @@ class _Card extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GuardianCard(child: child),
+    );
+  }
+}
+
+/// The two things this tab owes, at the bottom of it.
+///
+/// **Text rows, not filled buttons.** Nobody opens this app in order to
+/// cancel or to complain, so neither is given the weight of something to do -
+/// the same reason 로그아웃 is a text button. They have to be *findable*
+/// rather than prominent, which is what the tab promising 언제든 해지할 수
+/// 있습니다 requires: a promise with no row under it anywhere is the app
+/// saying something it has not built.
+class _Bottom extends ConsumerWidget {
+  const _Bottom();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(selectedSeniorProfileProvider);
+    final stage = ref.watch(careStateProvider).value?.stage;
+    // Only where there is something to cancel. 해지하기 on a tab nobody has
+    // bought anything from is a button that can only produce an error.
+    final canCancel =
+        profile != null &&
+        (stage == CareStage.active || stage == CareStage.waitingOnSenior);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 6),
+        const Divider(color: AppColors.guardianRule, height: 24),
+        if (canCancel)
+          _BottomRow(
+            rowKey: GuardianCareKeys.cancel,
+            icon: Icons.highlight_off_rounded,
+            label: '안심 케어 해지하기',
+            onTap: () => _confirmCancel(context, ref, profile.displayName),
+          ),
+        // 이메일 rather than a number, because the reader is different. The
+        // senior's 문의하기 dials; an adult with an ordinary phone writes,
+        // and a refund or a cancellation is not a phone call.
+        _BottomRow(
+          rowKey: GuardianCareKeys.contact,
+          icon: Icons.mail_outline_rounded,
+          label: '문의하기',
+          detail: supportEmail,
+          onTap: () => _writeTo(context),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmCancel(
+    BuildContext context,
+    WidgetRef ref,
+    String seniorName,
+  ) async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: GuardianCareKeys.cancelConfirm,
+        title: const Text('안심 케어를 해지할까요?'),
+        // What is **not** lost comes first, the same rule 로그아웃 and
+        // 연결 끊기 both follow. A guardian who reads 해지 as 연결 끊기 will
+        // not press it, and one who presses it expecting that is worse off.
+        content: Text(
+          '남은 기간까지는 지금처럼 쓰실 수 있어요. 다음 결제만 없습니다.\n'
+          '$seniorName님 폰은 그대로입니다. 연결도, 홈 화면도, 메시지도 그대로예요.\n'
+          '언제든 다시 신청하실 수 있어요.',
+          style: const TextStyle(fontSize: 14.5, height: 1.55),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('아니요, 그대로 쓸게요'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('해지하기'),
+          ),
+        ],
+      ),
+    );
+    if (go != true) return;
+    try {
+      await ref.read(careControllerProvider.notifier).cancelCare();
+    } on SeniorLinkException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  /// Opens the mail app with the address filled in.
+  ///
+  /// Not awaited and never reported as sent: the app hands the message to
+  /// another app and cannot see what happens there, the same rule the install
+  /// SMS and every dialled number follow.
+  Future<void> _writeTo(BuildContext context) async {
+    final uri = Uri(scheme: 'mailto', path: supportEmail);
+    try {
+      final opened = await launchUrl(uri);
+      if (opened || !context.mounted) return;
+    } on Object {
+      if (!context.mounted) return;
+    }
+    // A phone with no mail app set up. The address is on the row either way,
+    // so this puts it where it can be copied rather than reporting a fault.
+    await Clipboard.setData(const ClipboardData(text: supportEmail));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('메일 주소를 복사했어요. $supportEmail')),
+      );
+  }
+}
+
+class _BottomRow extends StatelessWidget {
+  const _BottomRow({
+    required this.rowKey,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.detail,
+  });
+
+  final Key rowKey;
+  final IconData icon;
+  final String label;
+  final String? detail;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        key: rowKey,
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.guardianInkSoft,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          alignment: Alignment.centerLeft,
+        ),
+        icon: Icon(icon, size: 18),
+        label: Text(
+          detail == null ? label : '$label · ${detail!}',
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ),
     );
   }
 }

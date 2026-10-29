@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../domain/guardian_notice.dart';
 import '../../domain/pair_link.dart';
 import '../../domain/pending_guardian_link.dart';
 import '../../domain/senior_profile.dart';
@@ -88,6 +89,44 @@ abstract interface class PairingRepository {
 
   /// The other side of the same wait, for the guardian's own screen.
   Future<List<PendingSeniorLink>> pendingSeniorLinks();
+
+  // --- 끊기 -----------------------------------------------------------------
+
+  /// 어르신이 끊는다, from 설정 → 가족 연결 설정 on their own phone.
+  ///
+  /// **One guardian at a time, by name.** A single button that took every
+  /// child off was considered and refused: the person a mother is cross with
+  /// is usually one of them, and a button that cannot tell her children
+  /// apart makes her choose between all of them and none.
+  ///
+  /// Nothing about the phone changes. The buttons, the colours, the text
+  /// size and the contact numbers all stay: leaving is stopping somebody
+  /// looking, not putting a phone back how it was.
+  Future<void> removeGuardianLink(String guardianAccountId);
+
+  /// 자녀가 끊는다, from 연결 관리. Their own link and nobody else's - a
+  /// guardian may leave, and may not remove a sibling.
+  Future<void> leaveSenior(String seniorProfileId);
+
+  /// 부모님이 폰을 바꾸셨을 때, answered on the **child's** phone.
+  ///
+  /// The senior does what they always do and presses 번호 보여주기, which on
+  /// a new handset makes a second, empty parent. The child types the four
+  /// digits, their app sees they already have this parent, and asks. This is
+  /// 어머니 폰을 바꿨어요: the new phone takes the original profile, the old
+  /// one steps down, and the conversation, buttons and text size are all
+  /// where they were.
+  Future<SeniorProfile> moveSeniorToNewPhone({
+    required String code,
+    required String seniorProfileId,
+  });
+
+  /// What the app owes this guardian, which today is one line: their parent
+  /// cut the link.
+  Future<List<GuardianNotice>> guardianNotices();
+
+  /// Marks them read so the line is said once rather than every open.
+  Future<void> markNoticesRead(List<String> ids);
 
   // --- Primary guardian -----------------------------------------------------
 
@@ -262,6 +301,63 @@ class SupabasePairingRepository implements PairingRepository {
   }
 
   @override
+  Future<void> removeGuardianLink(String guardianAccountId) async {
+    await _rpc('remove_guardian_link', {
+      'p_guardian_account_id': guardianAccountId,
+    });
+  }
+
+  @override
+  Future<void> leaveSenior(String seniorProfileId) async {
+    await _rpc('leave_senior', {'p_senior_profile_id': seniorProfileId});
+  }
+
+  @override
+  Future<SeniorProfile> moveSeniorToNewPhone({
+    required String code,
+    required String seniorProfileId,
+  }) async => _profile(
+    await _rpc('move_senior_to_new_phone', {
+      'p_code': code.trim(),
+      'p_senior_profile_id': seniorProfileId,
+    }),
+  );
+
+  @override
+  Future<List<GuardianNotice>> guardianNotices() async {
+    try {
+      // Read from the table rather than through a function: the policy is
+      // `guardian_account_id = current_guardian_account_id()`, so the row
+      // the caller may see is exactly the row addressed to them.
+      final rows = await _client
+          .from('guardian_notices')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(20);
+      return [
+        for (final row in rows) ?GuardianNotice.fromRow(row),
+      ];
+    } on Object {
+      // A dashboard with no signal draws itself. There is nothing here a
+      // guardian has to be stopped for.
+      return const [];
+    }
+  }
+
+  @override
+  Future<void> markNoticesRead(List<String> ids) async {
+    if (ids.isEmpty) return;
+    try {
+      await _client
+          .from('guardian_notices')
+          .update({'read_at': DateTime.now().toUtc().toIso8601String()})
+          .inFilter('id', ids);
+    } on Object {
+      // Said twice is better than a screen that will not open.
+    }
+  }
+
+  @override
   Future<void> requestPrimaryGuardian(String seniorProfileId) => _rpc(
     'request_primary_guardian',
     {'p_senior_profile_id': seniorProfileId},
@@ -311,6 +407,15 @@ class SupabasePairingRepository implements PairingRepository {
     }
     if (message.contains('not allowed to manage')) {
       return '이 부모님을 관리할 권한이 없어요.';
+    }
+    if (message.contains('already the one connected')) {
+      return '이미 연결된 폰이에요.';
+    }
+    if (message.contains('already set up with a family')) {
+      return '그 번호는 다른 가족이 쓰고 있는 폰이에요.';
+    }
+    if (message.contains('not an active senior device')) {
+      return '부모님 폰에서만 끊을 수 있어요.';
     }
     return message;
   }
@@ -541,6 +646,82 @@ class InMemoryPairingRepository implements PairingRepository {
         seniorName: store.profiles[entry.key]?.displayName,
       ),
   ];
+
+  @override
+  Future<void> removeGuardianLink(String guardianAccountId) async {
+    // The server scopes this to the profile whose **active device** is the
+    // caller, which is what stops a guardian cutting a sibling off. The twin
+    // has one senior phone, so that is the profile it holds.
+    final profileId = store.activeDeviceByProfile.entries
+        .where((e) => e.value.installId == store.seniorInstallId)
+        .map((e) => e.key)
+        .firstOrNull;
+    if (profileId == null) {
+      throw const SeniorLinkException('부모님 폰에서만 끊을 수 있어요.');
+    }
+    store.unlink(profileId, guardianAccountId);
+    store.notices.add(
+      GuardianNotice(
+        id: 'notice-${store.notices.length + 1}',
+        type: 'link_removed',
+        seniorName: store.profiles[profileId]?.displayName,
+        body: '연결이 끊어졌습니다.',
+        createdAt: now(),
+      ),
+    );
+  }
+
+  @override
+  Future<void> leaveSenior(String seniorProfileId) async {
+    store.unlink(seniorProfileId, actingGuardianId);
+  }
+
+  @override
+  Future<SeniorProfile> moveSeniorToNewPhone({
+    required String code,
+    required String seniorProfileId,
+  }) async {
+    _requireManages(seniorProfileId);
+    final link = _claim(code, PairMode.seniorSharesCode);
+    final emptyId = link.seniorProfileId;
+    if (emptyId == null || emptyId == seniorProfileId) {
+      throw const SeniorLinkException('이미 연결된 폰이에요.');
+    }
+    if ((store.rolesByProfile[emptyId] ?? const {}).isNotEmpty) {
+      throw const SeniorLinkException('그 번호는 다른 가족이 쓰고 있는 폰이에요.');
+    }
+    final device = store.activeDeviceByProfile[emptyId];
+    if (device != null) {
+      store.attachDevice(
+        seniorProfileId,
+        device.installId,
+        platform: device.platform,
+      );
+    }
+    store.activeDeviceByProfile.remove(emptyId);
+    store.profiles.remove(emptyId);
+    return store.profiles[seniorProfileId]!;
+  }
+
+  @override
+  Future<List<GuardianNotice>> guardianNotices() async =>
+      List.unmodifiable(store.notices.where((n) => !n.isRead));
+
+  @override
+  Future<void> markNoticesRead(List<String> ids) async {
+    for (var i = 0; i < store.notices.length; i++) {
+      final notice = store.notices[i];
+      if (!ids.contains(notice.id)) continue;
+      store.notices[i] = GuardianNotice(
+        id: notice.id,
+        type: notice.type,
+        seniorName: notice.seniorName,
+        body: notice.body,
+        createdAt: notice.createdAt,
+        readAt: now(),
+      );
+    }
+  }
 
   @override
   Future<void> requestPrimaryGuardian(String seniorProfileId) async {

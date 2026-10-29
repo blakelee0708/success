@@ -34,6 +34,7 @@ class Subscription {
     required this.status,
     this.seniorProfileId,
     this.refundedAt,
+    this.currentPeriodEnd,
   });
 
   final String id;
@@ -46,9 +47,28 @@ class Subscription {
 
   final DateTime? refundedAt;
 
+  /// When the paid month runs out.
+  ///
+  /// It only matters after 해지: 해지하시면 다음 결제가 없고, 남은 기간까지는
+  /// 계속 쓰실 수 있습니다, so the tab has to be able to say which day that
+  /// is. Null while there is no Billing to supply one, and then the screen
+  /// says 남은 기간 without a date rather than inventing one.
+  final DateTime? currentPeriodEnd;
+
   bool get isWaitingOnSenior =>
       status == SubscriptionStatus.pendingSeniorConsent;
   bool get isRefunded => status == SubscriptionStatus.refunded;
+
+  /// 해지했지만 남은 기간이 아직 있다.
+  ///
+  /// A cancelled row is **not** an inactive one until its month is up, which
+  /// is the server's rule too - `care_is_active` accepts it while
+  /// `current_period_end` is in the future. A null end is read as still
+  /// running: the guardian paid for a month and nothing here knows when it
+  /// ends, so stopping early would take away what they bought.
+  bool stillRunningAt(DateTime now) =>
+      status == SubscriptionStatus.canceled &&
+      (currentPeriodEnd == null || currentPeriodEnd!.isAfter(now));
 
   static Subscription? fromRow(Map<String, Object?> row) {
     final id = row['id'];
@@ -69,6 +89,10 @@ class Subscription {
         final String value => DateTime.tryParse(value),
         _ => null,
       },
+      currentPeriodEnd: switch (row['current_period_end']) {
+        final String value => DateTime.tryParse(value)?.toLocal(),
+        _ => null,
+      },
     );
   }
 
@@ -79,11 +103,18 @@ class Subscription {
       other.plan == plan &&
       other.status == status &&
       other.seniorProfileId == seniorProfileId &&
-      other.refundedAt == refundedAt;
+      other.refundedAt == refundedAt &&
+      other.currentPeriodEnd == currentPeriodEnd;
 
   @override
-  int get hashCode =>
-      Object.hash(id, plan, status, seniorProfileId, refundedAt);
+  int get hashCode => Object.hash(
+    id,
+    plan,
+    status,
+    seniorProfileId,
+    refundedAt,
+    currentPeriodEnd,
+  );
 }
 
 /// Something that happened while the guardian was not looking.

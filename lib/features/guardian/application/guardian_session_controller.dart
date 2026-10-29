@@ -188,6 +188,17 @@ class GuardianLoginController extends Notifier<GuardianLoginState> {
 
   Future<void> signOut() => ref.read(guardianAuthRepositoryProvider).signOut();
 
+  /// 계정 삭제, and then out.
+  ///
+  /// The sign-out is part of it rather than something the caller remembers:
+  /// the account is gone, so the session in memory points at nothing, and a
+  /// dashboard built from it would go on drawing the last parent's name
+  /// until the app was restarted.
+  Future<void> deleteAccount() async {
+    await ref.read(seniorLinkRepositoryProvider).deleteGuardianAccount();
+    await ref.read(guardianAuthRepositoryProvider).signOut();
+  }
+
   /// Checked here rather than in the form so the same rules apply however the
   /// screen is driven, and so the message is written once.
   bool _validate(String email, String password) {

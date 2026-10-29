@@ -29,6 +29,8 @@ class FamilyLinkKeys {
   static const submit = Key('family-link-submit');
   static const message = Key('family-link-message');
   static const connected = Key('family-link-connected');
+  static const guardians = Key('family-link-guardians');
+  static const removeConfirm = Key('family-link-remove-confirm');
 }
 
 /// 가족 연결 on the parent's phone.
@@ -107,7 +109,11 @@ class _FamilyLinkScreenState extends ConsumerState<FamilyLinkScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (connected)
-                      const _Connected()
+                      _Connected(
+                        guardians:
+                            ref.watch(seniorGuardiansProvider).value ??
+                            const [],
+                      )
                     else ...[
                       const _ShowCode(),
                       const SizedBox(height: 34),
@@ -518,8 +524,88 @@ class _EnterCode extends StatelessWidget {
   }
 }
 
-class _Connected extends StatelessWidget {
-  const _Connected();
+/// 가족과 연결되었어요, and the one thing only this phone can do about it.
+///
+/// **One child per row, each with its own 끊기.** A single 가족 연결을 끊기
+/// that took everybody off was considered and refused: the person a mother
+/// is cross with is usually one of them, and a button that cannot tell her
+/// children apart makes her choose between all of them and none.
+///
+/// It is here because this is the screen about her family and the path is
+/// already in 사용법. And it is the only place it can be: the server scopes
+/// the removal to the profile whose **active device** is the caller, so a
+/// guardian cannot do it from their own phone - which is the point, since
+/// this is the one decision that is hers.
+class _Connected extends ConsumerStatefulWidget {
+  const _Connected({required this.guardians});
+
+  final List<GuardianLink> guardians;
+
+  @override
+  ConsumerState<_Connected> createState() => _ConnectedState();
+}
+
+class _ConnectedState extends ConsumerState<_Connected> {
+  bool _busy = false;
+
+  Future<void> _remove(GuardianLink guardian) async {
+    final name = guardian.displayName ?? '자녀분';
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: FamilyLinkKeys.removeConfirm,
+        title: Text(
+          '$name과 연결을 끊을까요?',
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+        ),
+        // **잃는 것이 없다는 말이 먼저.** The same rule the 사용하지 않기
+        // dialog and the guardian's 로그아웃 both follow: a senior who reads
+        // this as losing their buttons will never press it, and one who is
+        // afraid of that will not ask.
+        content: Text(
+          '$name이 이 폰을 볼 수 없게 됩니다.\n'
+          '버튼과 글씨 크기는 그대로 있어요.\n'
+          '나중에 다시 연결하실 수 있어요.',
+          style: const TextStyle(fontSize: 19, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              '아니요, 그대로 둘게요',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            // Deliberately the quieter of the two, the same as the 네 that
+            // hands back the home screen. What is being offered here is
+            // giving something up, and a terracotta 네 beside a grey refusal
+            // is the app leaning on somebody to take it.
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.seniorInkMuted,
+            ),
+            child: const Text(
+              '네',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(seniorPairingControllerProvider.notifier)
+          .removeGuardian(guardian.guardianAccountId);
+    } on Object {
+      // The link is still there and still on screen. Nothing to explain: a
+      // senior cannot act on a failure to reach the server.
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -543,6 +629,44 @@ class _Connected extends StatelessWidget {
           '이제 자녀분이 이 폰의 화면을\n정리해 드릴 수 있어요',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 18, height: 1.6),
+        ),
+        const SizedBox(height: 26),
+        Column(
+          key: FamilyLinkKeys.guardians,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final guardian in widget.guardians)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        guardian.displayName ?? '자녀분',
+                        style: const TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.seniorInk,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _busy ? null : () => _remove(guardian),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.seniorInkMuted,
+                      ),
+                      child: const Text(
+                        '연결 끊기',
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
       ],
     );

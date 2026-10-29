@@ -1,28 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/support_contact.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
 import '../../launcher/data/phone_dialer.dart';
 import '../application/support_code_controller.dart';
 
-/// The 고객센터 number. **Blank, and only the owner can fill it.**
-///
-/// It sits here as one named constant for the same reason `site/privacy.html`
-/// leaves its six 사업자 fields as `「 」`: a number cannot be invented, and a
-/// wrong one on this card sends a confused eighty-year-old to a stranger.
-/// While it is blank the card shows the 문의 번호 and no 전화하기 button,
-/// because a call button that dials nothing is the one thing worse than no
-/// call button - the senior presses it, nothing happens, and they conclude
-/// the phone is broken. The same rule 긴급 연락's 보호자 tile follows.
-///
-/// Filling it makes the button appear. Nothing else changes.
-///
-/// Filled 2026-10-28 with the owner's own number, which is what 고객센터 is
-/// until there is a desk. It dials rather than calls - `tel:` resolves to
-/// ACTION_DIAL - exactly as 119 and 보호자 do, because
-/// `06_PERMISSION_AND_POLICY` requires the person press call themselves.
-const supportPhoneNumber = '010-7522-3157';
+// The 고객센터 number lives in `lib/core/support_contact.dart`, beside the
+// address the guardian's half writes to: three copies of a contact detail is
+// how one of them quietly stops being true, and two of the three are in HTML
+// that cannot read Dart.
 
 class SupportCardKeys {
   const SupportCardKeys._();

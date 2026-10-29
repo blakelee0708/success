@@ -326,6 +326,13 @@ class _HomeTab extends ConsumerWidget {
             ),
           ),
           GuardianConnectParentCard(heading: false),
+          // **The same block, because a guardian with no parent still has an
+          // account.** Without it 로그아웃, 내 전화번호, 개인정보처리방침 and
+          // 계정 삭제 were all unreachable for exactly the person most likely
+          // to want the last one: somebody who signed up, connected nobody,
+          // and changed their mind. It draws no second connect form - every
+          // part of it that needs a parent is guarded on having one.
+          GuardianFamilySection(),
         ],
       );
     }
@@ -516,6 +523,20 @@ class _HomeTab extends ConsumerWidget {
             ],
           ),
         ),
+        // **연결 관리 is here now, not on 안심 케어.** Nothing in it is about
+        // the paid tier, and a guardian who has not bought it has no reason
+        // to open that tab - which left leaving, inviting a sibling,
+        // reconnecting a phone and signing out with no route at all. 홈
+        // already shows 부모님 연결하기 when there is none, so everything
+        // about a connection is on one tab.
+        // **Keyed, because the parent switcher appears above it.** Creating
+        // a second parent from the form inside this block inserts
+        // `_ParentSwitcher` at the head of this list, and an unkeyed child is
+        // matched by position - so the whole block was rebuilt from scratch
+        // mid-submit and the code the form had just issued vanished with its
+        // State. The guardian was left looking at an empty form as though
+        // nothing had happened.
+        const GuardianFamilySection(key: ValueKey('family-section')),
       ],
     );
   }

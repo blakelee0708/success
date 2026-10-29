@@ -33,13 +33,15 @@ Future<InMemoryGuardianAuthRepository> _openFamilyTab(
     ],
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(GuardianNavKeys.destination('안심 케어')));
-  await tester.pumpAndSettle();
-  // 로그아웃 is the last thing on a tab that now carries 안심 케어's own
-  // cards above the 연결 관리 block, and a `ListView` does not build what is
-  // far below the fold. Taller viewport rather than scrolling: what is being
-  // tested is the row, not the scrolling.
-  tester.view.physicalSize = const Size(390, 5200);
+  // **연결 관리 is on 홈 now, not on 안심 케어.** Nothing in it is about the
+  // paid tier, and a guardian who has not bought it had no reason to open
+  // that tab - which left 로그아웃, inviting a sibling and leaving a parent
+  // with no route at all.
+  //
+  // 로그아웃 is the last thing on the tab and a `ListView` does not build
+  // what is far below the fold. Taller viewport rather than scrolling: what
+  // is being tested is the row, not the scrolling.
+  tester.view.physicalSize = const Size(390, 6400);
   await tester.pumpAndSettle();
   return auth;
 }

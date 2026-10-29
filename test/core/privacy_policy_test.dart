@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/core/support_contact.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 
 /// `site/privacy.html` is the URL Play 심사 and 카카오 동의항목 are given, so
@@ -20,6 +21,7 @@ import 'package:app/data/remote/guardian_auth_repository.dart';
 /// `supabase/migrations/` and the live schema, and keeping it honest is a
 /// reading rather than a comparison.
 void main() {
+  _contactAndDeletion();
   final policy = File('site/privacy.html').readAsStringSync();
 
   test('this app declares no permission of its own', () {
@@ -171,5 +173,58 @@ void main() {
           'the page still has 「 」 fields, so it must keep the notice saying '
           'it is not ready to publish',
     );
+  });
+}
+
+/// The contact address, and the page Play requires to exist.
+///
+/// Both are facts about files rather than about code, so nothing else in the
+/// build would notice them going stale: an address printed in three places is
+/// how one of them quietly stops being true, and a deletion page named in
+/// a policy but missing from `site/` is a 404 a reviewer finds.
+void _contactAndDeletion() {
+  final privacy = File('site/privacy.html').readAsStringSync();
+  final terms = File('site/terms.html').readAsStringSync();
+
+  test('both pages carry the address the app shows', () {
+    // HTML cannot read a Dart constant, so this is the only thing holding
+    // the three copies together. The guardian's 안심 케어 tab prints
+    // `supportEmail`; these two print it in their own 문의 lines.
+    expect(
+      privacy,
+      contains(supportEmail),
+      reason: '개인정보처리방침 must give the same address the app does',
+    );
+    expect(
+      terms,
+      contains(supportEmail),
+      reason: '이용약관 must give the same address the app does',
+    );
+  });
+
+  test('계정 삭제 has a page, and both halves point at it', () {
+    // Play's user-data policy requires the option to be findable **in the
+    // app and outside it**, and says deactivating or suspending does not
+    // count. The page is the outside half; the row in 연결 관리 is the
+    // inside one.
+    final page = File('site/delete-account.html');
+    expect(
+      page.existsSync(),
+      isTrue,
+      reason: 'Play requires a web route to account deletion',
+    );
+    final html = page.readAsStringSync();
+    expect(
+      html,
+      contains('delete_guardian_account'),
+      reason: 'the page has to delete rather than collect a request',
+    );
+    for (final doc in [privacy, terms]) {
+      expect(
+        doc,
+        contains('delete-account.html'),
+        reason: 'the policy pages have to name where deletion happens',
+      );
+    }
   });
 }

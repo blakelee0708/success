@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../../domain/device_status.dart';
 import '../../domain/guardian_account.dart';
+import '../../domain/guardian_notice.dart';
 import '../../domain/senior_device.dart';
 import '../../domain/senior_readings.dart';
 import '../../domain/app_category.dart';
@@ -31,6 +32,20 @@ abstract interface class SeniorLinkRepository {
     String? displayName,
     String? phoneNumber,
   });
+
+  /// 계정 삭제, which Play's user-data policy requires an app to offer **in
+  /// the app and from a web page** - and says in as many words that
+  /// deactivating or suspending does not count.
+  ///
+  /// It does not reach the senior: they never make an account, their phone
+  /// signs in anonymously, so the requirement is the guardian's alone.
+  ///
+  /// What survives is the part worth reading. The parent's profile and phone
+  /// settings stay, because the parent is still holding that phone and a
+  /// child deleting their own account must not collapse their mother's home
+  /// screen. The messages stay too, with the sender removed: those are also
+  /// something the parent received.
+  Future<void> deleteGuardianAccount();
 
   /// Records where this guardian's phone can be reached, so their parent's
   /// message can arrive as a notification rather than only as a number on a
@@ -133,6 +148,11 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
       throw const SeniorLinkException('보호자 계정을 만들지 못했어요.');
     }
     return account;
+  }
+
+  @override
+  Future<void> deleteGuardianAccount() async {
+    await _rpc('delete_guardian_account', const {});
   }
 
   @override
@@ -411,6 +431,28 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// Whether the pairing twin leaves new links waiting, as the server does.
   bool pendingLinkConsent = false;
 
+  /// What the app owes this guardian, written by the pairing twin's
+  /// [InMemoryPairingRepository.removeGuardianLink] the way
+  /// `remove_guardian_link` writes `guardian_notices`.
+  final List<GuardianNotice> notices = [];
+
+  /// Takes a guardian off a profile, the way `'removed'` does on the server.
+  ///
+  /// The row is dropped rather than marked, which is the one place this twin
+  /// is simpler than the database: nothing in the app reads a removed link,
+  /// and RLS - the thing that actually makes a removal mean something - has
+  /// no equivalent here at all. `tool/verify_supabase_leaving.py` is what
+  /// proves the removal, and this is what lets a screen be driven.
+  void unlink(String profileId, String guardianId) {
+    rolesByProfile[profileId]?.remove(guardianId);
+    if ((rolesByProfile[profileId] ?? const {}).isEmpty) {
+      rolesByProfile.remove(profileId);
+    }
+    if (guardianId == guardianAccountId) linkedProfileIds.remove(profileId);
+    pendingLinks.remove(profileId);
+    pendingAskedBy.remove(profileId);
+  }
+
   /// Registers a profile as belonging to [role], used by the pairing twin.
   void link(String profileId, String guardianId, String role) {
     (rolesByProfile[profileId] ??= {})[guardianId] = role;
@@ -488,6 +530,18 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// Every token this guardian has reported, in order, so a test can see that
   /// a rotation lands rather than only that something was called once.
   final guardianPushTokens = <String>[];
+
+  @override
+  Future<void> deleteGuardianAccount() async {
+    // Mirrors what the server keeps rather than what it deletes, because
+    // what it keeps is the part a screen can get wrong: the profiles stay,
+    // and only this guardian's links to them go.
+    for (final profileId in [...linkedProfileIds]) {
+      rolesByProfile[profileId]?.remove(guardianAccountId);
+    }
+    linkedProfileIds.clear();
+    notices.clear();
+  }
 
   @override
   Future<void> registerPushToken(String token) async {

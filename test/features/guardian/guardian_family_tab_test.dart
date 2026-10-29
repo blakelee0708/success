@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/pairing_repository.dart';
@@ -52,19 +51,16 @@ Future<Harness> _pumpFamilyTab(
     ],
   );
   await tester.pumpAndSettle();
-  // 부모님 연결하기 is on 홈 while there is nobody to connect to, under the
-  // line that says so; 연결 관리, at the bottom of 안심 케어, is where the
-  // parent-specific cards are and where a second parent is added.
-  if (withParent) {
-    await tester.tap(find.byKey(GuardianNavKeys.destination('안심 케어')));
-    await tester.pumpAndSettle();
-  }
-
+  // **연결 관리 is at the bottom of 홈 now**, not of 안심 케어 - nothing in
+  // it is about the paid tier, and a guardian who has not bought it had no
+  // reason to open that tab. So there is no tab to switch to: 부모님
+  // 연결하기 and everything about a connection are on the one page.
+  //
   // The tab is a ListView and its cards are lazily built, so a phone-sized
   // viewport would leave the ones below the fold out of the tree entirely.
   // Taller viewport rather than scrolling in each case: what is being tested
   // is the content, not the scrolling.
-  tester.view.physicalSize = const Size(390, 5200);
+  tester.view.physicalSize = const Size(390, 6400);
   await tester.pumpAndSettle();
 
   return (store: store, pairing: pairing);

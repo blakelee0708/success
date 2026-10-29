@@ -24,6 +24,11 @@ abstract interface class SubscriptionRepository {
   /// anything on.
   Future<Subscription> startCare(String seniorProfileId);
 
+  /// 해지하기, which is **not** 연결 끊기 and differs in exactly one way:
+  /// the days already paid for are kept, so nothing is refunded. The link,
+  /// the messages and the parent's phone are untouched.
+  Future<Subscription> cancelCare(String seniorProfileId);
+
   /// Steps 3 and 4, and only from the senior's own phone. A refusal refunds.
   Future<SeniorProfile> resolveCareConsent(
     String seniorProfileId,
@@ -68,6 +73,14 @@ class SupabaseSubscriptionRepository implements SubscriptionRepository {
       'p_senior_profile_id': seniorProfileId,
     }),
   );
+
+  @override
+  Future<Subscription> cancelCare(String seniorProfileId) async =>
+      _subscription(
+        await _rpc('cancel_care_subscription', {
+          'p_senior_profile_id': seniorProfileId,
+        }),
+      );
 
   @override
   Future<SeniorProfile> resolveCareConsent(
@@ -210,6 +223,34 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
     );
     store.setConsent(seniorProfileId, PaidConsentStatus.pending);
     return subscription;
+  }
+
+  @override
+  Future<Subscription> cancelCare(String seniorProfileId) async {
+    final index = subscriptions.indexWhere(
+      (s) =>
+          s.seniorProfileId == seniorProfileId &&
+          s.plan == SubscriptionPlan.care &&
+          (s.status == SubscriptionStatus.active || s.isWaitingOnSenior),
+    );
+    if (index < 0) throw const SeniorLinkException('해지할 것이 없어요.');
+    final live = subscriptions[index];
+    // An unanswered question is withdrawn rather than left on the parent's
+    // home screen pointing at a family that has changed its mind; one that
+    // was answered keeps its remaining days.
+    final refunding = live.isWaitingOnSenior;
+    subscriptions[index] = Subscription(
+      id: live.id,
+      plan: live.plan,
+      status: refunding
+          ? SubscriptionStatus.refunded
+          : SubscriptionStatus.canceled,
+      seniorProfileId: seniorProfileId,
+      refundedAt: refunding ? DateTime(2026, 10, 29) : null,
+      currentPeriodEnd: live.currentPeriodEnd,
+    );
+    if (refunding) store.setConsent(seniorProfileId, PaidConsentStatus.none);
+    return subscriptions[index];
   }
 
   @override

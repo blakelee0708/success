@@ -86,7 +86,22 @@ class _GuardianLoginScreenState extends ConsumerState<GuardianLoginScreen> {
                   const SizedBox(height: 20),
                   GuardianHeading(
                     title: _creatingAccount ? '보호자 계정 만들기' : '보호자 로그인',
-                    lede: '부모님 폰을 대신 정리해 드리려면 보호자 계정이 필요해요.',
+                    lede: _creatingAccount
+                        ? '부모님 폰을 대신 정리해 드리려면 보호자 계정이 필요해요.'
+                        // **폰을 바꿨을 때의 함정이 여기 있다.** A guardian
+                        // changing handset needs no reconnecting at all -
+                        // `guardian_accounts` is unique on `auth_user_id`, so
+                        // the same account is the same family, subscription
+                        // and conversation. But signing in **another way**
+                        // makes a different person: email first and then
+                        // Kakao is an empty account with no parent, and
+                        // connecting their mother again meets the family-plan
+                        // gate, which tells them 가족 플랜이 필요해요 about
+                        // the parent they already had. One line, before they
+                        // can do it, because afterwards it cannot be undone
+                        // from inside the app.
+                        : '전에 쓰시던 방법으로 로그인해 주세요. '
+                              '다른 방법으로 로그인하면 새 계정이 됩니다.',
                   ),
                   const SizedBox(height: 26),
                   TextField(
