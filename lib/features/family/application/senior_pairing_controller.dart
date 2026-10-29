@@ -83,10 +83,8 @@ class SeniorPairingController extends AsyncNotifier<PairLink?> {
   /// connected again, and the old conversation comes back with them, because
   /// it is the same profile and the person agreeing is the senior herself.
   ///
-  /// The child who is cut gets back what is left of their own 안심 케어:
-  /// the gate needs the buyer's own link, so they can no longer use it. A
-  /// sibling who stays keeps theirs - the one who was kept did nothing
-  /// wrong. The server decides that, not this.
+  /// The child who is cut gets back what is left of their 안심 케어, because
+  /// they can no longer use it. The server decides that, not this.
   Future<void> removeGuardian(String guardianAccountId) async {
     await _signIn();
     await ref

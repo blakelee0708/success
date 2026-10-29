@@ -2937,9 +2937,8 @@ scoped through the **active device**, the same check `answer_guardian_link`
 makes - a guardian who could remove a sibling would be deciding for their
 parent, and this is the one decision that is hers.
 
-**안심 케어 goes off only when the last child goes.** Two children and one
-cut: the one who was kept did nothing wrong, and taking away what they paid
-for would be the app punishing the wrong person.
+**The child who is cut gets back what is left of their 안심 케어**, because
+they can no longer use it. Under 1대1 they are always the only child.
 
 ### 자녀가 끊는다, and the two doors are not the same door
 
@@ -3103,7 +3102,7 @@ inside the app.
 
 ### What proves it
 
-`tool/verify_supabase_leaving.py`, 51 checks against the live project, and it
+`tool/verify_supabase_leaving.py`, 50 checks against the live project, and it
 is **the only thing that can**: the in-memory twins have no RLS, so a removed
 guardian reads everything there and every widget test passes. What it walks is
 the five things a removed guardian must no longer reach - the profile, the
@@ -3122,6 +3121,11 @@ Console's own field. And no money moves until Play Billing exists, so the
 refund table is a rule the server already follows with nothing to refund.
 
 ## 1대1만 연결한다, and it is a lock rather than a rewrite
+
+**Restated by the owner the same day, and it is the rule: 무조건 자녀 하나,
+부모 하나.** Nothing is designed, reported or tested as a two-child or
+two-parent case. The lock below stays reversible because it was built that
+way, not because anything is waiting for it to lift.
 
 The owner's call on 2026-10-29: 복잡할 거 같아. The app could put several
 children on one parent **and** several parents on one child, and almost
@@ -3262,8 +3266,10 @@ time: the twins answered more kindly than the server.
 ## 코드 리뷰가 찾은 열 개
 
 2026-10-29, `/code-review` over the leaving, 1대1 and real-phone commits.
-All ten were checked against the code before anything was changed, and all
-ten were real. The shape repeats: **the twin answered more kindly than the
+Ten were reported and checked against the code. **One was not a bug in this
+product**: it needed two children on one parent, which the owner has ruled
+out for good - 무조건 자녀 하나, 부모 하나. Review findings are checked
+against the 1대1 rule before they are reported, from now on. The shape repeats: **the twin answered more kindly than the
 server**, or two copies of one rule disagreed.
 
 - `guardianNotices` read every row; the twin read unread ones. On the live
@@ -3273,8 +3279,6 @@ server**, or two copies of one rule disagreed.
   only while the phone shows no family.
 - A refund from leaving read as the parent refusing 안심 케어. Only
   `paid_consent_status = 'refused'` is a refusal now.
-- `remove_guardian_link` refunded only when nobody was left, though the gate
-  needs the buyer's own link - so a child cut beside a sibling kept paying.
 - `settle_care_after_leaving` refunded a cancelled month that had run out.
 - `stillRunningAt` read a null end as forever; the server reads it as over.
 - 영희과 / 영희이 on the senior's 끊기 dialog. `korean_particle.dart`.
@@ -3282,9 +3286,11 @@ server**, or two copies of one rule disagreed.
 - `delete-account.html` carried the project keys with nothing checking them.
 - The twin's one-to-one lock ignored pending links.
 
-The two server fixes are `20261029090000_leaving_refunds.sql`, with three
-new checks in `verify_supabase_leaving.py`. Applied to the live project on
-the owner's approval; `verify_supabase_leaving.py` (51) and
+The server fix is `20261029090000_leaving_refunds.sql`, with two new checks
+in `verify_supabase_leaving.py`. It also makes `remove_guardian_link` refund
+unconditionally, which under 1대1 is what it already did - the cut child is
+always the only one. Applied to the live project on
+the owner's approval; `verify_supabase_leaving.py` (50) and
 `verify_supabase_care_cancel.py` (28) both pass against it.
 
 Dependabot (`.github/dependabot.yml`) was added in the same pass, monthly

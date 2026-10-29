@@ -379,19 +379,6 @@ try:
           len(subs) == 1 and subs[0]["status"] == "canceled"
           and subs[0]["refunded_at"] is None, subs)
 
-    # The child who paid is cut while a sibling stays. The gate needs the
-    # buyer's own link, so they lose 안심 케어 - and the first version kept
-    # their money, because it refunded only when nobody was left.
-    phone6, _i6, profile6, (f1, _f2) = family("큰아버지", ("민수", "지영"))
-    buy_and_agree(f1, phone6, profile6)
-    st, _ = call("/rest/v1/rpc/remove_guardian_link", token=phone6,
-                 body={"p_guardian_account_id": account_id(f1)})
-    assert st in (200, 204), (st, _)
-    subs = sql("select status from public.subscriptions "
-               "where senior_profile_id = '%s' and plan = 'care'" % profile6)
-    check("a paying child cut while a sibling stays gets the month back",
-          len(subs) == 1 and subs[0]["status"] == "refunded", subs)
-
     # ======================================================================
     # 5. 부모님이 폰을 바꾸셨을 때
     # ======================================================================
