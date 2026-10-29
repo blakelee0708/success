@@ -6,7 +6,6 @@ import '../../../core/supabase/supabase_providers.dart';
 import '../../../core/app_version.dart';
 import '../../../data/senior_link_store.dart';
 import '../../../domain/device_status.dart';
-import '../../care/data/push_messaging.dart';
 import '../data/device_status_reader.dart';
 
 /// Tells the server the parent's phone is still being used, and carries the
@@ -32,27 +31,15 @@ class SeniorPresenceReporter {
   /// check-in. See [report].
   DeviceStatus? _lastRead;
 
-  /// The FCM address this phone was last reachable at.
+  /// The parent's phone used to read an FCM token here and send it up with
+  /// the check-in, so 소리 울리기 had an address to reach. That feature is
+  /// out of the product, and an address nothing sends to is a thing
+  /// collected for no reason - so the read is gone and
+  /// `20261029060000_drop_ring.sql` takes the column with it.
   ///
-  /// It rides on the check-in rather than having a call of its own, because
-  /// it is the same claim — *this phone, now* — and because a token rotates:
-  /// Firebase reissues it on reinstall, on a restore to a new handset and
-  /// occasionally for its own reasons. Something that already runs on every
-  /// resume is exactly what a rotating value needs, and a registration done
-  /// once at pairing would have gone stale silently, which is how 소리 울리기
-  /// would fail on the day it mattered.
-  String? _lastToken;
-
-  /// The token the server has actually been told about, which is how
-  /// [_readAhead] knows whether it is holding a new one.
-  String? _reportedToken;
-
   /// True while a read is outstanding, so a burst of resumes does not stack
-  /// calls up on a channel that is already not answering. One flag each,
-  /// because the two reads are independent and a stuck channel must not hold
-  /// the other back.
+  /// calls up on a channel that is already not answering.
   bool _readingStatus = false;
-  bool _readingToken = false;
 
   /// Returns false when there was nothing to report or the report did not
   /// land. No screen shows an error either way.
@@ -85,15 +72,7 @@ class SeniorPresenceReporter {
     // with a timeout was tried and is worse: it leaves a pending timer
     // behind on every phone that does not answer, and `flutter test` is such
     // a phone — eighteen tests failed at teardown rather than in the open.
-    // Two reads, started separately and neither awaited.
-    //
-    // Separately matters: chained, the token sat behind a platform channel
-    // that is not obliged to answer — `flutter test` is such a phone, and so
-    // is one whose launcher service has wedged — and so it was never read at
-    // all. A battery percentage must not be able to cost the family 소리
-    // 울리기.
     unawaited(_readStatus());
-    unawaited(_readToken(link.installId));
 
     try {
       // Whatever the last read found, which on a working phone is the
@@ -106,14 +85,12 @@ class SeniorPresenceReporter {
           .touchDevice(
             link.installId,
             status: _lastRead,
-            pushToken: _lastToken,
             // Sent every time rather than once, because the phone that
             // matters is the one that just updated and the server coalesces
             // anyway. It is a constant, so no channel is involved and
             // nothing can fail to answer for it.
             appVersion: appVersion,
           );
-      _reportedToken = _lastToken;
       return true;
     } on Object {
       return false;
@@ -138,49 +115,6 @@ class SeniorPresenceReporter {
       // stopped being used.
     } finally {
       _readingStatus = false;
-    }
-  }
-
-  /// The FCM address, and — unlike the battery — a call of its own when it
-  /// turns out to be new.
-  ///
-  /// One resume of staleness costs a percentage nobody is watching. It costs
-  /// *the address a ring is sent to*, and the window it would leave open is
-  /// the one right after a phone is set up, which is exactly when the family
-  /// is trying things out.
-  ///
-  /// It cannot loop: this is reached only from the start of a check-in, and
-  /// the write marks the token as reported.
-  Future<void> _readToken(String installId) async {
-    if (_readingToken) return;
-    _readingToken = true;
-    try {
-      final token = await _ref.read(pushMessagingProvider).token();
-      // Same rule as the battery: null is *this phone could not say*, not
-      // *this phone is unreachable*. Clearing a good token because the
-      // network was down for a second would take 소리 울리기 away until the
-      // next rotation.
-      if (token != null) _lastToken = token;
-    } on Object {
-      // A build with no Firebase, or a phone with no Play Services. Neither
-      // is a reason for the check-in itself to fail.
-    } finally {
-      _readingToken = false;
-    }
-
-    if (_lastToken == null || _lastToken == _reportedToken) return;
-    try {
-      await _ref
-          .read(seniorLinkRepositoryProvider)
-          .touchDevice(
-            installId,
-            status: _lastRead,
-            pushToken: _lastToken,
-            appVersion: appVersion,
-          );
-      _reportedToken = _lastToken;
-    } on Object {
-      // The next resume tries again, because `_reportedToken` is unchanged.
     }
   }
 }

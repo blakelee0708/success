@@ -257,46 +257,54 @@ class _Features extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 14),
             child: _Feature(capability: capability),
           ),
-        const SizedBox(height: 2),
-        // Said once, plainly, and given enough weight to be read: nothing
-        // below this is built, and a paid screen that looks ready is a
-        // promise. It was a 13px grey line, the least visible thing on the
-        // screen it is most important to be honest on.
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.guardianTintAmber,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.schedule_rounded,
-                size: 17,
-                color: AppColors.guardianTintAmberInk,
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  '아래 기능은 아직 준비 중입니다. 신청하셔도 지금은 동작하지 않아요.',
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    height: 1.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.guardianTintAmberInk,
+        // **Shown only when something is actually below it**, which is new
+        // since the list emptied. 소리 울리기 was the last `planned`
+        // capability and it is out of the product, so an unguarded banner
+        // would warn a guardian about nothing at all - which reads either as
+        // the app being broken or as something being hidden from them, on
+        // the screen that takes their money.
+        if (plannedCareCapabilities.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          // Said once, plainly, and given enough weight to be read: nothing
+          // below this is built, and a paid screen that looks ready is a
+          // promise. It was a 13px grey line, the least visible thing on the
+          // screen it is most important to be honest on.
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.guardianTintAmber,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.schedule_rounded,
+                  size: 17,
+                  color: AppColors.guardianTintAmberInk,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    '아래 기능은 아직 준비 중입니다. 신청하셔도 지금은 동작하지 않아요.',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      height: 1.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.guardianTintAmberInk,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        for (final capability in plannedCareCapabilities)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: _Feature(capability: capability),
-          ),
+          const SizedBox(height: 16),
+          for (final capability in plannedCareCapabilities)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: _Feature(capability: capability),
+            ),
+        ],
       ],
     );
   }

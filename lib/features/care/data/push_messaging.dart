@@ -1,17 +1,18 @@
-import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// How a guardian's 소리 울리기 reaches their parent's phone.
+/// How the guardian's phone is told a message arrived.
 ///
-/// It is the only thing in the app that is triggered remotely. Everything
-/// else the guardian changes — the home buttons, the text size, a message —
-/// is read by the parent's phone the next time it asks, and that is fine
-/// because none of it is urgent. A phone that has to make a noise *now*
-/// cannot wait for the next resume, because the case this exists for is a
-/// phone nobody is holding.
+/// It was built for 소리 울리기 and that feature is out of the product, so
+/// what is left is one direction: a notification on the **child's** phone
+/// when their parent writes. Android draws that itself from a `notification`
+/// payload, with no handler here, so this interface is down to the two calls
+/// that get an address and ask permission to use it.
+///
+/// It never runs on the parent's phone any more. A token is an address, and
+/// with nothing left to send to it there is nothing to collect — see
+/// `20261029060000_drop_ring.sql`, which takes the column away.
 ///
 /// Wrapped in an interface for the same reason every repository here is: a
 /// build with no `google-services.json`, and every `flutter test`, resolves to
@@ -25,22 +26,13 @@ abstract interface class PushMessaging {
   /// Asks for permission to show notifications, where the phone has such a
   /// thing to ask.
   ///
-  /// Only the **guardian's** half calls this. On the senior's phone a ring is
-  /// drawn as a full-screen layer by the app itself, so no notification is
-  /// posted and nothing needs granting — and a system dialog arriving on a
-  /// launcher is the exact problem `HomeAppCoach` exists to soften.
+  /// Only the **guardian's** half reaches this, because theirs is the only
+  /// half that is sent anything. A system dialog arriving on a launcher is
+  /// the exact problem `HomeAppCoach` exists to soften.
   ///
   /// `POST_NOTIFICATIONS` is already in the built APK: `firebase_messaging`
   /// declares it and Gradle merges it in. What was missing was the asking.
   Future<void> requestPermission();
-
-  /// Data messages arriving **while the app is running in the foreground**.
-  ///
-  /// That limit is real and it is currently the feature's ceiling: a phone
-  /// with its screen off does not deliver here, and waking it needs a native
-  /// background handler that does not exist yet. See `## 소리 울리기` in
-  /// CLAUDE.md.
-  Stream<Map<String, String>> messages();
 }
 
 class FirebasePushMessaging implements PushMessaging {
@@ -69,11 +61,6 @@ class FirebasePushMessaging implements PushMessaging {
       // screen.
     }
   }
-
-  @override
-  Stream<Map<String, String>> messages() => FirebaseMessaging.onMessage.map(
-    (m) => m.data.map((k, v) => MapEntry(k, '$v')),
-  );
 }
 
 /// What a build with no Firebase gets. Silent rather than throwing: the
@@ -86,9 +73,6 @@ class NoPushMessaging implements PushMessaging {
 
   @override
   Future<void> requestPermission() async {}
-
-  @override
-  Stream<Map<String, String>> messages() => const Stream.empty();
 }
 
 /// What the tests use.
@@ -103,8 +87,6 @@ class FakePushMessaging implements PushMessaging {
   int tokenReads = 0;
   int permissionAsks = 0;
 
-  final _messages = StreamController<Map<String, String>>.broadcast();
-
   @override
   Future<String?> token() async {
     tokenReads++;
@@ -114,14 +96,6 @@ class FakePushMessaging implements PushMessaging {
 
   @override
   Future<void> requestPermission() async => permissionAsks++;
-
-  @override
-  Stream<Map<String, String>> messages() => _messages.stream;
-
-  /// Delivers a push as if it had arrived from the server.
-  void deliver(Map<String, String> data) => _messages.add(data);
-
-  void dispose() => _messages.close();
 }
 
 /// Firebase when the build has it, silence when it does not.

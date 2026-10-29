@@ -10,10 +10,7 @@ import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import java.io.ByteArrayOutputStream
-import android.media.AudioAttributes
 import android.media.AudioManager
-import android.media.MediaPlayer
-import android.media.RingtoneManager
 import android.speech.tts.TextToSpeech
 import java.util.Locale
 import android.net.ConnectivityManager
@@ -40,7 +37,6 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     private var channel: MethodChannel? = null
-    private var alarm: MediaPlayer? = null
     private var tts: TextToSpeech? = null
 
     /** One thread, reused. A pool per call would outlive the call. */
@@ -102,8 +98,6 @@ class MainActivity : FlutterActivity() {
                     }
                     "isDefaultHome" -> result.success(isDefaultHome())
                     "deviceStatus" -> result.success(deviceStatus())
-                    "startEmergencySound" -> result.success(startEmergencySound())
-                    "stopEmergencySound" -> result.success(stopEmergencySound())
                     "speak" -> result.success(speak(call.argument<String>("text")))
                     "stopSpeaking" -> result.success(stopSpeaking())
                     "openHomeSettings" -> result.success(openHomeSettings())
@@ -377,61 +371,17 @@ class MainActivity : FlutterActivity() {
         return status
     }
 
-    /**
-     * 소리 울리기 — makes this phone loud so its owner finds it.
-     *
-     * Plays on STREAM_ALARM, which a silent or vibrate ringer does not mute:
-     * that is how alarm clocks keep working. Do Not Disturb can still mute it
-     * where the user has turned alarms off inside DND, and overriding that
-     * needs ACCESS_NOTIFICATION_POLICY — not worth demanding of a senior for
-     * a feature whose whole point is to be a courtesy.
-     *
-     * The volume is deliberately left alone. Turning someone's alarm volume to
-     * maximum and not putting it back is the kind of thing that catches them
-     * at six the next morning.
-     */
-    private fun startEmergencySound(): Boolean {
-        stopEmergencySound()
-        val uri = RingtoneManager.getActualDefaultRingtoneUri(
-            this, RingtoneManager.TYPE_ALARM
-        ) ?: RingtoneManager.getActualDefaultRingtoneUri(
-            this, RingtoneManager.TYPE_RINGTONE
-        ) ?: return false
-        return try {
-            alarm = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                setDataSource(this@MainActivity, uri)
-                isLooping = true
-                prepare()
-                start()
-            }
-            true
-        } catch (e: Exception) {
-            // A phone with no alarm tone, or one that refuses the stream.
-            // The Flutter side still shows who is asking and why, which is
-            // the half that cannot be allowed to depend on a speaker.
-            stopEmergencySound()
-            false
-        }
-    }
-
-    private fun stopEmergencySound(): Boolean {
-        alarm?.let {
-            try {
-                if (it.isPlaying) it.stop()
-            } catch (e: IllegalStateException) {
-                // Already torn down.
-            }
-            it.release()
-        }
-        alarm = null
-        return true
-    }
+    // 소리 울리기 lived here: STREAM_ALARM, a looping MediaPlayer, and a
+    // stop that put it back. It is out of the product and so is the code.
+    //
+    // The sound was never the hard half. A push reaches the app only while
+    // the app is in the foreground, so it made a noise on a phone that was
+    // already awake and none at all on one in a bag in another room, which
+    // is the case it existed for. Waking the phone needs a background
+    // handler and USE_FULL_SCREEN_INTENT, which Android 14 does not grant a
+    // launcher by default - and no published app was found that lets one
+    // adult make another adult's phone sound, so a reviewer would be
+    // meeting the idea for the first time here.
 
     /**
      * 읽어드리기 — reads a message out loud.
@@ -472,7 +422,6 @@ class MainActivity : FlutterActivity() {
 
     /** Nothing may outlive the screen that started it. */
     override fun onDestroy() {
-        stopEmergencySound()
         tts?.stop()
         tts?.shutdown()
         tts = null

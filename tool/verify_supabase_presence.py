@@ -68,6 +68,19 @@ def call(path, *, token=None, key=None, method="POST", body=None):
             return e.code, raw.decode()
 
 
+def sql(statement):
+    """A Management API read, for the two questions no client can answer:
+    whether a column exists and whether a function does."""
+    req = urllib.request.Request(
+        f"https://api.supabase.com/v1/projects/{REF}/database/query",
+        data=json.dumps({"query": statement}).encode(),
+        headers={"Authorization": f"Bearer {MGMT}",
+                 "Content-Type": "application/json", "User-Agent": UA},
+        method="POST")
+    with urllib.request.urlopen(req) as r:
+        return json.load(r)
+
+
 def check(name, cond, detail=""):
     print(("PASS  " if cond else "FAIL  ") + name + ("" if cond else f"  <- {detail}"))
     if not cond:
@@ -129,7 +142,7 @@ def device_row(token, profile_id):
     st, rows = call(
         f"/rest/v1/senior_devices?senior_profile_id=eq.{profile_id}"
         "&select=install_id,last_seen_at,is_active,battery_percent,is_charging,"
-        "ringer_mode,status_read_at,push_token",
+        "ringer_mode,status_read_at",
         token=token, method="GET")
     return st, rows
 
@@ -207,39 +220,42 @@ try:
     check("and neither refusal disturbed the stored reading",
           active(rows)["battery_percent"] == 61, rows)
 
-    # --- 소리 울리기's address ------------------------------------------------
-    # The token rides on the check-in because it rotates: reinstall, restore
-    # to a new handset, and occasionally for Firebase's own reasons.
-    st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
-                 body={"p_install_id": install, "p_push_token": "fcm-token-1"})
-    check("the check-in carries the push token", st in (200, 204), st)
+    # --- the ring's address is gone, and so is the gate ---------------------
+    # 소리 울리기 is out of the product. An FCM token is an address, and with
+    # nothing left to send to it, holding one would be collecting something
+    # for no purpose - so `20261029060000_drop_ring.sql` takes the column and
+    # the gate away. The guardian's own token is untouched: theirs is what
+    # tells a child their parent wrote to them.
+    cols = sql("select column_name from information_schema.columns "
+               "where table_schema = 'public' "
+               "and table_name = 'senior_devices' "
+               "and column_name = 'push_token'")
+    check("the parent's phone has nowhere to store a push token", cols == [],
+          cols)
 
-    st, rows = device_row(g1, profile_id)
-    check("the token is stored against the phone",
-          active(rows)["push_token"] == "fcm-token-1", active(rows))
+    fns = sql("select p.proname from pg_proc p "
+              "join pg_namespace n on n.oid = p.pronamespace "
+              "where n.nspname = 'public' "
+              "and p.proname = 'request_phone_ring'")
+    check("and the gate that rang it no longer exists", fns == [], fns)
 
-    # Same coalesce as the battery, and it matters more: clearing a good token
-    # because the network was down for a second would leave the phone
-    # unreachable until Firebase next rotated it.
-    st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
-                 body={"p_install_id": install})
-    st, rows = device_row(g1, profile_id)
-    check("a check-in with no token leaves the last one standing",
-          active(rows)["push_token"] == "fcm-token-1", active(rows))
+    guardian_col = sql("select column_name from information_schema.columns "
+                       "where table_schema = 'public' "
+                       "and table_name = 'guardian_accounts' "
+                       "and column_name = 'push_token'")
+    check("the child's own token is untouched", len(guardian_col) == 1,
+          guardian_col)
 
     st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
-                 body={"p_install_id": install, "p_push_token": "fcm-token-2"})
-    st, rows = device_row(g1, profile_id)
-    check("a rotated token replaces the old one",
-          active(rows)["push_token"] == "fcm-token-2", active(rows))
+                 body={"p_install_id": install, "p_push_token": "fcm-1"})
+    check("a check-in still carrying one is refused rather than ignored",
+          st >= 400, st)
 
     # --- one phone may not report for another -------------------------------
     other, _other_install = device()
     st, _ = call("/rest/v1/rpc/touch_senior_device", token=other,
-                 body={"p_install_id": install, "p_push_token": "stolen"})
+                 body={"p_install_id": install})
     st2, rows2 = device_row(g1, profile_id)
-    check("and it cannot redirect the ring to itself",
-          active(rows2)["push_token"] == "fcm-token-2", active(rows2))
     check("another phone naming this install changes nothing",
           st2 == 200 and active(rows2)["last_seen_at"] == active(rows)["last_seen_at"],
           (active(rows)["last_seen_at"], active(rows2)["last_seen_at"]))
@@ -266,8 +282,6 @@ try:
           st == 200 and len(live) == 1, rows)
     check("and it is the new one",
           live and live[0]["install_id"] == new_install, live)
-    check("the new phone starts with no token of its own, not the old one's",
-          active(rows)["push_token"] is None, active(rows))
     check("the new phone starts with no reading of its own, not the old one's",
           live and live[0]["battery_percent"] is None, live)
 

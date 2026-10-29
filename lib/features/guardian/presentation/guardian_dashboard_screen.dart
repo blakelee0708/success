@@ -19,7 +19,6 @@ import '../application/guardian_push_registrar.dart';
 import '../application/guardian_session_controller.dart';
 import '../../care/application/care_controller.dart';
 import '../../care/presentation/guardian_care_tab.dart';
-import '../../care/presentation/ring_sheet.dart';
 import '../../messages/application/unread_notice.dart';
 import '../../messages/application/message_controller.dart';
 import '../../messages/presentation/guardian_message_tab.dart';
@@ -238,10 +237,6 @@ class _HomeTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profiles = ref.watch(linkedSeniorProfilesProvider);
     final profile = ref.watch(selectedSeniorProfileProvider);
-    // 소리 울리기 takes the 안심 케어 card's slot once there is a
-    // subscription *and* the senior has agreed. The gate would refuse a ring
-    // either way; showing a button that cannot work is the part worth
-    // avoiding.
     final careOn =
         ref.watch(careStateProvider).value?.stage == CareStage.active;
 
@@ -430,22 +425,13 @@ class _HomeTab extends ConsumerWidget {
               tintInk: AppColors.guardianTintVioletInk,
               onTap: () => onOpenTab(2),
             ),
-            // The card that advertised the paid tier becomes the paid
-            // feature once it is bought, which keeps the grid 2x2. A fifth
-            // card would leave a hole in it, and a locked sixth would be an
-            // advertisement the buyer has already answered.
-            if (careOn)
-              GuardianActionCard(
-                key: GuardianHomeKeys.ring,
-                label: '소리\n울리기',
-                detail: '전화를 안 받으실 때',
-                icon: Icons.volume_up_rounded,
-                tint: AppColors.guardianTintAmber,
-                tintInk: AppColors.guardianTintAmberInk,
-                onTap: () => RingSheet.open(context),
-              )
-            else
-              GuardianActionCard(
+            // **소리 울리기 held this slot once the tier was bought**, so
+            // the card that sold 안심 케어 turned into the thing it sold.
+            // With the ring out of the product the slot goes back to one
+            // card, shown whether or not they have paid: a buyer reading
+            // 알아보기 about something they already have is better than a
+            // grid with a hole in it.
+            GuardianActionCard(
                 key: GuardianHomeKeys.care,
                 label: '안심 케어\n알아보기',
                 detail: '준비 중',

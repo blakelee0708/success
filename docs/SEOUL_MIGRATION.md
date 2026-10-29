@@ -357,7 +357,7 @@ https://github.com/blakelee0708/success/settings/secrets/actions
 | `site/reset.html` | `SUPABASE_URL`과 `PUBLISHABLE` | **완료** - 서울, 키는 Management API 에서 읽었다. 표시도 v3 |
 | CI 저장소 시크릿 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | 남음 (오너). 위의 '한 번도 통과한 적이 없다' |
 | 카카오 콘솔 | Redirect URI를 새 Supabase 주소로 | 남음 (오너) |
-| Edge Function | `ring-phone` 재배포 + `FCM_SERVICE_ACCOUNT` 시크릿 | 남음 |
+| Edge Function | `ring-phone` 재배포 + `FCM_SERVICE_ACCOUNT` 시크릿 | 2026-10-29 무효. `ring-phone`은 제품에서 빠지며 배포도 지웠다. `FCM_SERVICE_ACCOUNT`는 `notify-message`가 쓰므로 그대로 둔다 |
 | 한글 메일 템플릿 | `tool/apply_auth_templates.py` | **완료** - 9개 검사 통과, 플래그까지 true |
 
 **`site/reset.html`의 두 값은 같이 바꿔야 한다.** URL만 바꾸고 키를 두면
@@ -445,7 +445,7 @@ API에 손이 닿지 않지만, `pages.yml`이 `steps.deployment.outputs.page_ur
   앱 목록은 가지 않지만, 어르신이 직접 고른 앱 하나의 이름은 간다.
 
 **국외 이전은 서울로 옮겨도 사라지지 않는다.** 사라지는 것은 Supabase
-한 곳이다. Resend(메일), Firebase Cloud Messaging(소리 울리기 푸시 토큰),
+한 곳이다. Resend(메일), Firebase Cloud Messaging(자녀 폰 알림용 푸시 토큰),
 Google Play(배포·결제)는 그대로 국외다. 방침은 그렇게 적혀 있다.
 
 남은 것은 **사업자 정보**다. 상호, 대표자, 주소, 개인정보 보호책임자, 문의

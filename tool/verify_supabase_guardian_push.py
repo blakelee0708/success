@@ -3,7 +3,9 @@
 The Edge Function that talks to FCM is a sender and nothing else; every
 question about *whether this notification may be sent* is answered by
 `notify_family_message`, in SQL, which is also what makes it checkable from
-here. The same split 소리 울리기 uses, for the same reason.
+here - the same split 소리 울리기's gate used before that feature was taken
+out, and for the same reason: a rule written in SQL can be checked from a
+container that cannot run Deno.
 
 The one worth reading twice is the caller check. This function is reached by
 the **parent's own phone**, right after it sends. A guardian who could call it

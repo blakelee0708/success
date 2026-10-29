@@ -73,7 +73,6 @@ abstract interface class SeniorLinkRepository {
   Future<void> touchDevice(
     String installId, {
     DeviceStatus? status,
-    String? pushToken,
     String? appVersion,
   });
 
@@ -90,8 +89,9 @@ abstract interface class SeniorLinkRepository {
   ///
   /// Goes through `senior_readings` rather than reading the device row,
   /// because the gate has to live somewhere the app cannot skip and a column
-  /// cannot be carved out of the table-level SELECT grant - tried for
-  /// `push_token`, written into its migration so nobody tries it twice.
+  /// cannot be carved out of the table-level SELECT grant that
+  /// `authenticated` holds - tried, and written into
+  /// `20261026020000_push_token.sql` so nobody tries it twice.
   Future<SeniorReadings> readings(String seniorProfileId);
 
   /// 문의하기's number: six digits the senior reads out to the support desk.
@@ -197,7 +197,6 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
   Future<void> touchDevice(
     String installId, {
     DeviceStatus? status,
-    String? pushToken,
     String? appVersion,
   }) async {
     try {
@@ -209,9 +208,6 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
           'p_is_charging': status?.isCharging,
           'p_ringer_mode': status?.ringer?.name,
           'p_status_read_at': status?.readAt.toUtc().toIso8601String(),
-          // Coalesced server-side like the rest: a resume that could not read
-          // a token leaves the last good one in place.
-          'p_push_token': pushToken,
           // Why the guardian can be told 부모님 폰의 앱이 오래됐어요: Play
           // will not update the app that is in front of the user, and this
           // app is the home screen.
@@ -245,11 +241,8 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
     try {
       final row = await _client
           .from('senior_devices')
-          // Named rather than `*`, because `push_token` is revoked from
-          // `authenticated` and a `select *` would be refused outright. See
-          // `20261026020000_push_token.sql`.
-          //
-          // **The readings are gone from this list**, and that is the 안심
+          // Named rather than `*`, and the list is the point rather than
+          // style: **the readings are gone from it**, and that is the 안심
           // 케어 gate rather than tidying: `last_seen_at`, the battery and
           // the ringer are what the subscription buys, so the app asks
           // `senior_readings` for them and never selects them here. Which
@@ -560,10 +553,6 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// How many times this phone has reported in, for the tests.
   int touchCount = 0;
 
-  /// The FCM address each phone last reported, keyed by install id — the
-  /// in-memory stand-in for `senior_devices.push_token`.
-  final Map<String, String> pushTokenByInstallId = {};
-
   /// Makes every call fail, the way a phone with no signal does.
   bool offline = false;
 
@@ -571,12 +560,10 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   Future<void> touchDevice(
     String installId, {
     DeviceStatus? status,
-    String? pushToken,
     String? appVersion,
   }) async {
     if (offline) throw const SeniorLinkException('연결하지 못했어요.');
     touchCount++;
-    if (pushToken != null) pushTokenByInstallId[installId] = pushToken;
     for (final entry in activeDeviceByProfile.entries) {
       final device = entry.value;
       if (device.installId != installId) continue;

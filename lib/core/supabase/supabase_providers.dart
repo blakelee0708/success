@@ -5,7 +5,6 @@ import '../../data/remote/guardian_auth_repository.dart';
 import '../../data/remote/home_apps_repository.dart';
 import '../../data/remote/message_repository.dart';
 import '../../data/remote/pairing_repository.dart';
-import '../../data/remote/ring_repository.dart';
 import '../../data/remote/senior_link_repository.dart';
 import '../../data/remote/subscription_repository.dart';
 import 'senior_auth.dart';
@@ -53,15 +52,6 @@ final guardianAuthRepositoryProvider = Provider<GuardianAuthRepository>((ref) {
     return InMemoryGuardianAuthRepository(confirmationRequired: false);
   }
   return SupabaseGuardianAuthRepository(client);
-});
-
-/// 소리 울리기's sending half. The only repository that calls an Edge
-/// Function rather than the database, because minting a Google token needs a
-/// service key no phone may hold.
-final ringRepositoryProvider = Provider<RingRepository>((ref) {
-  final client = ref.watch(supabaseClientProvider);
-  if (client == null) return InMemoryRingRepository();
-  return SupabaseRingRepository(client);
 });
 
 final seniorLinkRepositoryProvider = Provider<SeniorLinkRepository>((ref) {

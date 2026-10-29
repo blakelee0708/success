@@ -26,8 +26,9 @@ Future<void> main() async {
   runApp(const ProviderScope(child: App()));
 }
 
-/// Firebase is for 소리 울리기 and nothing else, so a build without it is a
-/// build missing one paid feature rather than a build that cannot start.
+/// Firebase carries one thing: the notification that tells a child their
+/// parent wrote to them. A build without it is a build where that arrives on
+/// the next open rather than a build that cannot start.
 ///
 /// It is caught rather than asked about, because unlike Supabase there is no
 /// `--dart-define` to consult: whether this works depends on whether

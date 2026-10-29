@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 781 tests, all passing
+flutter test             # currently 748 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -112,10 +112,10 @@ and a run on a real phone, all four of which have since happened. As of
 - **Guardian sign-in**: Google and Kakao OAuth clients, and the project's mail
   settings — see `### Email sign-up cannot work` below. Both are console work
   only the owner can do.
-- **소리 울리기**: the background wake-up and the guardian's button. Both are
-  blocked on things outside this environment; see `## Firebase`.
-- **The paid watchers**: 5분 주기 갱신 and anything else `CareReadiness
-  .planned` still covers.
+- **Play Billing**, which is the only thing left between the 안심 케어 button
+  and money. 소리 울리기 and 5분 주기 갱신 used to sit on this list and are
+  both out of the product, so `CareReadiness.planned` is empty and the tier
+  is five things that all work.
 - **고객센터 번호**: filled now. See `## 문의하기` below for what the blank
   constant used to cost.
 
@@ -271,13 +271,16 @@ follows for the senior, for the same reason: a status-bar entry is the one
 place a senior who cannot find their contacts app will not look, and the first
 place their child will.
 
-**The notification is built, as of 2026-10-28**, and it was far cheaper than
-소리 울리기 for one reason worth keeping: it sends a **`notification`
-payload, not a `data` one.** Android draws a notification message itself
-while the app is backgrounded or not running at all - no background handler,
-no native code, nothing to bring forward, and nothing for Play to review.
-소리 울리기 cannot use it because a notification cannot make a noise on a
-silenced phone, which is the whole case that feature exists for.
+**The notification is built, as of 2026-10-28**, and one thing about it is
+worth keeping: it sends a **`notification` payload, not a `data` one.**
+Android draws a notification message itself while the app is backgrounded or
+not running at all - no background handler, no native code, nothing to bring
+forward, and nothing for Play to review.
+
+That is also why this survived and 소리 울리기 did not. A noise cannot be
+made this way, because a notification does not sound on a silenced phone -
+and a `data` message, which is what the ring needed, reaches the app only
+while the app is in the foreground.
 
 `POST_NOTIFICATIONS` needed no manifest change either: `firebase_messaging`
 already declares it and Gradle merges it in, which is what the privacy-policy
@@ -290,8 +293,8 @@ a reinstall, on a restore onto a new handset, and occasionally for Firebase's
 own reasons; registering once would go stale in silence, which is how a
 notification stops arriving with nothing anywhere saying so. The guardian's
 half has no equivalent of the senior's check-in to ride on, so the dashboard
-is that. Nothing in it is awaited by anything drawn - the same rule the ring,
-the onboarding channel and the device-status read all document.
+is that. Nothing in it is awaited by anything drawn - the same rule the
+onboarding channel and the device-status read both document.
 
 **One direction only, decided from the row rather than from which half is
 running.** `MessageController._notify` reads `isFromSenior` off the message
@@ -311,8 +314,8 @@ does not contain.
 `tool/verify_supabase_guardian_push.py` walks 23 checks against the live
 project, the last three through the deployed function itself. **That last
 part caught a real failure**: the SQL gate passed everything and the function
-answered `BOOT_ERROR`, because the file was assembled by copying
-`ring-phone`'s OAuth half and the copy included its `reply()` - two
+answered `BOOT_ERROR`, because the file was assembled by copying another
+function's OAuth half and the copy included its `reply()` - two
 declarations of the same function in one module, which bundles fine and dies
 at startup. A verifier that stopped at the SQL would have reported the
 feature working.
@@ -976,11 +979,18 @@ four capabilities got the same treatment for the same reason: all four wore
 the same clock, which turned four different things into a wall of identical
 rows.
 
-**`준비 중` on 돌봄 is a block, not a footnote.** It was a 13px grey line under
-a heading — the least visible thing on the screen it is most important to be
-honest on, since that screen takes money for four features none of which is
-built. It is now amber, bold, and carries its whole sentence rather than a
-chip's worth of it; `care_consent_test.dart` still looks for that sentence.
+**`준비 중` on 안심 케어 is a block, not a footnote.** It was a 13px grey line
+under a heading — the least visible thing on the screen it is most important
+to be honest on, since that screen took money for features that were not
+built. It is amber, bold, and carries its whole sentence rather than a chip's
+worth of it.
+
+**And it is drawn only when something is under it.** 소리 울리기 was the last
+`planned` capability and it is out of the product, so the list is empty and an
+unguarded banner would warn a guardian about nothing at all - which reads
+either as the app being broken or as something withheld, on the screen that
+takes their money. The test asserts both directions, so the banner comes back
+by itself the day something is sold unbuilt.
 
 `ConversationView` draws both personas, so it cannot hold a colour of its
 own: its bubbles and its composer read `ColorScheme`, which is terracotta on
@@ -1038,7 +1048,7 @@ schema, but nothing points at it any more.
 
 **The ref is `supabase/project.ref`, not an environment variable.** The
 session-start hook reads it and exports `SUPABASE_PROJECT_REF` from it, so all
-nine `tool/` scripts target the right project even when the environment still
+every `tool/` script targets the right project even when the environment still
 holds an older value - which is exactly what cost a session on 2026-10-27. It
 is not a secret: the same string is in the dashboard URL, in every APK's
 `SUPABASE_URL` and in `site/reset.html`. The only thing the owner has to put
@@ -1056,9 +1066,11 @@ would be worse than saying so. All four paths were run by hand.
 schema, the eight verifiers, the Korean mail templates, the Redirect URLs,
 Kakao and Google, CI's secrets and `app.jalboine.com` with HTTPS are all on
 it. `docs/SEOUL_MIGRATION.md` records what each step cost. **The last step is
-done too**, as of 2026-10-28: `ring-phone` is deployed to Seoul with its
-`FCM_SERVICE_ACCOUNT` secret and `tool/verify_ring_function.py` passes against
-it, so **Singapore holds nothing Seoul does not** and can be deleted.
+done too**, as of 2026-10-28, so **Singapore holds nothing Seoul does not**
+and can be deleted. That step was the Edge Function and its
+`FCM_SERVICE_ACCOUNT` secret. What is deployed there now is `notify-message`
+alone; `ring-phone` went up and was undeployed again the next day with the
+rest of 소리 울리기.
 
 The paragraph below is what that runbook replaced, kept because its account
 of why the move stalled is still the clearest statement of how the two
@@ -1494,10 +1506,16 @@ permission; there isn't one. And the carrier API is strictly worse here — it
 removes no obligation, it is hundreds of metres coarse, and we are the
 launcher, which is the best position an Android app can have for reading GPS.
 
-What the paid tier is now: **배터리 부족 알림, 폰 미사용 알림, 읽음 확인,
-소리 울리기, 5분 주기 갱신, 가족 메시지 무제한.** The character moved from
-watching to connecting, which also removes every stalkerware question and the
-신고 entirely.
+What the paid tier was going to be: **배터리 부족 알림, 폰 미사용 알림, 읽음
+확인, 소리 울리기, 5분 주기 갱신, 가족 메시지 무제한.** The character moved
+from watching to connecting, which also removes every stalkerware question and
+the 신고 entirely.
+
+Three of those six are gone since - 5분 주기 갱신 because it needs a
+foreground service, 폰 미사용 알림 because watching a pattern over days is
+what the stalkerware rule is for, and 소리 울리기 because it only rang a
+phone that was already awake. What is sold now is 안부 신호와 폰 상태,
+배터리 부족 알림, 읽음 확인, 가족 메시지 무제한 and 홈 화면 정리 무제한.
 
 ### The four that replaced it
 
@@ -1537,54 +1555,57 @@ watching to connecting, which also removes every stalkerware question and the
   marks the conversation, so nothing can claim a read on what it never showed,
   and neither side can mark its own.
 
-## 소리 울리기, and the trap that has now appeared three times
+## 소리 울리기 was taken out whole, and what it leaves behind
 
-The feature is for **`엄마가 전화를 안 받아`** — the phone is on silent, or in
-another room, or not heard. The job is to get the parent to pick it up.
+Removed 2026-10-29: the sheet, the gate, the Edge Function, the card on the
+parent's home, the Kotlin that made the noise, the FCM token it was sent to,
+and both verifiers. `20261029060000_drop_ring.sql` is the server half -
+`request_phone_ring` dropped, `senior_devices.push_token` dropped, the
+check-in down to six arguments - and the `ring-phone` function is undeployed.
 
-Two ideas were considered and dropped, and the reasons are the design:
+**It was the feature with no privacy question at all.** Nothing about the
+parent left their phone; what travelled was one instruction in the other
+direction, and the screen said who sent it before it said anything else. The
+stalkerware rule turns on collecting and transmitting data about another
+person, so this was the one paid capability it could not touch.
 
-- **A recorded voice asking passers-by for help.** Technically fine — the
-  guardian records on their own phone, so the senior's microphone is never
-  used. Dropped because somebody collapsed in public gets helped without an
-  app, and a phone announcing a stranger's health to the street embarrasses
-  the person it was meant to help. The same recording *addressed to the
-  parent* is a different feature with a different justification, and it was
-  not built either.
-- **Splitting 무료 = sound, 유료 = message.** That sells the part that stops
-  the sound being frightening. A phone that starts screaming with no
-  explanation, at someone who cannot tell a message from a fault, is worse
-  than one that stays quiet — so the line is always there, and the whole
-  feature is paid. The line that is actually worth charging for is *being
-  able to reach the phone at all*.
+Two things killed it anyway, and neither is fixed by money or time.
 
-**Anywhere on the screen stops it.** `HitTestBehavior.opaque`, so the gaps
-answer too — without it the senior taps a dead patch while it keeps ringing. A
-pocket could end it early; the guardian can send it again, and that is not in
-the same league as a senior unable to silence their own phone. It also stops
-itself after `maxDuration` (60s), because the phone may be in a bag in another
-room — which is the case this exists for — and a sound with no end is a flat
-battery rather than a found phone.
+- **It did not work.** A push reaches the app only while the app is in the
+  foreground. So it rang a phone that was awake and made no sound at all on
+  one in a bag in another room - which is the entire case the feature existed
+  for. Closing that needs a background handler plus native code to bring the
+  screen forward, and on Android 14 that route meets
+  `USE_FULL_SCREEN_INTENT`, which is not granted to a launcher by default.
+- **There is no precedent.** Searched for, not assumed: no published app was
+  found that lets one adult make another adult's phone sound. 내 기기 찾기 is
+  your own phone, which is a different thing. So the risk was never the
+  written policy, it was **the first impression of the person reviewing it** -
+  and that can only be managed with store copy.
 
-**The speaker is told, never awaited**, and this is the third time that trap
-has appeared in this codebase — after the onboarding channel and the device
-status read. `MethodChannelEmergencySound` already swallows both channel
-exceptions, but **a channel that never answers throws nothing at all**, so
-catching is not enough. Awaiting it hung `screenshots_test.dart` for seven
-minutes before the timeout. The rule, stated once for all three: *nothing a
-senior is looking at may wait on a platform channel.*
+Selling the half that worked, to a reviewer meeting the idea for the first
+time, on a tier whose other five things all work, was the trade worth
+refusing.
 
-On Android it plays on `STREAM_ALARM`, the one stream a silent or vibrate
-ringer does not mute — that is how alarm clocks work. DND can still mute it
-where the user has turned alarms off inside DND; overriding that needs
-`ACCESS_NOTIFICATION_POLICY` and is not worth demanding. None of that is
-written yet and none of it can be verified here.
+### What is worth keeping from it
 
-**It still cannot be triggered, but the receiving half now exists.** The
-Firebase project is registered and the parent's phone reports an FCM token on
-every check-in; a `{"type":"ring"}` data message arriving in the foreground
-raises `SeniorRingLayer`. Two halves are left and both are outside what can be
-built here — see `## Firebase` below.
+- **The rule the speaker taught, which is the house rule now.** *Nothing a
+  senior is looking at may wait on a platform channel.* The trap appeared
+  three times - the onboarding channel, the device status read, the speaker -
+  and catching the exception is not enough, because **a channel that never
+  answers throws nothing at all.** Awaiting the speaker hung
+  `screenshots_test.dart` for seven minutes before the timeout.
+- **A sound with no end is a flat battery, not a found phone.** The card
+  stopped itself after 60 seconds and `HitTestBehavior.opaque` meant the gaps
+  answered a tap too, so the senior could never be left pressing a dead
+  patch while the phone kept going.
+- **Two ideas dropped before it, whose reasons still hold.** A recorded voice
+  asking passers-by for help: somebody who collapses in public gets helped
+  without an app, and a phone announcing a stranger's health to the street
+  embarrasses the person it meant to help. And 무료 = 소리 / 유료 = 메시지: a
+  phone that screams with no explanation, at somebody who cannot tell a
+  message from a fault, is worse than one that stays quiet, so the sentence
+  could never be the paid half.
 
 ### What Play's policy actually bites
 
@@ -1592,19 +1613,17 @@ Worth recording because it points the other way from where it was expected to.
 The stalkerware rule turns on **collecting and transmitting personal and
 sensitive data** about another person, with an exemption only for parent→child
 and enterprise→employee — and that exemption explicitly does not extend to
-other adults *even with their permission*.
+other adults *even with their permission*. It is aimed at **위치 확인** and
+**앱 설치 알림**, both of which collect sensitive data about an adult, and
+unlike the Korean 위치기반서비스사업 신고 no paperwork fixes it. It is why
+**폰 미사용 알림** went too: a pattern of use watched over days is different
+in kind from the single values Android hands over for nothing.
 
-So **소리 울리기 is the safest feature left**: it is remote actuation, nothing
-about the parent leaves their phone, and the screen lights up saying exactly
-what was sent. The ones the rule aims at are **위치 확인** and **앱 설치 알림**,
-both of which collect sensitive data about an adult — and unlike the Korean
-위치기반서비스사업 신고, no paperwork fixes that.
-
-Two honest limits on the above: Google's policy pages **cannot be read from
-this environment** (the proxy 403s `support.google.com`), so this rests on two
-independent search summaries quoting them, and the policy as enforced plainly
-differs from the policy as written — Life360 and its like track adult family
-members and are published. Read the primary pages before acting on this.
+The policy pages were read in full on 2026-10-29 - pasted in by the owner,
+because the proxy 403s `support.google.com` and nothing here can open them.
+The remaining honesty is that the policy as enforced plainly differs from the
+policy as written: Life360 and its like track adult family members and are
+published, and so are 패밀리케어, 헬로온 and others in Korea.
 
 ## 무료와 안심 케어의 경계, and the four refusals it created
 
@@ -1631,7 +1650,7 @@ priced can stop them reaching their family.
 | 가족 메시지 | 월 30회 / 사진 5장 | 무제한 |
 | 자녀 폰에서 홈 화면 정리 | 평생 3회 | 무제한 |
 | 안부 신호, 배터리·소리 | 첫 1주일 | O |
-| 배터리 부족·폰 미사용 알림, 읽음 확인 | X | O |
+| 배터리 부족 알림, 읽음 확인 | X | O |
 
 `20261028020000_pricing.sql` carries all of it, and
 `tool/verify_supabase_pricing.py` walks 25 checks against the live project.
@@ -1724,6 +1743,12 @@ oversight.** Everything in that file is 어떻게 지내시는지 아는 것 by
 definition, so it empties. What is free is the launcher, and the launcher is
 not a care capability.
 
+**`CareReadiness.planned` is empty too, as of 2026-10-29.** 폰 미사용 알림 and
+소리 울리기 were the last two in it and both are out of the product, so every
+line on 안심 케어 is now something that works. That is worth more than the
+length of the list: a tier whose last item said 신청하셔도 지금은 동작하지
+않아요 was selling five working things and one apology.
+
 Eleven tests broke on the repricing and every one of them had a number or a
 title typed into it. They read the constants and the list now - nine tests
 failing on a one-line change says nothing about the change and everything
@@ -1771,13 +1796,14 @@ the block cannot creep back a line at a time.
 It also counts the glyphs — sixteen at 20px in a 318px card — because that is
 the screen where a wrapped line once left 은 alone.
 
-**The card's frame had to cover all four and did not.** It read 허락하시면
+**The card's frame had to cover every line under it and did not.** It read 허락하시면
 이런 때에 자녀분이 알림을 받아요, and the first line under it is 폰을 쓰신
 때와 배터리 - which is not a 때 and not an 알림, it is something the child
 looks at. It is 허락하시면 자녀분이 이런 걸 알 수 있어요 now, and every
 `seniorLine` under it answers 알다.
 
-Which leaves **the two alerts**, and they are worded as *when the guardian is
+Which leaves **배터리 부족 알림** - 폰 미사용 알림 was beside it until
+2026-10-29 - and it is worded as *when the guardian is
 told* rather than *what is collected*, since the collection is the free
 check-in either way. `CareReadiness` is named for readiness because `CareStage`
 was already the subscription flow (notBought / waitingOnSenior / refused /
@@ -1788,19 +1814,29 @@ subscription with no money. That is the owner's call and it is next; the
 consent half was done first because it is the half with a person on the other
 end of it.
 
-## 배터리 부족 알림 and 폰 미사용 알림
+## 배터리 부족 알림, and 폰 미사용 알림 which is out of the product
 
-The `alerts` table and the 돌봄 tab that renders it have existed since Phase 6.
-Exactly one thing ever wrote a row — the refund — so these are the first
-watchers the product has.
+The `alerts` table and the 안심 케어 tab that renders it have existed since
+Phase 6. Exactly one thing ever wrote a row — the refund — so these were the
+first watchers the product had.
 
-**Both are paid**, and that is the PRD's call, not this file's: 폰 미사용 알림
-and 배터리 부족 알림 are both in the 안심 케어 월 5,900원 list, so both are
-gated on `care_is_active` — a subscription *and* the senior's consent. With no
-Play Billing there is no way to reach either from the app today. The gate is
-therefore the part most worth checking, and it is checked where it can be:
-`tool/verify_supabase_alerts.py` walks unpaid → paid-without-consent → paid-
-and-agreed against the live project, 19 checks.
+**폰 미사용 알림 was taken out on 2026-10-29**, after reading Play's
+stalkerware policy. Everything else 안심 케어 sends is one value Android hands
+over for nothing: a battery percentage, a ringer mode, the moment the phone
+was last unlocked. `이틀 넘게 안 켜셨는지` is different in kind - a pattern of
+use, watched across days - and it was the one line on the consent card that
+reads as surveillance rather than as a reading. The cron schedule is
+unscheduled in `20261029050000_drop_unused_alert.sql`; the function stays,
+because dropping it would mean narrowing the `unused_notified_for` column and
+the `alerts` type constraint for a feature a different policy reading could
+bring back.
+
+**배터리 부족 알림 is paid**, which is the PRD's call rather than this file's,
+so it is gated on `care_is_active` — a subscription *and* the senior's
+consent. With no Play Billing there is no way to reach it from the app today.
+The gate is therefore the part most worth checking, and it is checked where it
+can be: `tool/verify_supabase_alerts.py` walks unpaid → paid-without-consent →
+paid-and-agreed against the live project.
 
 That same PRD reading once settled something else, and **it was reversed on
 2026-10-28** - see `## 무료와 안심 케어의 경계`. 무료 had included
@@ -1810,7 +1846,8 @@ gave away the three things that reassure the child and left two alerts to
 sell; the reading is paid now, free for the first week, and the 5분 주기 is
 out of the product because it cannot be built.
 
-The two need opposite machinery, which is the whole interest of them:
+The two needed opposite machinery, which is the whole interest of them and
+the reason the 미사용 half is written down rather than deleted:
 
 - **배터리 부족 fires on an event** and is written on the way through
   `touch_senior_device`. It carries **hysteresis**: raised at 15% and armed
@@ -2128,206 +2165,70 @@ project still has to be created against this id by hand.
 ## Firebase
 
 Registered 2026-10-26, project `jalboine-7db89` under `blakelee0708@gmail.com`,
-Spark plan. It exists for **소리 울리기 and nothing else** — the one thing in
-the app that is triggered remotely. Everything else the guardian changes is
-read by the parent's phone the next time it asks, which is fine because none of
-it is urgent; a phone nobody is holding cannot wait for the next resume.
+Spark plan. It was registered for 소리 울리기, which is out of the product, and
+what it carries now is **one notification in one direction**: the child's phone
+is told their parent wrote to them. Everything else the guardian changes is
+read by the parent's phone the next time it asks, which is fine because none
+of it is urgent.
+
+**Nothing is sent to the parent's phone at all**, and that is the shape to
+keep. A notification on the senior's status bar is the one place somebody who
+cannot find their contacts app will not look, and the senior's half of this
+app is the screen their phone sits on. So the senior's phone reads no token,
+reports none, and `senior_devices.push_token` is gone -
+`20261029060000_drop_ring.sql`. An address nothing sends to is a thing
+collected for no reason, which is the same rule that keeps
+`senior_devices.permission_status` out of `site/privacy.html`.
 
 **Google Analytics is deliberately off.** Half this app's users are seniors
 who did not install it, cannot be asked about anything on a screen, and whose
 *home screen* this is. Adding telemetry to that is the thing the whole 위치
 decision was about, and it would have put IP-derived 대략적 위치 into an app
-whose privacy policy is about to say it collects no location. It can be turned
-on later from the console if that is ever argued for; it cannot be un-collected.
-
-**No notification permission is needed.** The payload is a **data message**,
-not a notification — Android 13's `POST_NOTIFICATIONS` is for notifications,
-and a status-bar entry is the one place a senior who cannot find their contacts
-app will not look. What arrives is drawn as `SeniorRingLayer`, full screen,
-saying who is asking before it says anything else.
+whose privacy policy says it collects no location. It can be turned on later
+from the console if that is ever argued for; it cannot be un-collected.
 
 `google-services.json` **is committed**, which is correct and not an oversight:
 it ships inside every APK, so it is not a secret, and leaving it out means CI
 cannot build. The thing that *is* secret is the service-account key the sender
-needs, and that has no business in a repository.
-
-### The token rides on the check-in
-
-`senior_devices.push_token` (`20261026020000_push_token.sql`, applied live),
-written by `touch_senior_device` with the same `coalesce` as the battery.
-
-It is not a call of its own because **a token rotates** — reinstall, restore to
-a new handset, and occasionally for Firebase's own reasons — and the check-in
-is the one thing that already runs at start-up and on every resume. Registering
-once at pairing would have gone stale silently, which is how 소리 울리기 fails
-on the day it matters.
-
-Two things in `SeniorPresenceReporter` are load-bearing:
-
-- **The token read and the battery read are started separately.** Chained, the
-  token sat behind a platform channel that is not obliged to answer — and
-  `flutter test` is such a phone, so it was never read at all. The test caught
-  it. A battery percentage must not be able to cost a family their ring.
-- **A new token gets a call of its own**, where the battery waits for the next
-  resume. One resume of staleness costs a percentage nobody is watching; here
-  it costs *the address the ring is sent to*, and the window it leaves open is
-  the one right after a phone is set up, which is exactly when the family is
-  trying things out.
-
-**A guardian in the family can read the token column, and that is accepted.**
-RLS is row-level and their policy already selects their parent's device row; a
-column cannot be carved out of the table-level SELECT grant `authenticated`
-holds, so `revoke select (push_token)` is a no-op — tried, checked, and written
-into the migration so nobody tries it twice. Enforcing it means revoking the
-table grant and re-granting column by column, after which every new column
-breaks every read until somebody remembers. That is a trap, and the thing it
-would protect is inert: a token sends nothing without the service-account key.
-What is done instead is to not hand it out — `activeDevice` names its columns.
+needs, and that has no business in a repository. It lives in Edge Function
+secrets as `FCM_SERVICE_ACCOUNT`, which `notify-message` reads.
 
 ### The gate is SQL; the Edge Function only sends
 
-`request_phone_ring` (`20261026030000_request_ring.sql`, applied live) answers
-every question about whether a ring is allowed — guardian of *this* parent,
-link still `active`, `care_is_active` (a subscription **and** the senior's
-consent), which phone, and what the screen will say.
-`supabase/functions/ring-phone/index.ts` mints a Google OAuth token from the
-service account and POSTs to FCM v1. That is all it does.
+`notify_family_message` answers every question about whether a notification
+may be sent, and `supabase/functions/notify-message/index.ts` mints a Google
+OAuth token from the service account and POSTs to FCM v1. That is all it does.
 
-The split is the point. The gate is then checkable from an environment that
-cannot deploy or run Deno — `tool/verify_supabase_ring.py`, 13 checks against
-the live project — and the subscription rule does not end up living in two
-languages with one copy nobody can test. It also keeps the service key out of
-the authorization path: the function forwards **the caller's own JWT** to the
-gate, because it reads `auth.uid()`, and holds the service key only for
-talking to Google.
-
-Two refusals in it are worth keeping: a **removed** guardian cannot ring a
-phone they no longer look after, which is the single worst thing this feature
-could be used for; and a phone that never checked in returns no row rather
-than a null token, so the sender cannot POST `to: null` and read the rejection
-as a delivery failure.
-
-`google-services.json` is committed and the **service account is not** —
-`.gitignore` carries `*-firebase-adminsdk-*.json` so it cannot be added by
-accident. It lives in Edge Function secrets as `FCM_SERVICE_ACCOUNT`.
-
-The sending chain is **deployed and proven on Seoul**, as of 2026-10-28:
-`ring-phone` is ACTIVE at version 1 with `verify_jwt`, the secret is set, and
-`tool/verify_ring_function.py` walks it end to end against the live project.
+The split is the point, and it was kept after the ring was removed because it
+is what makes the rule checkable: this container cannot deploy or run Deno,
+so a rule written in SQL can be walked by
+`tool/verify_supabase_guardian_push.py` while a rule written in TypeScript
+could not. It also keeps the service key out of the authorization path - the
+function forwards **the caller's own JWT** to the gate, because the gate reads
+`auth.uid()`, and holds the service key only for talking to Google.
 
 **There is no `supabase` CLI and no `deno` in this container**, so the deploy
 went through the Management API's `POST /v1/projects/{ref}/functions/deploy`
 as `multipart/form-data` - one `metadata` part carrying
-`{entrypoint_path, name, verify_jwt}` and one `file` part carrying
-`index.ts`. Worth knowing before anyone spends a session trying to install
-the CLI: the deploy does not need it.
-It sends to a deliberately fake device token and reads the reply, because the
-one thing the SQL gate cannot tell you is whether the sender works.
+`{entrypoint_path, name, verify_jwt}` and one `file` part carrying `index.ts`.
+Worth knowing before anyone spends a session trying to install the CLI: the
+deploy does not need it. An undeploy is `DELETE
+/v1/projects/{ref}/functions/{slug}`, which is how `ring-phone` was taken off.
 
-That is why the two failure modes carry different `reason` codes, and the
-distinction is load-bearing rather than convenience: a service account that
-cannot mint a token means *every ring for every family is failing*, while a
-device token FCM rejects means *that one phone is unreachable*, which is
-ordinary. Collapsed into one 502 — which is how it was first written — a
-misconfigured sender looks exactly like a parent whose phone is off, forever,
-and nobody goes looking. The verifier reads `sender_unconfigured` as a failure
-and `INVALID_ARGUMENT` as success, which is the only way to tell them apart
-from outside. `error` stays the one line a guardian reads.
+**The verifier walks the deployed function, not only the SQL**, and that last
+part caught a real failure on the ring's version of this: the SQL gate passed
+everything and the function answered `BOOT_ERROR`, because the file had been
+assembled by copying and the copy brought a second `reply()` with it - two
+declarations in one module, which bundles fine and dies at startup. A verifier
+stopping at the SQL would have reported the feature working.
 
-### The two halves a guardian touches are built
-
-As of 2026-10-28, and the design was settled with the owner before any of it
-was written.
-
-**On the parent's phone it is a card over the home, not a screen.** The same
-shape as the message popup, and for the same reason: the home still showing
-around it is how a senior knows their phone has not turned into something
-else while they were not looking. It replaced a full-screen `ColoredBox`.
-
-**Tapping the scrim still stops it**, which is what the full-screen version
-did everywhere, and the card swallows its own taps so 전화하기 is not racing
-the scrim two pixels behind it. There is a test for exactly that: a press
-that missed the button by a hair would silence the phone instead, and the
-senior would believe they had rung their child.
-
-**전화하기 is the new part and it is the resolution of the whole feature.**
-Silencing the noise is not what their child wanted. A senior who picks up a
-loud phone and can only make it quiet has been told something and given
-nothing to do about it, and 전화를 안 받아 is why the button was pressed. The
-number is already on the server, collected when the guardian connected, and
-`guardians_for_senior` already hands it to the parent's phone for 긴급
-연락's 보호자 tile.
-
-That needed **who** rather than only **what name**, so
-`20261028000000_ring_sender_id.sql` adds `from_id` to `request_phone_ring`'s
-return and the Edge Function puts it in the payload (version 2, deployed).
-Matching on `from_name` was the alternative and it is wrong in the case that
-matters: two children, both called 아들 by their mother, and the phone rings
-the other one. When the id resolves to no number the card shows **no call
-button at all** rather than falling back to the primary guardian - ringing
-the wrong child is worse than offering nothing, because the senior would
-believe they had answered.
-
-`create or replace` cannot change a function's return type, so that migration
-drops and recreates, which also drops the grants. They are re-applied at the
-bottom of the file; leaving them off would make the function uncallable by
-every guardian and the failure would look like the gate refusing.
-
-**On the guardian's home, 소리 울리기 takes 안심 케어 알아보기's slot** once
-`CareStage.active` - a subscription **and** the senior's consent. The grid
-stays 2x2: a fifth card leaves a hole and a locked sixth advertises what the
-buyer has already answered. The card that sold the tier becomes the tier.
-
-The sheet carries three chips and a box. The chips **replace** rather than
-append, because they are whole messages and a guardian who taps two in a row
-meant the second. A blank box is normalised to null **in the controller**,
-not in each repository: the gate substitutes `전화 한 번만 주세요.` for an
-absent message, and an empty string sent through would be a second way of
-saying the same thing with nothing holding the two together.
-
-**Four outcomes, four sentences, and that is the load-bearing part.** The
-guardian presses this when they are already worried, and **silence is the one
-answer that makes them press again.** A phone that never checked in, a token
-that died with a reinstall, a gate refusal and a sender that cannot reach
-Google look identical from behind a spinner, and only one of them is anyone's
-to act on. `RingRefused` carries the server's own sentence rather than a
-local rewording, so the rule's explanation does not live in two places with
-the readable copy being the one no test reaches.
-
-One small thing, recorded because the obvious fix was the wrong one: the
-field's cursor drew **terracotta** on the blue half. Wrapping the sheet in
-`Theme(data: AppTheme.guardian)` was tried and the rendered PNG came back
-**byte-identical**, so the wrap was removed rather than left behind a comment
-claiming a fix it had not made. `cursorColor` is named on the field instead.
-
-### What is still missing
-
-1. **The background wake-up.** `PushMessaging.messages()` is
-   `FirebaseMessaging.onMessage`, which delivers only **while the app is in
-   the foreground**. A launcher is in the foreground most of the time, but not
-   with the screen off — and a phone in a bag in another room is the case this
-   feature exists for. Closing it needs a background handler plus native code
-   to bring the activity forward, and on Android 14 that route runs into
-   `USE_FULL_SCREEN_INTENT`, which Play grants to calling and alarm apps.
-   Unresolved, and unverifiable here.
-So the feature **rings a phone that is awake and not one that is asleep**,
-which is half of what it is for. `CareReadiness` stays `planned` and 소리
-울리기 stays in 돌봄's 준비 중 block until it has been watched working on a
-real handset - the Kotlin cannot be compiled here, so calling it built would
-be a claim nothing in this repository can check. Flipping it is one enum
-value plus a `seniorLine` for the consent card, which the capability test
-will demand in the same commit.
-
-**The Play question is the other reason to wait**, and it is not the
-sending. Android 14 restricts `USE_FULL_SCREEN_INTENT` to calling and alarm
-apps and Play revokes the default grant otherwise; a launcher is neither. The
-route that avoids it is to **not bring the activity forward at all**: play on
-`STREAM_ALARM` from the background handler and post a notification, and let
-the parent land on the card when they turn the screen on, because this app
-**is** the home screen. That costs one ordinary permission
-(`POST_NOTIFICATIONS`) and no Play declaration - and it would be the first
-`uses-permission` in this manifest, so `privacy_policy_test` and
-`site/privacy.html` change in the same commit as the Kotlin.
+The two failure modes carry different `reason` codes, and the distinction is
+load-bearing rather than tidy: a service account that cannot mint a token
+means *every notification for every family is failing*, while a device token
+FCM rejects means *that one phone is unreachable*, which is ordinary.
+Collapsed into one 502 - which is how it was first written - a misconfigured
+sender looks exactly like a phone that is off, forever, and nobody goes
+looking.
 
 ## The parent's phone was never signed in
 
@@ -2716,7 +2617,9 @@ there was nothing to tap. The screen has had a third button, 이메일로
 guardian actually walks. `screenshots_test.dart` was walking the dead path
 too.
 
-628 passing when that was written; 781 now, 0 failing, about 3 minutes.
+628 passing when that was written; 781 at its peak, and 748 now that 소리
+울리기's four test files have gone with the feature. 0 failing, about 3
+minutes.
 
 ## The app icon is a document, not a drawing
 
@@ -2996,7 +2899,9 @@ The same pass found `verify_supabase_pricing.py` still expecting 홈 화면
 정리 2회 after the 3회 change, and left the photo allowance covered for the
 first time - nothing had ever sent a sixth photo.
 
-281 checks across the fourteen now, all green against the live project.
+281 checks across the fourteen, all green against the live project. Two of
+the fourteen were 소리 울리기's and went with it, so what is run now is
+**thirteen scripts, 288 checks.**
 
 ## Conventions
 

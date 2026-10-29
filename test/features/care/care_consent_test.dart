@@ -239,15 +239,22 @@ void main() {
     expect(find.textContaining('환불'), findsWidgets);
   });
 
-  testWidgets('the paid screen says the features are not built yet', (
+  testWidgets('the 준비 중 notice is there when, and only when, it has something to warn about', (
     tester,
   ) async {
-    // A paid screen that looks ready is a promise. None of these four is
-    // implemented — they are interfaces, per the phase plan.
+    // A paid screen that looks ready is a promise, so anything sold and not
+    // built says so. The other half of that is new: with the list empty the
+    // notice must **not** be drawn. 소리 울리기 was the last `planned`
+    // capability and it is out of the product, so an unguarded banner would
+    // warn a guardian about nothing - which reads as the app being broken or
+    // as something withheld, on the screen that takes their money.
     final h = await _family();
     await _pumpCareTab(tester, h);
 
-    expect(find.textContaining('아직 준비 중입니다'), findsOneWidget);
+    expect(
+      find.textContaining('아직 준비 중입니다'),
+      plannedCareCapabilities.isEmpty ? findsNothing : findsOneWidget,
+    );
   });
 
   testWidgets('a feature that works is not listed under 준비 중', (tester) async {
@@ -261,18 +268,29 @@ void main() {
     // were hard-coded titles and both went stale the day the paid tier was
     // repriced - which is the failure the one-list design exists to stop,
     // reproduced in the test that guards it.
-    final notice = tester.getRect(find.textContaining('아직 준비 중입니다'));
+    //
+    // Nothing is planned today, so what this walks is the built half: every
+    // capability is drawn, and none of them is under a warning that is not
+    // there. It starts measuring again the moment something is sold unbuilt.
+    final notice = find.textContaining('아직 준비 중입니다');
+    final hasNotice = notice.evaluate().isNotEmpty;
+    final noticeRect = hasNotice ? tester.getRect(notice) : null;
     for (final built in builtCareCapabilities) {
-      expect(
-        tester.getRect(find.text(built.title)).top,
-        lessThan(notice.top),
-        reason: '${built.title} 가 준비 중 안내 아래에 있습니다',
-      );
+      final top = tester.getRect(find.text(built.title)).top;
+      if (noticeRect != null) {
+        expect(
+          top,
+          lessThan(noticeRect.top),
+          reason: '${built.title} 가 준비 중 안내 아래에 있습니다',
+        );
+      }
     }
     for (final unbuilt in plannedCareCapabilities) {
+      expect(noticeRect, isNotNull,
+          reason: '${unbuilt.title} 가 준비 중 안내 없이 올라가 있습니다');
       expect(
         tester.getRect(find.text(unbuilt.title)).top,
-        greaterThan(notice.bottom),
+        greaterThan(noticeRect!.bottom),
         reason: '${unbuilt.title} 가 준비 중 안내 위에 있습니다',
       );
     }

@@ -14,7 +14,6 @@ import 'open_home_button.dart';
 import 'widgets/app_tile.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import 'widgets/home_body.dart';
-import '../../care/presentation/senior_ring_layer.dart';
 import 'widgets/senior_notice_layer.dart';
 import 'widgets/home_pill.dart';
 
@@ -175,7 +174,6 @@ class DetailedHomeScreen extends ConsumerWidget {
             // Above the consent cards: a ring is urgent and over in a
             // minute, and a senior cannot be asked to answer a question
             // while their phone is screaming at them.
-            const SeniorRingLayer(),
           ],
         ),
       ),

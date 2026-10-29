@@ -6,16 +6,18 @@
 // parent who cannot find their contacts app will not look, and the first
 // place their child will.
 //
-// **A `notification` payload, not a `data` one.** That is the whole reason
-// this is cheap where 소리 울리기 is not. Android draws a notification
-// message itself while the app is backgrounded or not running at all - no
-// background handler, no native code, nothing to bring forward, and nothing
-// for Play to review. 소리 울리기 cannot use it because a notification
-// cannot make a noise on a silenced phone.
+// **A `notification` payload, not a `data` one.** That is what makes this
+// cheap. Android draws a notification message itself while the app is
+// backgrounded or not running at all - no background handler, no native
+// code, nothing to bring forward, and nothing for Play to review.
+//
+// It is also why this survived and 소리 울리기 did not. A noise cannot be
+// made this way: a notification does not sound on a silenced phone, which
+// was that feature's whole case, and a `data` message reaches the app only
+// while the app is in the foreground.
 //
 // Every question about *whether* this may be sent is answered by
-// `notify_family_message` in SQL, which is the same split `ring-phone`
-// documents at length. This file only sends.
+// `notify_family_message` in SQL. This file only sends.
 //
 // **The OAuth half below is a copy of `ring-phone`'s**, deliberately. A
 // shared module would have to be deployed alongside both functions, and this
@@ -188,7 +190,7 @@ Deno.serve(async (req) => {
             android: {
               // Not HIGH. A message from a parent is worth a buzz now rather
               // than at the next wake-up, but it is not the phone-nobody-is
-              // -holding case that bought 소리 울리기 its Doze exemption, and
+              // -holding case that would have earned a Doze exemption, and
               // spending that budget on every message is how an app gets its
               // high-priority allowance throttled.
               priority: 'NORMAL',

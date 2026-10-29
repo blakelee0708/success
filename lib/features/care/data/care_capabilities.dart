@@ -145,15 +145,22 @@ const careCapabilities = <CareCapability>[
     tintInk: AppColors.guardianTintGreenInk,
     seniorLine: '메시지를 읽으셨는지',
   ),
-  CareCapability(
-    key: 'remote_ring',
-    stage: CareReadiness.planned,
-    title: '소리 울리기',
-    detail: '전화를 안 받으실 때 부모님 폰을 크게 울립니다',
-    icon: Icons.volume_up_rounded,
-    tint: AppColors.guardianTintAmber,
-    tintInk: AppColors.guardianTintAmberInk,
-  ),
+  // **소리 울리기 was here and is out of the product**, taken out whole on
+  // 2026-10-29 along with its sheet, its gate, its listener and the card it
+  // drew on the parent's home.
+  //
+  // It was the one capability with no policy problem at all - it collects
+  // nothing and sends nothing about the parent - and the one with no
+  // precedent: no published app was found that lets an adult make another
+  // adult's phone sound. It was also the one that did not work: a message
+  // only reaches the app while it is in the foreground, so it rang a phone
+  // that was awake and not one that was asleep, which is the whole case it
+  // existed for.
+  //
+  // Selling the half that worked, to a reviewer who has seen nothing like
+  // it, on a tier whose other five things do work, was the trade worth
+  // refusing. `request_phone_ring` is revoked from clients in
+  // `20261029060000_drop_ring.sql`, so the server refuses it too.
   // **5분 주기 상태 갱신 was here and is gone.** It needed a foreground
   // service, which Android 14 makes a Play Console submission with a
   // description, a user-impact statement and a demo video - and the review
