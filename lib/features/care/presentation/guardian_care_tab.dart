@@ -72,7 +72,15 @@ class GuardianCareTab extends ConsumerWidget {
             child: _CareState(seniorName: profile.displayName, care: care),
           ),
         const _Card(child: _Features()),
-        _Card(child: _FamilyPlan()),
+        // **가족 플랜 was here and the app is 1대1 now.** It sold 부모님을
+        // 두 분 이상 - the owner locked that on 2026-10-29, and
+        // `assert_can_add_senior` no longer lets the plan raise the limit,
+        // so the card would be selling something that cannot be used.
+        //
+        // Nothing on the server is deleted: the plan, its rows and
+        // `has_family_plan()` are all still there, and there is no Play
+        // Billing yet either way, so no money was ever going to move. The
+        // widget stays below for the same reason the card does not.
         if (profile != null) _Card(child: _Alerts(seniorProfileId: profile.id)),
         // **연결 관리 was here and moved to 홈.** Nothing in it was about
         // 안심 케어 - leaving a parent, inviting a sibling, reconnecting a
@@ -393,6 +401,11 @@ class _Feature extends StatelessWidget {
   }
 }
 
+/// 가족 플랜, which nothing draws while the app is 1대1.
+///
+/// Kept rather than deleted: the lock is two numbers in
+/// `20261029080000_one_to_one.sql`, and putting the plan back has to be one
+/// line on the tab above plus one condition in `assert_can_add_senior`.
 class _FamilyPlan extends ConsumerStatefulWidget {
   @override
   ConsumerState<_FamilyPlan> createState() => _FamilyPlanState();

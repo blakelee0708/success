@@ -431,6 +431,44 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// Whether the pairing twin leaves new links waiting, as the server does.
   bool pendingLinkConsent = false;
 
+  /// Whether this twin holds the 1대1 lock, which the server does.
+  ///
+  /// **Default true, unlike [pendingLinkConsent].** That one is off by
+  /// default because mirroring it would have meant rewriting the harness of
+  /// every test that connects a family; this one is the product as it
+  /// actually behaves, and a twin that quietly allows what the server
+  /// refuses is how a screen gets built against a rule that is not there.
+  ///
+  /// Switched off by the few tests that are *about* a second guardian or a
+  /// second parent - the code behind those is untouched and has to keep
+  /// working for the day the lock lifts.
+  bool oneToOne = true;
+
+  /// Refuses a second parent. `exceptProfileId` is the reconnect case: a
+  /// guardian re-entering a code for the parent they already have is not
+  /// taking on another one.
+  void assertCanAddSenior({String? exceptProfileId}) {
+    if (!oneToOne) return;
+    final mine = rolesByProfile.entries
+        .where((e) => e.value.containsKey(guardianAccountId))
+        .map((e) => e.key)
+        .where((id) => id != exceptProfileId);
+    if (mine.isNotEmpty) {
+      throw const SeniorLinkException('지금은 부모님 한 분만 연결할 수 있어요.');
+    }
+  }
+
+  /// Refuses a second child on one parent.
+  void assertCanAddGuardian(String profileId, String guardianId) {
+    if (!oneToOne) return;
+    final others = (rolesByProfile[profileId] ?? const {}).keys.where(
+      (id) => id != guardianId,
+    );
+    if (others.isNotEmpty) {
+      throw const SeniorLinkException('부모님 한 분에 자녀 한 명만 연결할 수 있어요.');
+    }
+  }
+
   /// What the app owes this guardian, written by the pairing twin's
   /// [InMemoryPairingRepository.removeGuardianLink] the way
   /// `remove_guardian_link` writes `guardian_notices`.
@@ -559,6 +597,7 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     if (_account == null) {
       throw const SeniorLinkException('보호자 계정이 없어요.');
     }
+    assertCanAddSenior();
     _seq++;
     final profile = SeniorProfile(
       id: 'profile-$_seq',

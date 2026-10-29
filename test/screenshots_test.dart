@@ -593,6 +593,10 @@ void main() {
     // the parent's own phone and both appear above the tiles, and neither
     // had a picture — which is how they stayed on the pre-2026-10-20 look.
     final store = InMemorySeniorLinkRepository();
+    // The handover card needs a second guardian to hand to, and the twin
+    // holds the 1대1 lock by default the way the server does. The card is
+    // still drawn by `SeniorNoticeLayer` and still has to look right.
+    store.oneToOne = false;
     final pairing = InMemoryPairingRepository(store);
     final subs = InMemorySubscriptionRepository(store);
     await store.ensureGuardianAccount(displayName: '김보호');

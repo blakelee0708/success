@@ -123,6 +123,30 @@ def remember(profile):
     return profile
 
 
+
+def seed_sibling(profile_id, guardian_token, *, role="family", status="active"):
+    """Attaches a second guardian **with the service key**, past the 1대1 gate.
+
+    `assert_can_add_guardian` refuses a second child on a parent, and
+    `assert_can_add_senior` a second parent on a child - the lock the owner
+    asked for on 2026-10-29. The server code those paths lead to is
+    untouched and still works, so the checks below are still worth running;
+    what they cannot do any more is *arrive* through an invite.
+
+    Seeding is setup rather than a test: the gate itself is checked by
+    `tool/verify_supabase_one_to_one.py`. When the lock lifts, this goes back
+    to being a `create_family_invite` / `redeem_family_invite` pair.
+    """
+    st, rows = call("/rest/v1/guardian_accounts?select=id,auth_user_id",
+                    token=guardian_token, method="GET")
+    assert st == 200 and rows, (st, rows)
+    st, made = call("/rest/v1/guardian_senior_links", key=SERVICE,
+                    body={"guardian_account_id": rows[0]["id"],
+                          "senior_profile_id": profile_id,
+                          "role": role, "status": status})
+    assert st in (200, 201, 204), (st, made)
+    return rows[0]["id"]
+
 try:
     # --- 경로 B: the parent's phone shows a code, the guardian types it ------
     phone, install = device()
@@ -248,21 +272,24 @@ try:
                method="GET")[1] == [], "old device can still read")
 
     # --- Family guardians, free ---------------------------------------------
+    #
+    # **Locked since 2026-10-29.** 가족 초대하기 is off every screen and the
+    # server refuses a second guardian; the refusal is checked in
+    # `tool/verify_supabase_one_to_one.py`. The code a sibling would reach is
+    # untouched, so what still runs here is everything downstream of the
+    # arrival, seeded past the gate.
     st, fam = call("/rest/v1/rpc/create_family_invite", token=g1,
                    body={"p_senior_profile_id": profile_id})
-    check("the primary guardian can invite family", st == 200 and fam.get("code"), fam)
+    check("the primary guardian can still issue an invite code",
+          st == 200 and fam.get("code"), fam)
 
     g3 = guardian("g3")
-    st, joined = call("/rest/v1/rpc/redeem_family_invite", token=g3,
-                      body={"p_code": fam["code"]})
-    check("a sibling joins with no payment involved",
-          st == 200 and joined["id"] == profile_id, joined)
-    approve(new_phone)
+    seed_sibling(profile_id, g3)
 
     st, roles = call(
         f"/rest/v1/guardian_senior_links?senior_profile_id=eq.{profile_id}&select=role",
         token=g3, method="GET")
-    check("an invited guardian joins as family, never primary",
+    check("a sibling is family, never primary",
           st == 200 and any(r["role"] == "family" for r in roles)
           and sum(1 for r in roles if r["role"] == "primary") == 1, roles)
 

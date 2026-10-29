@@ -417,6 +417,15 @@ class SupabasePairingRepository implements PairingRepository {
     if (message.contains('not an active senior device')) {
       return '부모님 폰에서만 끊을 수 있어요.';
     }
+    // The 1대1 lock. Two sentences rather than one, because the two refusals
+    // are about different people and only one of them is the reader's doing.
+    if (message.contains('one senior per guardian') ||
+        message.contains('family plan required')) {
+      return '지금은 부모님 한 분만 연결할 수 있어요.';
+    }
+    if (message.contains('one guardian per senior')) {
+      return '이 부모님께는 이미 다른 자녀가 연결되어 있어요.';
+    }
     return message;
   }
 
@@ -491,6 +500,10 @@ class InMemoryPairingRepository implements PairingRepository {
   }) async {
     final link = _claim(code, PairMode.seniorSharesCode);
     final profileId = link.seniorProfileId!;
+    // Both after the code resolves, exactly as the server does it: neither
+    // question can be answered before the number says which parent it is.
+    store.assertCanAddSenior(exceptProfileId: profileId);
+    store.assertCanAddGuardian(profileId, actingGuardianId);
     store.rename(profileId, displayName.trim());
     // The server leaves this waiting on the senior's own answer. See
     // `pendingLinkConsent`.
@@ -505,6 +518,7 @@ class InMemoryPairingRepository implements PairingRepository {
 
   @override
   Future<PairLink> createSeniorInvite({required String displayName}) async {
+    store.assertCanAddSenior();
     final profile = store.addProfile(displayName.trim());
     store.link(profile.id, actingGuardianId, 'primary');
     return _issue(
@@ -572,6 +586,8 @@ class InMemoryPairingRepository implements PairingRepository {
   @override
   Future<SeniorProfile> redeemFamilyInvite(String code) async {
     final link = _claim(code, PairMode.guardianInviteFamily);
+    store.assertCanAddSenior(exceptProfileId: link.seniorProfileId);
+    store.assertCanAddGuardian(link.seniorProfileId!, actingGuardianId);
     // Never 'primary': joining by invitation does not take over the account.
     store.link(link.seniorProfileId!, actingGuardianId, 'family');
     return store.profiles[link.seniorProfileId]!;

@@ -108,23 +108,21 @@ class GuardianFamilySection extends ConsumerWidget {
           // had just issued vanished with it, leaving the guardian looking at
           // the form again as though nothing had happened.
           const _Card(key: ValueKey('connect'), child: _ConnectParent()),
-          _Card(
-            key: const ValueKey('guardians'),
-            child: _Guardians(seniorProfileId: profile.id),
-          ),
-          _Card(
-            key: const ValueKey('family-invite'),
-            child: _CodeCard(
-              key: GuardianFamilyKeys.familyInvite,
-              title: '가족 초대하기',
-              // Free per the PRD; the uploaded design had put this behind
-              // 안심 케어.
-              detail: '형제자매도 함께 돌볼 수 있어요. 무료입니다.',
-              action: '초대 번호 만들기',
-              issue: (c) => c.createFamilyInvite(profile.id),
-              hint: '초대받은 분이 앱에서 이 번호를 넣으면 함께 돌볼 수 있어요. 7일 동안 쓸 수 있어요.',
-            ),
-          ),
+          // **가족 초대하기 and 연결된 가족 were here, and the app is 1대1
+          // now** - the owner's call on 2026-10-29, because almost everything
+          // awkward in it came from a parent having several children or a
+          // child having several parents. The server refuses either
+          // (`20261029080000_one_to_one.sql`), so these two are not hidden
+          // buttons that would still work; they are buttons for something
+          // that cannot happen.
+          //
+          // 연결된 가족 goes for a second reason of its own: with one child
+          // it is a list of one row saying your own name, which is furniture
+          // by this app's own standard. The senior's 가족 연결 설정 keeps its
+          // list, because that one carries 끊기.
+          //
+          // Both widgets are left in the file. Lifting the lock means
+          // putting two cards back, not writing them again.
           _Card(
             key: const ValueKey('recovery'),
             child: _CodeCard(
@@ -351,7 +349,6 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
   bool _byCode = false;
   bool _busy = false;
   String? _error;
-  PairLink? _issued;
 
   @override
   void dispose() {
@@ -381,11 +378,14 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
       final existing =
           ref.read(linkedSeniorProfilesProvider).value ?? const [];
       if (existing.isNotEmpty) {
-        final answer = await _askIfSamePhone(existing);
-        // Dismissed rather than answered. Nothing is spent, and asking again
-        // is one tap.
-        if (answer == null) return;
-        moveOnto = answer.isEmpty ? null : answer;
+        moveOnto = await _askIfSamePhone(existing.first);
+        if (!mounted) return;
+        if (moveOnto == null) {
+          // 아니요, or dismissed. Nothing is spent, and the limit is the one
+          // thing worth saying here - they were about to meet it anyway.
+          setState(() => _error = '지금은 부모님 한 분만 연결할 수 있어요.');
+          return;
+        }
       }
     }
     if (!mounted) return;
@@ -413,15 +413,13 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
             phoneNumber: mine.isEmpty ? null : mine,
           );
         }
-        if (mounted) setState(() => _issued = null);
       } else {
-        final link = await controller.inviteSenior(
+        await controller.inviteSenior(
           displayName: name,
           // Here the number **is** the parent's: it is who the install SMS
           // is addressed to, and nothing else reads it.
           phoneNumber: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
         );
-        if (mounted) setState(() => _issued = link);
       }
       // Saved on both paths, which is also new. 경로 A never asked for the
       // guardian's own number at all, so their parent's 보호자 tile stayed
@@ -443,41 +441,37 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
 
   /// 이미 연결된 부모님이 있을 때 묻는다.
   ///
-  /// Returns the profile id to move the new handset onto, `''` for 다른
-  /// 분이에요, or null if the question was dismissed.
+  /// Returns the profile id to move the new handset onto, or null if the
+  /// question was declined or dismissed.
   ///
-  /// With one parent it is a yes-or-no; with several it has to be a list,
-  /// because 어머니가 폰을 바꾸셨나요 cannot be answered for a family with
-  /// two parents by guessing which one.
-  Future<String?> _askIfSamePhone(List<SeniorProfile> existing) {
-    final one = existing.length == 1 ? existing.first : null;
+  /// **One question, because 1대1 leaves one answer.** It used to carry a
+  /// 다른 분이에요 beside it, for a guardian taking on a second parent - the
+  /// server refuses that now, so the button could only ever have produced a
+  /// refusal. A button that always fails is the thing this app takes off
+  /// screens rather than leaves on them, the same call as the 전화하기 that
+  /// dials nothing.
+  ///
+  /// So 아니요 closes and says the limit instead, which is the one thing a
+  /// guardian pressing it would need to be told.
+  Future<String?> _askIfSamePhone(SeniorProfile existing) {
     return showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: GuardianFamilyKeys.samePhoneAsk,
-        title: Text(
-          one == null ? '이미 연결된 부모님이 있어요' : '이미 ${one.displayName}님과 연결되어 있어요',
-        ),
+        title: Text('이미 ${existing.displayName}님과 연결되어 있어요'),
         content: Text(
-          one == null
-              ? '폰을 바꾸신 분이 있나요? 그분을 골라 주시면 대화와 홈 화면이 그대로 옮겨집니다.'
-              : '${one.displayName}님이 폰을 바꾸신 건가요?\n'
-                    '그렇다면 대화와 홈 화면, 글씨 크기가 그대로 옮겨집니다.',
+          '${existing.displayName}님이 폰을 바꾸신 건가요?\n'
+          '그렇다면 대화와 홈 화면, 글씨 크기가 그대로 옮겨집니다.',
           style: const TextStyle(fontSize: 14.5, height: 1.55),
         ),
         actions: [
-          for (final profile in existing)
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(profile.id),
-              child: Text(
-                existing.length == 1
-                    ? '${profile.displayName}님 폰을 바꿨어요'
-                    : '${profile.displayName}님',
-              ),
-            ),
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(''),
-            child: const Text('다른 분이에요'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('아니요'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(existing.id),
+            child: Text('${existing.displayName}님 폰을 바꿨어요'),
           ),
         ],
       ),
@@ -486,7 +480,7 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
 
   @override
   Widget build(BuildContext context) {
-    final issued = _issued;
+    final issued = ref.watch(lastInviteProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -509,11 +503,15 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
             ('불러주신 번호 넣기', Icons.dialpad_rounded),
           ],
           selected: _byCode ? 1 : 0,
-          onSelected: (i) => setState(() {
-            _byCode = i == 1;
-            _error = null;
-            _issued = null;
-          }),
+          onSelected: (i) {
+            // Cleared through the provider that holds it now, so switching
+            // away from 설치 문자 takes the code off the screen.
+            ref.read(lastInviteProvider.notifier).set(null);
+            setState(() {
+              _byCode = i == 1;
+              _error = null;
+            });
+          },
         ),
         const SizedBox(height: 14),
         Text(
@@ -775,6 +773,14 @@ class _IssuedCode extends StatelessWidget {
 
 /// Everyone looking after this parent, and the one action that can change who
 /// speaks for them.
+///
+/// **Not drawn while the app is 1대1.** With one child it is a list of one
+/// row saying the reader's own name, and 대표 보호자 맡기 is a handover to
+/// nobody. It is kept rather than deleted because the lock is two numbers in
+/// `20261029080000_one_to_one.sql` and putting it back has to be one line
+/// here, not a rewrite - which is what was promised when the lock was
+/// agreed.
+// ignore: unused_element
 class _Guardians extends ConsumerWidget {
   const _Guardians({required this.seniorProfileId});
 

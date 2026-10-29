@@ -148,15 +148,18 @@ void main() {
     expect(find.textContaining('메시지'), findsWidgets);
   });
 
-  testWidgets('four things to do, each with what it is about', (tester) async {
+  testWidgets('three things to do, each with what it is about', (tester) async {
     await _pumpHome(tester, lastSeenAt: DateTime(2026, 10, 20, 14, 30));
 
-    expect(find.byType(GuardianActionCard), findsNWidgets(4));
+    // **Three since the app went 1대1.** 가족 초대하기 held a fourth square
+    // and there is nobody to invite now, so the grid is two tiles and one
+    // wide card rather than a 2x2 with a hole in it.
+    expect(find.byType(GuardianActionCard), findsNWidgets(3));
     expect(find.textContaining('홈 버튼'), findsOneWidget);
     expect(find.textContaining('메시지'), findsWidgets);
     // Twice: the action card and the tab it opens, which is named for it.
     expect(find.textContaining('안심 케어'), findsWidgets);
-    expect(find.textContaining('초대하기'), findsOneWidget);
+    expect(find.textContaining('초대하기'), findsNothing);
     // Read off the parent's real home screen, not a guess.
     expect(find.text('버튼 3개'), findsOneWidget);
   });

@@ -86,7 +86,7 @@ class GuardianCard extends StatelessWidget {
   }
 }
 
-/// One of the four things a guardian can do from the home tab.
+/// One of the things a guardian can do from the home tab.
 class GuardianActionCard extends StatelessWidget {
   const GuardianActionCard({
     super.key,
@@ -96,6 +96,7 @@ class GuardianActionCard extends StatelessWidget {
     required this.tint,
     required this.tintInk,
     this.onTap,
+    this.wide = false,
   });
 
   final String label;
@@ -110,8 +111,75 @@ class GuardianActionCard extends StatelessWidget {
   final Color tintInk;
   final VoidCallback? onTap;
 
+  /// Laid out as a row rather than a tile, for the one card that is not in
+  /// the grid.
+  ///
+  /// 안심 케어 is the odd one out since the app went 1대1 and 가족 초대하기
+  /// left: three cards in a two-column grid is a hole, which this app
+  /// already refused once when 소리 울리기 went. **A stacked tile stretched
+  /// to full width does not work** - it keeps its 46px disc over two lines
+  /// of type and comes to about 156px, which is a slab of nothing across the
+  /// screen. On its side it is the same three pieces at 96px.
+  final bool wide;
+
   @override
   Widget build(BuildContext context) {
+    if (wide) {
+      return Semantics(
+        button: true,
+        label: label,
+        child: GuardianCard(
+          onTap: onTap,
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: tint,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, size: 23, color: tintInk),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        height: 1.35,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
+                        color: AppColors.guardianInk,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      detail,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.guardianInkFaint,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: AppColors.guardianInkFaint,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Semantics(
       button: true,
       label: label,

@@ -405,6 +405,14 @@ class _HomeTab extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
+        // **Three things, not four, since the app went 1대1.** 가족 초대하기
+        // held the fourth square and there is nobody to invite now, so the
+        // grid is two squares and one wide card rather than a 2x2 with a
+        // hole in it - the same reason a fifth card was refused when 소리
+        // 울리기 was taken out.
+        //
+        // The wide one is 안심 케어, which is the only one of the three that
+        // is selling something and the one that gains from the room.
         GridView.count(
           crossAxisCount: 2,
           mainAxisSpacing: 12,
@@ -432,30 +440,26 @@ class _HomeTab extends ConsumerWidget {
               tintInk: AppColors.guardianTintVioletInk,
               onTap: () => onOpenTab(2),
             ),
-            // **소리 울리기 held this slot once the tier was bought**, so
-            // the card that sold 안심 케어 turned into the thing it sold.
-            // With the ring out of the product the slot goes back to one
-            // card, shown whether or not they have paid: a buyer reading
-            // 알아보기 about something they already have is better than a
-            // grid with a hole in it.
-            GuardianActionCard(
-                key: GuardianHomeKeys.care,
-                label: '안심 케어\n알아보기',
-                detail: '준비 중',
-                icon: Icons.favorite_rounded,
-                tint: AppColors.guardianTintGreen,
-                tintInk: AppColors.guardianTintGreenInk,
-                onTap: () => onOpenTab(3),
-              ),
-            GuardianActionCard(
-              label: '가족\n초대하기',
-              detail: '형제도 무료',
-              icon: Icons.people_rounded,
-              tint: AppColors.guardianTintAmber,
-              tintInk: AppColors.guardianTintAmberInk,
-              onTap: () => onOpenTab(3),
-            ),
           ],
+        ),
+        const SizedBox(height: 12),
+        // **소리 울리기 held a slot here once the tier was bought**, so the
+        // card that sold 안심 케어 turned into the thing it sold. With the
+        // ring out of the product it goes back to one card, shown whether or
+        // not they have paid: a buyer reading 알아보기 about something they
+        // already have is better than a grid with a hole in it.
+        //
+        // Wide rather than square because it is the odd one out of three
+        // now, and because it is the only one selling anything.
+        GuardianActionCard(
+          key: GuardianHomeKeys.care,
+          wide: true,
+          label: '안심 케어 알아보기',
+          detail: '부모님이 어떻게 지내시는지',
+          icon: Icons.favorite_rounded,
+          tint: AppColors.guardianTintGreen,
+          tintInk: AppColors.guardianTintGreenInk,
+          onTap: () => onOpenTab(3),
         ),
         const SizedBox(height: 22),
         GuardianCard(

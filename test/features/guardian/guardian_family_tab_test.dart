@@ -80,11 +80,10 @@ void main() {
     // The app can only hand the text to the messaging app, and cannot see what
     // happens next. Same rule as SOS: never claim an action the user still has
     // to take themselves.
-    // With a parent already linked, so the form under test is 연결 관리's.
-    // On 홈 the first invite creates the profile, which takes that tab out of
-    // its empty state and the card with it - the code is re-shown from
-    // 연결 관리 instead.
-    final h = await _pumpFamilyTab(tester, withParent: true);
+    // **With no parent yet**, because the app is 1대1 and a guardian who
+    // already has one cannot invite a second. The form is the same one
+    // either way - 연결 관리 and the empty state on 홈 both draw it.
+    final h = await _pumpFamilyTab(tester);
 
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
@@ -93,8 +92,6 @@ void main() {
     expect(find.text('문자 앱에 내용을 채워 두었어요. 보내기는 직접 눌러 주세요.'), findsOneWidget);
     expect(find.textContaining('문자를 보냈'), findsNothing);
     expect(find.textContaining('발송'), findsNothing);
-    // Not `single`: the parent this test starts with was linked by a code
-    // of their own, so this is the second one issued.
     expect(h.pairing.issued.last.code, isNotEmpty);
   });
 
@@ -103,7 +100,8 @@ void main() {
   ) async {
     // Path A depends on the Play install referrer, which only survives a store
     // install — so the fallback has to be in front of the guardian, not buried.
-    await _pumpFamilyTab(tester, withParent: true);
+    // With no parent yet, because the app is 1대1.
+    await _pumpFamilyTab(tester);
 
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
@@ -197,34 +195,42 @@ void main() {
     },
   );
 
-  testWidgets('inviting family is shown as free', (tester) async {
-    // The PRD lists 가족 보호자 초대 among the free features; the uploaded
-    // design had moved it behind 안심 케어.
-    await _pumpFamilyTab(tester, withParent: true);
-
-    expect(find.text('가족 초대하기'), findsOneWidget);
-    expect(find.textContaining('무료'), findsWidgets);
-  });
-
-  testWidgets('the guardians looking after the parent are listed', (
+  testWidgets('nothing on the tab offers a second child or a second parent', (
     tester,
   ) async {
-    // Phase 4 let a guardian read only their own link row. A guardian who
-    // cannot see who else is looking after their parent cannot tell whether
-    // the invite they sent was taken up.
+    // **The 1대1 lock, read off the screen.** 가족 초대하기, 연결된 가족 and
+    // 대표 보호자 맡기 all had cards here, and the server refuses every one
+    // of the things they led to since
+    // `20261029080000_one_to_one.sql` - so a button for any of them could
+    // only ever produce a refusal, which is what this app takes off screens
+    // rather than leaves on them.
+    //
+    // The widgets are all still in the file. When the lock lifts this test
+    // flips back to asserting they are there, which is the whole shape of
+    // the promise: two numbers out, three cards back.
     await _pumpFamilyTab(tester, withParent: true);
 
-    expect(find.byKey(GuardianFamilyKeys.guardians), findsOneWidget);
-    expect(find.textContaining('대표 보호자'), findsWidgets);
+    expect(find.text('가족 초대하기'), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.familyInvite), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.guardians), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.requestPrimary), findsNothing);
+    expect(find.textContaining('대표 보호자'), findsNothing);
   });
 
-  testWidgets('taking over as primary says the senior has to allow it', (
+  testWidgets('a second parent is refused rather than half-built', (
     tester,
   ) async {
-    // A sibling who joined by invitation, so a handover is possible at all.
-    await _pumpFamilyTab(tester, withParent: true, withSibling: true);
+    // The twin holds the same rule the server does - see
+    // `InMemorySeniorLinkRepository.oneToOne`. A twin that quietly allowed
+    // what the server refuses is how a screen gets built against a rule
+    // that is not there.
+    final h = await _pumpFamilyTab(tester, withParent: true);
 
-    expect(find.text('부모님 폰에서 허락하셔야 바뀝니다.'), findsOneWidget);
-    expect(find.byKey(GuardianFamilyKeys.requestPrimary), findsOneWidget);
+    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
+    await tester.tap(find.byKey(GuardianFamilyKeys.invite));
+    await tester.pumpAndSettle();
+
+    expect(find.text('지금은 부모님 한 분만 연결할 수 있어요.'), findsOneWidget);
+    expect(h.store.linkedProfileIds.length, 1);
   });
 }

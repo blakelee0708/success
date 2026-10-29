@@ -135,6 +135,30 @@ def by_role(rows):
     return {r["role"]: r for r in (rows or [])}
 
 
+
+def seed_sibling(profile_id, guardian_token, *, role="family", status="active"):
+    """Attaches a second guardian **with the service key**, past the 1대1 gate.
+
+    `assert_can_add_guardian` refuses a second child on a parent, and
+    `assert_can_add_senior` a second parent on a child - the lock the owner
+    asked for on 2026-10-29. The server code those paths lead to is
+    untouched and still works, so the checks below are still worth running;
+    what they cannot do any more is *arrive* through an invite.
+
+    Seeding is setup rather than a test: the gate itself is checked by
+    `tool/verify_supabase_one_to_one.py`. When the lock lifts, this goes back
+    to being a `create_family_invite` / `redeem_family_invite` pair.
+    """
+    st, rows = call("/rest/v1/guardian_accounts?select=id,auth_user_id",
+                    token=guardian_token, method="GET")
+    assert st == 200 and rows, (st, rows)
+    st, made = call("/rest/v1/guardian_senior_links", key=SERVICE,
+                    body={"guardian_account_id": rows[0]["id"],
+                          "senior_profile_id": profile_id,
+                          "role": role, "status": status})
+    assert st in (200, 201, 204), (st, made)
+    return rows[0]["id"]
+
 try:
     # One parent, their phone, and two guardians — the primary and a sibling
     # who joined by family invite.
@@ -156,13 +180,10 @@ try:
     g2 = guardian("g2")
     call("/rest/v1/rpc/ensure_guardian_account", token=g2,
          body={"p_display_name": "철수", "p_phone_number": "01011110002"})
-    st, inv = call("/rest/v1/rpc/create_family_invite", token=g1,
-                   body={"p_senior_profile_id": profile_id})
-    assert st == 200, (st, inv)
-    st, _ = call("/rest/v1/rpc/redeem_family_invite", token=g2,
-                 body={"p_code": inv["code"]})
-    approve(phone)
-    assert st == 200
+    # Seeded past the 1대1 gate rather than invited - see `seed_sibling`.
+    # What this file is about is whether the roster can be *read*, and that
+    # question is unchanged by how the second row got there.
+    seed_sibling(profile_id, g2)
 
     # --- the senior's own phone ---------------------------------------------
     # This is the one the SOS button depends on, and the one that used to come

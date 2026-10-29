@@ -160,14 +160,15 @@ def family(senior_name="어머니", guardians=("영희",)):
                                "p_display_name": senior_name,
                                "p_phone_number": "01012345678"})
             assert st == 200, (st, _)
+            approve(phone)
         else:
-            st, inv = call("/rest/v1/rpc/create_family_invite", token=tokens[0],
-                           body={"p_senior_profile_id": profile_id})
-            assert st == 200, (st, inv)
-            st, _ = call("/rest/v1/rpc/redeem_family_invite", token=g,
-                         body={"p_code": inv["code"]})
-            assert st == 200, (st, _)
-        approve(phone)
+            # **Seeded past the 1대1 gate**, which refuses a second guardian
+            # since 2026-10-29 - the refusal is checked in
+            # `tool/verify_supabase_one_to_one.py`. The two-child cases below
+            # are what makes the 마지막 자녀가 갈 때만 꺼진다 rule testable at
+            # all, and that rule is still in the server whether or not a
+            # second child can currently arrive.
+            seed_sibling(profile_id, g)
         tokens.append(g)
     return phone, install, profile_id, tokens
 
@@ -193,6 +194,30 @@ def care_on(profile_id):
     rows = sql("select public.care_is_active('%s') as on" % profile_id)
     return rows[0]["on"]
 
+
+
+def seed_sibling(profile_id, guardian_token, *, role="family", status="active"):
+    """Attaches a second guardian **with the service key**, past the 1대1 gate.
+
+    `assert_can_add_guardian` refuses a second child on a parent, and
+    `assert_can_add_senior` a second parent on a child - the lock the owner
+    asked for on 2026-10-29. The server code those paths lead to is
+    untouched and still works, so the checks below are still worth running;
+    what they cannot do any more is *arrive* through an invite.
+
+    Seeding is setup rather than a test: the gate itself is checked by
+    `tool/verify_supabase_one_to_one.py`. When the lock lifts, this goes back
+    to being a `create_family_invite` / `redeem_family_invite` pair.
+    """
+    st, rows = call("/rest/v1/guardian_accounts?select=id,auth_user_id",
+                    token=guardian_token, method="GET")
+    assert st == 200 and rows, (st, rows)
+    st, made = call("/rest/v1/guardian_senior_links", key=SERVICE,
+                    body={"guardian_account_id": rows[0]["id"],
+                          "senior_profile_id": profile_id,
+                          "role": role, "status": status})
+    assert st in (200, 201, 204), (st, made)
+    return rows[0]["id"]
 
 try:
     # ======================================================================

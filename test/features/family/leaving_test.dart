@@ -474,7 +474,11 @@ void main() {
 
     expect(find.byKey(GuardianFamilyKeys.samePhoneAsk), findsOneWidget);
     expect(find.text('어머니님 폰을 바꿨어요'), findsOneWidget);
-    expect(find.text('다른 분이에요'), findsOneWidget);
+    // **One question, because 1대1 leaves one answer.** 다른 분이에요 sat
+    // here for a guardian taking on a second parent, and the server refuses
+    // that now - so the button could only ever have produced a refusal.
+    expect(find.text('다른 분이에요'), findsNothing);
+    expect(find.text('아니요'), findsOneWidget);
   });
 
   testWidgets('answering 폰을 바꿨어요 keeps one parent, not two', (tester) async {
@@ -505,7 +509,13 @@ void main() {
     );
   });
 
-  testWidgets('answering 다른 분이에요 makes a second parent', (tester) async {
+  testWidgets('answering 아니요 says the limit rather than failing', (
+    tester,
+  ) async {
+    // It used to make a second parent. The app is 1대1 now, so the one thing
+    // a guardian pressing 아니요 needs to be told is why there is no second
+    // door - said here rather than after a refusal they would otherwise
+    // walk into.
     final h = await _family();
     await _pumpGuardianHome(tester, h);
 
@@ -520,10 +530,11 @@ void main() {
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.enterCode));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('다른 분이에요'));
+    await tester.tap(find.text('아니요'));
     await tester.pumpAndSettle();
 
-    expect(h.store.linkedProfileIds.length, 2);
+    expect(find.text('지금은 부모님 한 분만 연결할 수 있어요.'), findsOneWidget);
+    expect(h.store.linkedProfileIds, [h.profileId]);
   });
 
   // ===========================================================

@@ -33,6 +33,29 @@ final guardianNoticesProvider = FutureProvider<List<GuardianNotice>>((
   return ref.watch(pairingRepositoryProvider).guardianNotices();
 });
 
+/// The invite this phone most recently issued, if any.
+///
+/// **It is here rather than in the form's `State` because the form does not
+/// survive what issuing one does.** Creating the first parent flips 홈 out
+/// of its 아직 연결된 부모님이 없어요 branch into the connected layout - a
+/// different tree - so the widget holding the code was torn down at the
+/// exact moment the code appeared, and the guardian was left looking at an
+/// empty form. The number they were about to read out to their parent was
+/// gone and nothing said so.
+///
+/// It also outlives switching tabs and coming back, which is the other time
+/// somebody would want to look at it again.
+final lastInviteProvider = NotifierProvider<LastInvite, PairLink?>(
+  LastInvite.new,
+);
+
+class LastInvite extends Notifier<PairLink?> {
+  @override
+  PairLink? build() => null;
+
+  void set(PairLink? link) => state = link;
+}
+
 /// Everyone looking after the selected parent.
 final guardiansForSelectedProvider = FutureProvider<List<GuardianLink>>((
   ref,
@@ -78,6 +101,7 @@ class GuardianPairingController extends Notifier<void> {
         ),
       ),
     );
+    ref.read(lastInviteProvider.notifier).set(link);
     return link;
   }
 
@@ -88,6 +112,9 @@ class GuardianPairingController extends Notifier<void> {
     required String displayName,
     String? phoneNumber,
   }) async {
+    // A number typed in is not a number to show, so anything left on screen
+    // from an earlier 설치 문자 goes.
+    ref.read(lastInviteProvider.notifier).set(null);
     await ref
         .read(pairingRepositoryProvider)
         .claimSeniorPairingCode(

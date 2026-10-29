@@ -108,6 +108,30 @@ def device():
     return sess["access_token"], "install-" + uuid.uuid4().hex[:10]
 
 
+
+def seed_sibling(profile_id, guardian_token, *, role="family", status="active"):
+    """Attaches a second guardian **with the service key**, past the 1대1 gate.
+
+    `assert_can_add_guardian` refuses a second child on a parent, and
+    `assert_can_add_senior` a second parent on a child - the lock the owner
+    asked for on 2026-10-29. The server code those paths lead to is
+    untouched and still works, so the checks below are still worth running;
+    what they cannot do any more is *arrive* through an invite.
+
+    Seeding is setup rather than a test: the gate itself is checked by
+    `tool/verify_supabase_one_to_one.py`. When the lock lifts, this goes back
+    to being a `create_family_invite` / `redeem_family_invite` pair.
+    """
+    st, rows = call("/rest/v1/guardian_accounts?select=id,auth_user_id",
+                    token=guardian_token, method="GET")
+    assert st == 200 and rows, (st, rows)
+    st, made = call("/rest/v1/guardian_senior_links", key=SERVICE,
+                    body={"guardian_account_id": rows[0]["id"],
+                          "senior_profile_id": profile_id,
+                          "role": role, "status": status})
+    assert st in (200, 201, 204), (st, made)
+    return rows[0]["id"]
+
 try:
     g1 = guardian("g1")
     phone, install = device()
@@ -145,12 +169,10 @@ try:
                         body={"p_senior_profile_id": pid, "p_body": "누구세요"})
     check("an unrelated guardian cannot send", st >= 400, stranger)
 
-    # A sibling has to see what was already said.
-    st, invite = call("/rest/v1/rpc/create_family_invite", token=g1,
-                      body={"p_senior_profile_id": pid})
+    # A sibling has to see what was already said. Seeded past the 1대1 gate
+    # rather than invited - see `seed_sibling`.
     g2 = guardian("g2")
-    call("/rest/v1/rpc/redeem_family_invite", token=g2, body={"p_code": invite["code"]})
-    approve(phone)
+    seed_sibling(pid, g2)
     st, sibling = call(f"/rest/v1/messages?senior_profile_id=eq.{pid}&select=body",
                        token=g2, method="GET")
     check("a sibling sees the conversation they joined",

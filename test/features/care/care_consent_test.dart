@@ -357,25 +357,35 @@ void main() {
     expect(find.textContaining('보이스피싱'), findsNothing);
   });
 
-  testWidgets('the family plan is distinguished from inviting a sibling', (
+  testWidgets('the family plan is not offered while the app is 1대1', (
     tester,
   ) async {
+    // **It sold 부모님을 두 분 이상**, and the owner locked that on
+    // 2026-10-29. `assert_can_add_senior` no longer lets the plan raise the
+    // limit, so a card selling it would be selling something that cannot be
+    // used - the same call as every other button this app takes off a screen
+    // rather than leaves there failing.
+    //
+    // Nothing is deleted. The plan, its rows and `has_family_plan()` are all
+    // still on the server, the widget is still in the file, and there is no
+    // Play Billing either way. When the lock lifts this flips back.
     final h = await _family();
     await _pumpCareTab(tester, h);
 
-    expect(find.byKey(GuardianCareKeys.familyPlan), findsOneWidget);
-    expect(find.textContaining('형제자매를 초대하는 것은'), findsOneWidget);
-    expect(find.textContaining('무료'), findsWidgets);
+    expect(find.byKey(GuardianCareKeys.familyPlan), findsNothing);
+    expect(find.text('가족 플랜 신청하기'), findsNothing);
+    expect(find.textContaining('두 분 이상'), findsNothing);
+    expect(await h.subs.hasFamilyPlan(), isFalse);
   });
 
-  testWidgets('buying the family plan needs no senior involvement', (
-    tester,
-  ) async {
+  testWidgets('buying it still needs no senior involvement, where it can be '
+      'bought at all', (tester) async {
+    // Through the repository rather than a button, because there is no
+    // button any more. What is checked is the rule that outlives the lock:
+    // the plan is about the guardian's account, so the parent is never asked
+    // about it - unlike 안심 케어, which they must agree to.
     final h = await _family();
-    await _pumpCareTab(tester, h);
-
-    await tester.tap(find.text('가족 플랜 신청하기'));
-    await tester.pumpAndSettle();
+    await h.subs.startFamilyPlan();
 
     expect(await h.subs.hasFamilyPlan(), isTrue);
     expect(

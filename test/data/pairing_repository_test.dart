@@ -7,6 +7,12 @@ import 'package:app/domain/pair_link.dart';
 ({InMemorySeniorLinkRepository store, InMemoryPairingRepository pairing})
 _fresh({DateTime Function()? now}) {
   final store = InMemorySeniorLinkRepository();
+    // **Off, because this is one of the few places that is *about* a second
+    // guardian.** The twin holds the 1대1 lock by default, the way the
+    // server does since `20261029080000_one_to_one.sql` - and the code
+    // exercised here is untouched by that lock and has to keep working for
+    // the day it lifts.
+  store.oneToOne = false;
   return (
     store: store,
     pairing: InMemoryPairingRepository(store, now: now ?? DateTime.now),

@@ -138,8 +138,15 @@ class SupabaseSubscriptionRepository implements SubscriptionRepository {
   }
 
   static String _readable(String message) {
-    if (message.contains('family plan required')) {
-      return '부모님을 두 분 이상 돌보시려면 가족 플랜이 필요해요.';
+    // 가족 플랜 raised the limit until the app went 1대1 on 2026-10-29. The
+    // old message is kept for a server that has not been migrated yet;
+    // nothing raises it now.
+    if (message.contains('family plan required') ||
+        message.contains('one senior per guardian')) {
+      return '지금은 부모님 한 분만 연결할 수 있어요.';
+    }
+    if (message.contains('one guardian per senior')) {
+      return '부모님 한 분에 자녀 한 명만 연결할 수 있어요.';
     }
     if (message.contains('only the senior device')) {
       return '부모님 폰에서만 답할 수 있어요.';

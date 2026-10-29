@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 772 tests, all passing
+flutter test             # currently 771 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -1649,7 +1649,7 @@ priced can stop them reaching their family.
 | 런처 전체, 사람 버튼, 폰에 있는 앱 | O | O |
 | 어르신이 자기 폰에서 고치기 | 무제한 | 무제한 |
 | 긴급 연락, 읽어드리기, 빠른 답장 | O | O |
-| 가족 연결, 형제 초대 | O | O |
+| 가족 연결 | O | O |
 | 가족 메시지 | 월 30회 / 사진 5장 | 무제한 |
 | 자녀 폰에서 홈 화면 정리 | 평생 3회 | 무제한 |
 | 안부 신호, 배터리·소리 | 첫 1주일 | O |
@@ -2030,9 +2030,10 @@ Three rules run through all of it, and none is a detail:
 built or verified here. `start_care_subscription` is the seam where a verified
 purchase token will be checked; everything downstream of it is real.
 
-The family plan gates a *second parent* (`assert_can_add_senior`), which is not
-the same thing as inviting a sibling to help with one parent — that stays free,
-per the PRD, and both screens say so.
+The family plan gated a *second parent* (`assert_can_add_senior`), which is
+not the same thing as inviting a sibling to help with one parent. **Both are
+locked since 2026-10-29** and neither is on a screen - see `## 1대1만
+연결한다`.
 
 ## The launcher half is native, and unverified here
 
@@ -2904,8 +2905,8 @@ first time - nothing had ever sent a sixth photo.
 
 281 checks across the fourteen, all green against the live project. Two of
 the fourteen were 소리 울리기's and went with it, and `verify_supabase_
-leaving.py` arrived with 끊기, so what is run now is **fourteen scripts, 336
-checks.**
+leaving.py` and `verify_supabase_one_to_one.py` arrived with 끊기 and the
+1대1 lock, so what is run now is **fifteen scripts.**
 
 ## 끊기, 해지, 계정 삭제 - 네 개의 문, 규칙은 하나
 
@@ -3119,6 +3120,117 @@ lost before what is, and that the app stops showing a family that has gone.
 which need the Play 심사 제출 예정일. The deletion URL has to go in the Play
 Console's own field. And no money moves until Play Billing exists, so the
 refund table is a rule the server already follows with nothing to refund.
+
+## 1대1만 연결한다, and it is a lock rather than a rewrite
+
+The owner's call on 2026-10-29: 복잡할 거 같아. The app could put several
+children on one parent **and** several parents on one child, and almost
+everything awkward in it came from one of those two - 두 자녀 중 하나만 끊으면
+안심 케어는 어떻게 되나, 메시지에 누가 보냈는지, 대표 보호자는 누가 정하나,
+부모님이 두 분이면 어느 쪽 폰을 바꾸신 건가.
+
+**The whole point is that it comes back by changing two numbers.**
+`guardian_senior_links` is a join table and stays one; the invite functions,
+the handover, the family plan and every widget that drew them are all still
+there. `20261029080000_one_to_one.sql` adds `max_guardians_per_senior()` and
+`max_seniors_per_guardian()`, both returning 1 - the same shape
+`family_text_free()` and `guardian_home_edits_free()` already use, so the
+limit is in one place rather than written into each caller. Opening it again
+is those two numbers plus the cards, with no migration to write and no data
+to move. That was promised when the lock was agreed and it is why nothing was
+deleted.
+
+Nothing is published, so no family has two of either. This was the cheapest
+moment it would ever be.
+
+### What it costs, said rather than hidden
+
+| | 잠근 것 |
+|---|---|
+| 부모님 한 분에 자녀 여럿 | 가족 초대하기(무료), 연결된 가족, 대표 보호자 변경 |
+| 자녀 한 명에 부모님 여러 분 | 가족 플랜 월 8,900원, 부모님 바꾸기 |
+
+The second row is a **paid product**, which is why it was the owner's call
+and not one to make here. It costs nothing today: there is no Play Billing,
+so the plan could not be sold either way. `assert_can_add_senior` keeps the
+carve-out it used to have written out in a comment, so putting the plan back
+is one condition.
+
+### Where the gate is, and the bug the verifier caught
+
+Both checks sit **after** the four-digit code resolves, in
+`claim_senior_pairing_code` and `redeem_family_invite`. Neither question can
+be answered before it: 이 번호가 누구 것인지 알아야 *두 번째* 부모님인지 안다.
+The code is spent on a refusal, which costs ten minutes and one tap.
+
+**`assert_can_add_senior` takes the profile to exclude**, and leaving that
+out was a real defect `tool/verify_supabase_one_to_one.py` caught before
+anything shipped. A guardian re-entering a code for the parent they
+**already have** is not taking on a second parent - it happens on a
+reconnect, and after an install SMS when the parent reads their number out
+anyway. Counted without the exception they were told 지금은 부모님 한 분만
+연결할 수 있어요 about their own mother, which is the dead end this lock
+exists to avoid rather than create.
+
+`'removed'` is not counted either, which is what keeps 끊기 reversible: the
+seat a removed child held comes free, and a lock that counted removed rows
+would have made a 끊기 permanent.
+
+### The twin holds the same rule, and that is deliberate
+
+`InMemorySeniorLinkRepository.oneToOne` defaults to **true**, unlike
+`pendingLinkConsent` which defaults to false. That one is off because
+mirroring it would have meant rewriting the harness of every test that
+connects a family; this one is the product as it actually behaves, and a twin
+that quietly allows what the server refuses is how a screen gets built
+against a rule that is not there.
+
+Four test files switch it off, and each is *about* a second guardian:
+`pairing_repository_test`, `primary_guardian_prompt_test`, and the handover
+card's screenshot. The code they exercise is untouched by the lock.
+
+### What came off the screens, and why not one of them is merely hidden
+
+Every one of these led to something the server now refuses, so a button for
+any of them could only ever have produced a refusal - which is what this app
+takes off screens rather than leaves on them, the same call as the 전화하기
+that dials nothing and the 지우기 that does nothing.
+
+- **가족 초대하기** and **연결된 가족**, from 연결 관리. The second has a
+  reason of its own: with one child it is a list of one row saying the
+  reader's own name, which is furniture by this app's own standard.
+- **가족 플랜**, from 안심 케어.
+- **다른 분이에요**, from the 폰을 바꾸셨나요 dialog. 1대1 leaves one answer,
+  so it is one question now and 아니요 says the limit instead.
+- **가족 초대하기** also held the fourth square of the home tab's 2x2. Three
+  cards in a two-column grid is a hole, which this app already refused once
+  when 소리 울리기 went - so it is two tiles and one **wide** card now, laid
+  out as a row rather than a stretched tile. A stacked tile at full width
+  keeps its 46px disc over two lines and comes to about 156px, which is a
+  slab of nothing across the screen; on its side it is the same three pieces
+  at 96.
+
+### The invite code used to vanish, and that was found here
+
+Not a lock problem, but the lock is what exposed it. `_issued` lived in the
+connect form's `State`, and creating the **first** parent flips 홈 out of its
+아직 연결된 부모님이 없어요 branch into the connected layout - a different
+tree. So the widget holding the code was torn down at the exact moment the
+code appeared: the number a guardian was about to read out to their parent
+was gone, with nothing on screen saying so. It is `lastInviteProvider` now,
+which also survives switching tabs and coming back.
+
+### The verifiers
+
+`tool/verify_supabase_one_to_one.py` is the lock itself - 13 checks,
+including the two things that must keep working: the same child re-entering
+a number for their own parent, and a removed child freeing the seat.
+
+Six other verifiers needed a second guardian to test something that has
+nothing to do with the lock, and they **seed the link with the service key**
+rather than inviting. Seeding is setup; the gate is checked in one place. The
+helper is called `seed_sibling` and says so in each file, so lifting the lock
+means putting an invite back there.
 
 ## Conventions
 
