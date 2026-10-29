@@ -38,7 +38,7 @@ Future<FakeAppLauncher> _openSettings(
     },
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('설정'));
+  await tester.tap(find.text('바꾸기'));
   await tester.pumpAndSettle();
   return launcher;
 }

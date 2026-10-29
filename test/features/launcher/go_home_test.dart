@@ -44,7 +44,7 @@ Future<void> _open(WidgetTester tester, String route) async {
 /// senior could reliably leave.
 void main() {
   for (final (name, route) in [
-    ('설정', Routes.seniorSettings),
+    ('바꾸기', Routes.seniorSettings),
     ('글씨 크기', Routes.fontSize),
     ('긴급 구조', Routes.sos),
     ('가족 연결', Routes.familyLink),

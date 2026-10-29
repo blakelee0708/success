@@ -118,16 +118,23 @@ const careCapabilities = <CareCapability>[
     tintInk: AppColors.guardianTintAmberInk,
     seniorLine: '배터리가 얼마 안 남았는지',
   ),
-  CareCapability(
-    key: 'phone_unused',
-    stage: CareReadiness.live,
-    title: '폰 미사용 알림',
-    detail: '이틀 넘게 폰을 켜지 않으시면 알려드립니다',
-    icon: Icons.bedtime_rounded,
-    tint: AppColors.guardianTintViolet,
-    tintInk: AppColors.guardianTintVioletInk,
-    seniorLine: '이틀 넘게 안 켜셨는지',
-  ),
+  // **폰 미사용 알림 was here and is out of the product**, decided
+  // 2026-10-29 after reading Play's stalkerware policy. That rule bans
+  // collecting and transmitting personal data to monitor another person,
+  // and the only exceptions are 부모 → 자녀 and 기업 → 직원. This app is
+  // 자녀 → 부모, which is one adult watching another, and the policy says
+  // that is not allowed **even with the watched person's permission**.
+  //
+  // Everything else 안심 케어 sends is a value Android hands over with no
+  // permission at all - a battery percentage, a ringer mode, the moment the
+  // phone was last unlocked. `이틀 넘게 안 켜셨는지` is different in kind:
+  // it is a pattern of use, watched over days, and it is the one line on
+  // the consent card that reads as surveillance rather than as a reading.
+  //
+  // Taking it out costs the tier one of six things and removes the item a
+  // reviewer would stop on. The SQL stays where it is - see
+  // `20261021030000_care_alerts.sql` and the note in
+  // `20261029050000_drop_unused_alert.sql`.
   CareCapability(
     key: 'message_read',
     stage: CareReadiness.live,

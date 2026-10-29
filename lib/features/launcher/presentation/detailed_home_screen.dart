@@ -198,7 +198,11 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: '설정',
+      // **설정 is a word this reader may not have.** It is borrowed from
+      // English by way of office software, and the senior who needs this
+      // screen most is the one least likely to have met it. 바꾸기 says what
+      // pressing it does, in a word anybody has.
+      label: '바꾸기',
       child: ClayPad(
         light: AppColors.seniorMoreLight,
         face: AppColors.seniorMore,
@@ -215,7 +219,7 @@ class _SettingsTile extends StatelessWidget {
                 Icon(Icons.settings, size: 44, color: Colors.white),
                 SizedBox(height: 10),
                 Text(
-                  '설정',
+                  '바꾸기',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w900,

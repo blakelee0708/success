@@ -736,7 +736,7 @@ void main() {
     await _capture(tester, '20b-sos-connected');
 
     await openDetailedHome();
-    await tester.tap(find.text('설정'));
+    await tester.tap(find.text('바꾸기'));
     await tester.pumpAndSettle();
     expect(find.text('글씨 크기 조절하기'), findsOneWidget);
     await _capture(tester, '21-senior-settings');
@@ -763,7 +763,7 @@ void main() {
       },
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('설정'));
+    await tester.tap(find.text('바꾸기'));
     await tester.pumpAndSettle();
     expect(find.text('잘보이네 사용하지 않기'), findsOneWidget);
     await _capture(tester, '21b-senior-settings-home');

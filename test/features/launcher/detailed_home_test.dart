@@ -46,7 +46,7 @@ void main() {
     expect(find.text('카카오톡'), findsOneWidget);
     expect(find.text('사진찍기'), findsOneWidget);
     // Six apps, 설정, and one slot left to fill: eight cells, 2x4.
-    expect(find.text('설정'), findsOneWidget);
+    expect(find.text('바꾸기'), findsOneWidget);
     expect(find.text('추가하기'), findsOneWidget);
     expect(find.text('긴급 구조 요청'), findsOneWidget);
     expect(find.text('가족 연결'), findsOneWidget);
@@ -67,7 +67,7 @@ void main() {
     // and that is the setting the whole app exists for.
     await _pumpDetailedHome(tester);
 
-    await tester.tap(find.text('설정'));
+    await tester.tap(find.text('바꾸기'));
     await tester.pumpAndSettle();
 
     expect(find.text('앱 설정하기'), findsOneWidget);

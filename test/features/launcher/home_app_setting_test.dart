@@ -36,7 +36,7 @@ Future<void> _openSettings(
     },
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text(mode == ScreenMode.easy ? '더 보기' : '설정'));
+  await tester.tap(find.text(mode == ScreenMode.easy ? '더 보기' : '바꾸기'));
   await tester.pumpAndSettle();
 }
 

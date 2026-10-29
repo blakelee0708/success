@@ -140,7 +140,7 @@ final manualTopics = <ManualTopic>[
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          ManualPill(label: '설정', face: _brown, height: 30),
+          ManualPill(label: '바꾸기', face: _brown, height: 30),
           SizedBox(height: 6),
           ManualPill(label: '글씨 크기 조절하기', face: _green, height: 30),
           SizedBox(height: 14),

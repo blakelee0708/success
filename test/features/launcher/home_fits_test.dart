@@ -88,7 +88,7 @@ void main() {
 
   for (final (mode, labels) in [
     (ScreenMode.easy, ['전화', '문자', '앨범', '영상 보기']),
-    (ScreenMode.detailed, ['전화', '카카오톡', '사진찍기', '설정']),
+    (ScreenMode.detailed, ['전화', '카카오톡', '사진찍기', '바꾸기']),
   ]) {
     testWidgets('${mode.name}: the labels are still readable at 아주 크게', (
       tester,

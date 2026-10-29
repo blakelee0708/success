@@ -279,11 +279,17 @@ try:
           len(alerts(g1, profile_id, "phone_unused")) == before,
           alerts(g1, profile_id, "phone_unused"))
 
-    # --- the job that calls it ----------------------------------------------
+    # --- and the job that called it is gone ---------------------------------
+    # 폰 미사용 알림 is out of the product since 2026-10-29. Play's
+    # stalkerware rule bans one adult monitoring another even with that
+    # person's permission, and of the six things 안심 케어 sold this was the
+    # only one that watched a pattern of use rather than reading a value
+    # Android gives away. The function is left in place - see
+    # `20261029050000_drop_unused_alert.sql` - so what has to be checked is
+    # that **nothing runs it**.
     job = sql("select jobname, schedule, active from cron.job "
               "where jobname = 'check-unused-phones'")
-    check("the sweep is actually scheduled",
-          job and job[0]["active"] is True, job)
+    check("the sweep is no longer scheduled", not job, job)
 
     # --- nobody may call either by hand -------------------------------------
     st, _ = call("/rest/v1/rpc/check_unused_phones", token=g1, body={})

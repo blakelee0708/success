@@ -74,11 +74,6 @@ const familyVisibility = <FamilyVisibility>[
   ),
   FamilyVisibility(
     sees: FamilySees.withCare,
-    line: '이틀 넘게 폰을 안 켜시면 알려 드립니다',
-    capabilityKey: 'phone_unused',
-  ),
-  FamilyVisibility(
-    sees: FamilySees.withCare,
     line: '메시지를 읽으신 때',
     capabilityKey: 'message_read',
   ),

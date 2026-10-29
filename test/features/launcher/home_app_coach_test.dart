@@ -49,7 +49,7 @@ Future<void> _openSettings(WidgetTester tester, {required bool isHome}) async {
     },
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('설정'));
+  await tester.tap(find.text('바꾸기'));
   await tester.pumpAndSettle();
 }
 

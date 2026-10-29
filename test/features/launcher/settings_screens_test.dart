@@ -28,7 +28,7 @@ Future<void> _openSettings(WidgetTester tester, {String? fontSize}) async {
     prefs: fontSize == null ? _saved() : _saved(fontSize: fontSize),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('설정'));
+  await tester.tap(find.text('바꾸기'));
   await tester.pumpAndSettle();
 }
 

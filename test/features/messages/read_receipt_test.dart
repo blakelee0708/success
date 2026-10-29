@@ -78,7 +78,7 @@ Future<void> _pumpSenior(WidgetTester tester, Harness h) async {
     await tester.tap(find.byKey(FamilyMessagePrompt.openKey));
     await tester.pumpAndSettle();
   } else {
-    await tester.tap(find.text('설정'));
+    await tester.tap(find.text('바꾸기'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('가족 메시지'));
     await tester.pumpAndSettle();

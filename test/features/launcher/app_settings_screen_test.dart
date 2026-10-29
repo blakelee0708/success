@@ -34,7 +34,7 @@ Future<void> _openAppSettings(WidgetTester tester) async {
     },
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('설정'));
+  await tester.tap(find.text('바꾸기'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('앱 설정하기'));
   await tester.pumpAndSettle();

@@ -36,7 +36,7 @@ Future<void> _pumpHome(WidgetTester tester, ScreenMode mode) async {
 void main() {
   for (final (name, mode, anchor) in [
     ('정말 쉬운 화면', ScreenMode.easy, '더 보기'),
-    ('자세한 화면', ScreenMode.detailed, '설정'),
+    ('자세한 화면', ScreenMode.detailed, '바꾸기'),
   ]) {
     testWidgets('$name: Back does not take it away', (tester) async {
       await _pumpHome(tester, mode);

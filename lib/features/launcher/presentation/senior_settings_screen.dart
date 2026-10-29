@@ -298,8 +298,11 @@ class SeniorSettingsScreen extends ConsumerWidget {
         backgroundColor: AppColors.seniorBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        // The tile that opens this says 바꾸기, and a screen that then calls
+        // itself 설정 is the same word landing on the same person one press
+        // later.
         title: const Text(
-          '설정',
+          '바꾸기',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w900,
