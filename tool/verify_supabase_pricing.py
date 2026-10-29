@@ -69,6 +69,23 @@ def check(name, cond, detail=""):
         failures.append(name)
 
 
+def approve(phone_token):
+    """The senior says 허락합니다 on their own phone.
+
+    Every path that attaches a guardian writes `pending` since
+    `20261029010000_link_consent.sql`, so a script standing in for the
+    parent's phone has to answer the card before anything that needs an
+    active link. A loop, because a sibling joining raises a second card.
+    """
+    while True:
+        st, card = call("/rest/v1/rpc/pending_guardian_link",
+                        token=phone_token, body={})
+        if st != 200 or not card:
+            return
+        call("/rest/v1/rpc/answer_guardian_link", token=phone_token,
+             body={"p_link_id": card[0]["link_id"], "p_approve": True})
+
+
 created_users = []
 created_profiles = []
 
@@ -149,6 +166,7 @@ try:
     g1 = guardian("g1", "영희")
     st, _ = call("/rest/v1/rpc/claim_senior_pairing_code", token=g1,
                  body={"p_code": link["code"], "p_display_name": "어머니"})
+    approve(phone)
     assert st == 200
     st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
                  body={"p_install_id": install, "p_battery_percent": 72,
@@ -161,13 +179,18 @@ try:
     check("the free photo allowance is 5", q.get("image_limit") == 5, q)
     check("and it is not unlimited yet", q.get("unlimited") is False, q)
 
-    # --- 2. 자녀 폰에서 홈 화면 정리는 평생 2회 ------------------------------
+    # --- 2. 자녀 폰에서 홈 화면 정리는 평생 3회 ------------------------------
+    # Three, not two, since `20261029000000_home_edits_three.sql`: two is a
+    # tight first impression, and the allowance was gone before anybody had
+    # decided whether the app was any good.
     st, out = apps(g1, profile_id, ["전화"])
     check("a guardian may rearrange the home screen once", st == 200, (st, out))
     st, out = apps(g1, profile_id, ["전화", "문자"])
     check("and twice", st == 200, (st, out))
     st, out = apps(g1, profile_id, ["전화", "문자", "사진"])
-    check("the third time is refused", st >= 400, (st, out))
+    check("and three times", st == 200, (st, out))
+    st, out = apps(g1, profile_id, ["전화", "문자", "사진", "카카오톡"])
+    check("the fourth time is refused", st >= 400, (st, out))
 
     # **The senior is never the one charged.** Their own phone keeps editing
     # its own buttons after the guardian's two are spent, and this is the
@@ -185,8 +208,8 @@ try:
 
     rows = sql("select guardian_home_edits from public.senior_profiles "
                f"where id = '{profile_id}'")
-    check("exactly the guardian's two were counted",
-          rows[0]["guardian_home_edits"] == 2, rows)
+    check("exactly the guardian's three were counted",
+          rows[0]["guardian_home_edits"] == 3, rows)
 
     # --- 3. 안부 신호와 배터리·소리는 첫 1주일 ------------------------------
     st, out = readings(g1, profile_id)
@@ -267,12 +290,12 @@ try:
     check("and the read receipt is written", st == 200 and marked == 1,
           (st, marked))
 
-    # Cancelling must not hand back a fresh two. The count keeps rising while
+    # Cancelling must not hand back a fresh three. The count keeps rising while
     # a subscription is on, so what is spent stays spent.
     rows = sql("select guardian_home_edits from public.senior_profiles "
                f"where id = '{profile_id}'")
     check("a paid save still counts, so cancelling gives nothing back",
-          rows[0]["guardian_home_edits"] == 3, rows)
+          rows[0]["guardian_home_edits"] == 4, rows)
 
 finally:
     for pid in created_profiles:

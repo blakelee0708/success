@@ -2894,6 +2894,49 @@ one. 연결 관리 is where it is changed later, and an empty answer there leave
 the old name standing - this is the one field in the app that may not become
 blank, because a senior's card reads it.
 
+## 열네 개를 전부 돌려 봤더니 두 개가 깨져 있었다
+
+The 가족 연결 동의 work changed three core RPCs, so every `tool/verify_*.py`
+was run - and thirteen of the fourteen failed. Most of that was the expected
+cost: a script standing in for the parent's phone now has to answer the card
+before anything that needs an active link, which is one `approve(phone)` per
+attach. **Two of the failures were real, and neither was reachable from
+`flutter test`.**
+
+- **The family-plan gate had been deleted.**
+  `20261029010000_link_consent.sql` rewrote `create_senior_profile` and
+  `claim_senior_pairing_code` to write a 'pending' link and, in rewriting
+  them, left out the one line each that stood above the insert: `perform
+  public.assert_can_add_senior()`. `create or replace` replaces the whole
+  body, so 두 번째 부모님 - the only thing 가족 플랜 sells - became free on
+  both paths while the SQL defining the gate sat there untouched. Nothing
+  that reads the migrations could see it: nothing is missing from them, the
+  loss is in what the later file does not say. `20261029030000` puts it back
+  and **counts 'pending' as well as 'active'**, because gating on active
+  links alone leaves the gate open to anybody who never gets consent.
+- **The message counter and the message gate disagreed.** The 2026-10-28
+  repricing took 가족 메시지 from 월 50회 / 사진 10장 to 30 / 5 by rewriting
+  `family_message_quota`, and `send_family_message` keeps its own copy of
+  the same two numbers. The screen counted down from 30, said 0, raised the
+  안심 케어 sheet - and the server would have taken twenty more. The app
+  checks before the write, so nothing was oversold; what was broken is the
+  thing the server gate exists for. `20261029020000` moves both numbers into
+  `family_text_free()` and `family_image_free()`, read by both callers, the
+  way `guardian_home_edits_free()` already was.
+
+**Both bugs were hidden by a verifier that agreed with them.**
+`verify_supabase_messages.py` had been asserting 50 and 10 since Phase 7, so
+it passed against the stale half; the one script that knew the price,
+`verify_supabase_pricing.py`, never sent a 31st message. A check that was
+never re-run after the thing it checks was repriced is worse than no check:
+it reports the old decision as current.
+
+The same pass found `verify_supabase_pricing.py` still expecting 홈 화면
+정리 2회 after the 3회 change, and left the photo allowance covered for the
+first time - nothing had ever sent a sixth photo.
+
+281 checks across the fourteen now, all green against the live project.
+
 ## Conventions
 
 - Tests come before implementation — see `.claude/skills/test-driven-development`.

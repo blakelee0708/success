@@ -72,6 +72,23 @@ def check(name, cond, detail=""):
         failures.append(name)
 
 
+def approve(phone_token):
+    """The senior says 허락합니다 on their own phone.
+
+    Every path that attaches a guardian writes `pending` since
+    `20261029010000_link_consent.sql`, so a script standing in for the
+    parent's phone has to answer the card before anything that needs an
+    active link. A loop, because a sibling joining raises a second card.
+    """
+    while True:
+        st, card = call("/rest/v1/rpc/pending_guardian_link",
+                        token=phone_token, body={})
+        if st != 200 or not card:
+            return
+        call("/rest/v1/rpc/answer_guardian_link", token=phone_token,
+             body={"p_link_id": card[0]["link_id"], "p_approve": True})
+
+
 created_users = []
 created_profiles = []
 
@@ -131,6 +148,14 @@ try:
           st == 200 and profile.get("display_name") == "어머니", profile)
     profile_id = profile["id"]
 
+    # Reading out a number says *here is my number*, not *you may see how I
+    # am*. The card on the parent's own phone is the second half of 경로 B
+    # since `20261029010000_link_consent.sql`.
+    st, rows = call(f"/rest/v1/senior_profiles?id=eq.{profile_id}", token=g1, method="GET")
+    check("the guardian sees nothing until the parent agrees",
+          st == 200 and rows == [], rows)
+    approve(phone)
+
     st, rows = call(f"/rest/v1/senior_profiles?id=eq.{profile_id}", token=g1, method="GET")
     check("the guardian can now read the profile", st == 200 and len(rows) == 1, rows)
 
@@ -163,6 +188,12 @@ try:
                        body={"p_install_id": install2, "p_token": invite["token"]})
     check("the parent's phone redeems the link's token",
           st == 200 and claimed["id"] == invite["senior_profile_id"], claimed)
+    # The link g2 made from their own dashboard has been waiting for a phone
+    # to ask; redeeming is when the card appears.
+    st, card = call("/rest/v1/rpc/pending_guardian_link", token=phone2, body={})
+    check("the card is waiting on the phone that just installed",
+          st == 200 and len(card or []) == 1, (st, card))
+    approve(phone2)
 
     # The referrer does not survive every install; the code is the fallback.
     # A fresh guardian, because a second parent for g2 would now need the
@@ -175,6 +206,7 @@ try:
                         body={"p_install_id": install3, "p_code": invite2["code"]})
     check("the same invite works by code when the link did not survive",
           st == 200 and claimed2["id"] == invite2["senior_profile_id"], claimed2)
+    approve(phone3)
 
     st, neither = call("/rest/v1/rpc/redeem_senior_invite", token=phone3,
                        body={"p_install_id": install3})
@@ -225,6 +257,7 @@ try:
                       body={"p_code": fam["code"]})
     check("a sibling joins with no payment involved",
           st == 200 and joined["id"] == profile_id, joined)
+    approve(new_phone)
 
     st, roles = call(
         f"/rest/v1/guardian_senior_links?senior_profile_id=eq.{profile_id}&select=role",

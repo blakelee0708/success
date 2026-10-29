@@ -69,6 +69,23 @@ def check(name, cond, detail=""):
         failures.append(name)
 
 
+def approve(phone_token):
+    """The senior says 허락합니다 on their own phone.
+
+    Every path that attaches a guardian writes `pending` since
+    `20261029010000_link_consent.sql`, so a script standing in for the
+    parent's phone has to answer the card before anything that needs an
+    active link. A loop, because a sibling joining raises a second card.
+    """
+    while True:
+        st, card = call("/rest/v1/rpc/pending_guardian_link",
+                        token=phone_token, body={})
+        if st != 200 or not card:
+            return
+        call("/rest/v1/rpc/answer_guardian_link", token=phone_token,
+             body={"p_link_id": card[0]["link_id"], "p_approve": True})
+
+
 created_users = []
 created_profiles = []
 
@@ -122,6 +139,7 @@ try:
     g1 = guardian("g1", "영희")
     st, _ = call("/rest/v1/rpc/claim_senior_pairing_code", token=g1,
                  body={"p_code": link["code"], "p_display_name": "어머니"})
+    approve(phone)
     assert st == 200
     st, _ = call("/rest/v1/rpc/touch_senior_device", token=phone,
                  body={"p_install_id": install, "p_push_token": "fcm-abc"})

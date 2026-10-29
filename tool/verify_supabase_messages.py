@@ -68,6 +68,23 @@ def check(name, cond, detail=""):
         failures.append(name)
 
 
+def approve(phone_token):
+    """The senior says 허락합니다 on their own phone.
+
+    Every path that attaches a guardian writes `pending` since
+    `20261029010000_link_consent.sql`, so a script standing in for the
+    parent's phone has to answer the card before anything that needs an
+    active link. A loop, because a sibling joining raises a second card.
+    """
+    while True:
+        st, card = call("/rest/v1/rpc/pending_guardian_link",
+                        token=phone_token, body={})
+        if st != 200 or not card:
+            return
+        call("/rest/v1/rpc/answer_guardian_link", token=phone_token,
+             body={"p_link_id": card[0]["link_id"], "p_approve": True})
+
+
 created_users, created_profiles = [], []
 
 
@@ -99,6 +116,7 @@ try:
     created_profiles.append(link["senior_profile_id"])
     st, profile = call("/rest/v1/rpc/claim_senior_pairing_code", token=g1,
                        body={"p_code": link["code"], "p_display_name": "어머니"})
+    approve(phone)
     pid = profile["id"]
 
     # --- sending both ways ---------------------------------------------------
@@ -132,6 +150,7 @@ try:
                       body={"p_senior_profile_id": pid})
     g2 = guardian("g2")
     call("/rest/v1/rpc/redeem_family_invite", token=g2, body={"p_code": invite["code"]})
+    approve(phone)
     st, sibling = call(f"/rest/v1/messages?senior_profile_id=eq.{pid}&select=body",
                        token=g2, method="GET")
     check("a sibling sees the conversation they joined",
@@ -144,21 +163,21 @@ try:
           st == 200 and quota["text_used"] == 1, quota)
     check("and not the parent's reply", quota["text_used"] == 1, quota)
     check("the free limits are the PRD's",
-          quota["text_limit"] == 50 and quota["image_limit"] == 10, quota)
+          quota["text_limit"] == 30 and quota["image_limit"] == 5, quota)
     check("and it is not unlimited yet", quota["unlimited"] is False, quota)
 
-    # Fill the month.
-    for i in range(49):
+    # Fill the month. 월 30회 / 사진 5장 - see `## 무료와 안심 케어의 경계`.
+    for i in range(29):
         call("/rest/v1/rpc/send_family_message", token=g1,
              body={"p_senior_profile_id": pid, "p_body": f"메시지 {i}"})
 
     st, full = call("/rest/v1/rpc/family_message_quota", token=g1,
                     body={"p_senior_profile_id": pid})
-    check("the month fills to the limit", full["text_used"] == 50, full)
+    check("the month fills to the limit", full["text_used"] == 30, full)
 
     st, blocked = call("/rest/v1/rpc/send_family_message", token=g1,
                        body={"p_senior_profile_id": pid, "p_body": "하나 더"})
-    check("the 51st guardian message is refused", st >= 400, blocked)
+    check("the 31st guardian message is refused", st >= 400, blocked)
 
     st, siblingBlocked = call("/rest/v1/rpc/send_family_message", token=g2,
                               body={"p_senior_profile_id": pid, "p_body": "저도요"})
@@ -170,6 +189,30 @@ try:
                            body={"p_senior_profile_id": pid, "p_body": "왜 답이 없니"})
     check("the parent can still reply with the quota spent",
           st == 200 and seniorStill["body"] == "왜 답이 없니", seniorStill)
+
+    # --- 사진 5장, which nothing had ever counted ---------------------------
+    # The text gate and the photo gate are separate counts, and until
+    # `20261029020000_message_quota_one_place.sql` both carried their own copy
+    # of the number. Nothing sent a sixth photo, so the drift sat there.
+    for i in range(5):
+        st, _ = call("/rest/v1/rpc/send_family_message", token=g1,
+                     body={"p_senior_profile_id": pid,
+                           "p_image_url": f"{pid}/photo-{i}.jpg"})
+        assert st == 200, (st, i)
+
+    st, photos = call("/rest/v1/rpc/family_message_quota", token=g1,
+                      body={"p_senior_profile_id": pid})
+    check("the photo allowance fills to five", photos["image_used"] == 5, photos)
+
+    st, sixth = call("/rest/v1/rpc/send_family_message", token=g1,
+                     body={"p_senior_profile_id": pid,
+                           "p_image_url": f"{pid}/photo-6.jpg"})
+    check("the sixth photo is refused", st >= 400, sixth)
+
+    st, seniorPhoto = call("/rest/v1/rpc/send_family_message", token=phone,
+                           body={"p_senior_profile_id": pid,
+                                 "p_image_url": f"{pid}/from-mother.jpg"})
+    check("the parent can still send one", st == 200, seniorPhoto)
 
     # --- 안심 케어 removes the limit -----------------------------------------
     call("/rest/v1/rpc/start_care_subscription", token=g1,

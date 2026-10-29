@@ -81,6 +81,23 @@ def check(name, cond, detail=""):
         failures.append(name)
 
 
+def approve(phone_token):
+    """The senior says 허락합니다 on their own phone.
+
+    Every path that attaches a guardian writes `pending` since
+    `20261029010000_link_consent.sql`, so a script standing in for the
+    parent's phone has to answer the card before anything that needs an
+    active link. A loop, because a sibling joining raises a second card.
+    """
+    while True:
+        st, card = call("/rest/v1/rpc/pending_guardian_link",
+                        token=phone_token, body={})
+        if st != 200 or not card:
+            return
+        call("/rest/v1/rpc/answer_guardian_link", token=phone_token,
+             body={"p_link_id": card[0]["link_id"], "p_approve": True})
+
+
 created_users = []
 created_profiles = []
 
@@ -189,6 +206,18 @@ try:
     # --- it is a profile's number, not a phone's ----------------------------
     # One profile, two handsets over its life. The number the senior has
     # already read out to somebody must survive the new phone.
+    #
+    # A phone has to connect and agree first: a recovery code is for a parent
+    # whose handset is being replaced, so there was a handset, so there was
+    # consent (`20261029010000_link_consent.sql`). g1 created this profile
+    # from their own dashboard and manages nothing until then.
+    first_phone, first_install = device()
+    st, _ = call("/rest/v1/rpc/register_senior_device", token=first_phone,
+                 body={"p_customer_code": made["customer_code"],
+                       "p_install_id": first_install})
+    assert st == 200, (st, _)
+    approve(first_phone)
+
     st, recovery = call("/rest/v1/rpc/create_recovery_code", token=g1,
                         body={"p_senior_profile_id": made["id"]})
     assert st == 200, (st, recovery)

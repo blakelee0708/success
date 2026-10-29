@@ -70,6 +70,23 @@ def check(name, cond, detail=""):
         failures.append(name)
 
 
+def approve(phone_token):
+    """The senior says 허락합니다 on their own phone.
+
+    Every path that attaches a guardian writes `pending` since
+    `20261029010000_link_consent.sql`, so a script standing in for the
+    parent's phone has to answer the card before anything that needs an
+    active link. A loop, because a sibling joining raises a second card.
+    """
+    while True:
+        st, card = call("/rest/v1/rpc/pending_guardian_link",
+                        token=phone_token, body={})
+        if st != 200 or not card:
+            return
+        call("/rest/v1/rpc/answer_guardian_link", token=phone_token,
+             body={"p_link_id": card[0]["link_id"], "p_approve": True})
+
+
 def make_guardian(tag):
     email = f"phase4-{tag}-{uuid.uuid4().hex[:8]}@example.com"
     password = "phase4-test-" + uuid.uuid4().hex[:8]
@@ -115,16 +132,18 @@ try:
     check("customer_code is 8 unambiguous chars",
           len(code) == 8 and not set(code) & set("O0I1"), code)
 
+    # The link starts 'pending' - see `20261029010000_link_consent.sql`. A
+    # guardian who makes a profile from their own dashboard sees nothing of it
+    # until the parent's phone connects and answers the card, so the read that
+    # used to come next is below, after the device has said 허락합니다.
     st, rows = call(f"/rest/v1/senior_profiles?id=eq.{created_profile}", token=g1, method="GET")
-    check("linked guardian reads the profile", st == 200 and len(rows) == 1, rows)
+    check("a guardian waiting on consent reads nothing", st == 200 and rows == [], rows)
 
     st, rows = call(f"/rest/v1/senior_profiles?id=eq.{created_profile}", token=g2, method="GET")
     check("unlinked guardian is denied by RLS", st == 200 and rows == [], rows)
 
-    st, links = call(f"/rest/v1/guardian_senior_links?senior_profile_id=eq.{created_profile}",
-                     token=g1, method="GET")
-    check("link is primary/active", st == 200 and len(links) == 1
-          and links[0]["role"] == "primary" and links[0]["status"] == "active", links)
+    st, links = call("/rest/v1/rpc/pending_guardian_links", token=g1, body={})
+    check("and is told somebody has yet to answer", st == 200 and len(links or []) == 1, links)
 
     # --- senior device creation ---------------------------------------------
     st, anon_sess = call("/auth/v1/signup", body={})
@@ -138,6 +157,20 @@ try:
                              "p_device_label": "갤럭시 A16", "p_platform": "android",
                              "p_os_version": "14"})
     check("device claims its profile by code", st == 200 and claimed["id"] == created_profile, claimed)
+
+    st, card = call("/rest/v1/rpc/pending_guardian_link", token=device, body={})
+    check("the card is waiting the moment the phone connects",
+          st == 200 and len(card or []) == 1, (st, card))
+    approve(device)
+
+    st, rows = call(f"/rest/v1/senior_profiles?id=eq.{created_profile}", token=g1, method="GET")
+    check("the guardian reads the profile once consent is given",
+          st == 200 and len(rows) == 1, rows)
+
+    st, links = call(f"/rest/v1/guardian_senior_links?senior_profile_id=eq.{created_profile}",
+                     token=g1, method="GET")
+    check("link is primary/active", st == 200 and len(links) == 1
+          and links[0]["role"] == "primary" and links[0]["status"] == "active", links)
 
     st, bad = call("/rest/v1/rpc/register_senior_device", token=device,
                    body={"p_customer_code": "ZZZZZZZZ", "p_install_id": install_id})

@@ -68,6 +68,23 @@ def check(name, cond, detail=""):
         failures.append(name)
 
 
+def approve(phone_token):
+    """The senior says 허락합니다 on their own phone.
+
+    Every path that attaches a guardian writes `pending` since
+    `20261029010000_link_consent.sql`, so a script standing in for the
+    parent's phone has to answer the card before anything that needs an
+    active link. A loop, because a sibling joining raises a second card.
+    """
+    while True:
+        st, card = call("/rest/v1/rpc/pending_guardian_link",
+                        token=phone_token, body={})
+        if st != 200 or not card:
+            return
+        call("/rest/v1/rpc/answer_guardian_link", token=phone_token,
+             body={"p_link_id": card[0]["link_id"], "p_approve": True})
+
+
 created_users, created_profiles = [], []
 
 
@@ -102,6 +119,7 @@ def paired(guardian_token, name):
     created_profiles.append(link["senior_profile_id"])
     st, profile = call("/rest/v1/rpc/claim_senior_pairing_code", token=guardian_token,
                        body={"p_code": link["code"], "p_display_name": name})
+    approve(phone)
     return profile, phone
 
 
@@ -210,8 +228,16 @@ try:
     if isinstance(second, dict) and second.get("id"):
         created_profiles.append(second["id"])
 
+    # The second parent has no phone yet, so their link is 'pending' and the
+    # dashboard still shows one - see `20261029010000_link_consent.sql`. What
+    # the family plan bought is the row, not the consent.
     st, mine = call("/rest/v1/senior_profiles?select=id", token=g1, method="GET")
-    check("the guardian now manages two parents", st == 200 and len(mine) == 2, mine)
+    check("the parent who agreed is the one on the dashboard",
+          st == 200 and len(mine) == 1, mine)
+    st, waiting = call("/rest/v1/rpc/pending_guardian_links", token=g1, body={})
+    check("and the second parent is waiting on their own phone",
+          st == 200 and len(waiting or []) == 1
+          and waiting[0]["senior_profile_id"] == second["id"], waiting)
 
     # A sibling helping with one parent is the free feature, not a paid one.
     st, invite = call("/rest/v1/rpc/create_family_invite", token=g1,
