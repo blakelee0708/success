@@ -143,23 +143,52 @@ void main() {
       );
     });
 
-    test('the message says what to do when the link does not open', () async {
+    test('the first text is the link and only the link', () async {
       final h = _fresh();
       final link = await h.pairing.createSeniorInvite(displayName: '아버지');
 
-      final body = link.installMessage(
-        seniorName: '아버지',
-        applicationId: 'com.jalboine.app',
-      );
+      final body = link.installLinkMessage('com.jalboine.app');
 
       // The token rides in as the Play install referrer, which is what makes
-      // 경로 A automatic; the code is there because that referrer only
-      // survives an install that went through the store.
+      // 경로 A automatic.
       expect(body, contains('referrer=${link.token}'));
-      expect(body, contains(link.code));
-      // Nothing here may claim the message was sent — the app can only hand it
-      // to the SMS app, and cannot see what happens next.
+      // One job per text. The number in the third line of this one is what
+      // a parent on a real phone could not find.
+      expect(body, isNot(contains(link.code)));
+      // Not addressed by what the child typed: 아버지님 at the top of a text
+      // is not how anybody writes to their father.
+      expect(body, isNot(contains('아버지')));
+      // Nothing here may claim the message was sent — the app can only hand
+      // it to the SMS app, and cannot see what happens next.
       expect(body, isNot(contains('발송')));
+    });
+
+    test('the second text says where to type, then the number alone', () async {
+      final h = _fresh();
+      final link = await h.pairing.createSeniorInvite(displayName: '아버지');
+
+      final body = link.codeMessage();
+
+      // The words on the parent's own screens, so they can be matched by eye.
+      expect(body, contains('「가족 연결」'));
+      expect(body, contains('「자녀분이 먼저 번호를 알려 주셨나요?」'));
+      // Last, and on a line of its own: that is the line read out.
+      expect(body.split('\n').last, link.code);
+      expect(body, isNot(contains('referrer')));
+    });
+
+    test('an unused invite can be read back, and a used one cannot', () async {
+      // The number has to survive the app being closed: the day after is
+      // when a parent asks 번호가 뭐였지.
+      final h = _fresh();
+      final link = await h.pairing.createSeniorInvite(displayName: '아버지');
+      final profileId = link.seniorProfileId!;
+
+      expect(await h.pairing.openSeniorInvite(profileId), link);
+
+      await h.pairing.redeemSeniorInvite(installId: 'install-1', code: link.code);
+
+      expect(await h.pairing.openSeniorInvite(profileId), isNull);
     });
   });
 

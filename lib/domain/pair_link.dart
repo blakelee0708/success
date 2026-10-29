@@ -59,18 +59,36 @@ class PairLink {
       'https://play.google.com/store/apps/details'
       '?id=$applicationId&referrer=$token';
 
-  /// The message body handed to the SMS app for 경로 A.
+  /// The first of the two texts for 경로 A: the store link and nothing else.
   ///
-  /// The app cannot send it — `07_PHASE_PLAN` is explicit that handing it to
-  /// the messaging app is as far as this goes — so nothing here or anywhere
-  /// else may claim it was sent. This only produces the text.
-  String installMessage({
-    required String seniorName,
-    required String applicationId,
-  }) =>
-      '$seniorName님, 자녀가 보낸 잘보이네 설치 링크예요.\n'
-      '${installUrl(applicationId)}\n\n'
-      '앱을 열고 나서 연결이 안 되면, 가족 연결 화면에 번호 $code 를 넣어 주세요.';
+  /// **Two texts, not one, and that was found on real phones.** The single
+  /// message put the number in its third line, under a link two lines long,
+  /// and a parent following it with their child on the phone could not find
+  /// it. One job per message: this one is pressed, the next one is read.
+  ///
+  /// It does not open with the parent's name. Whatever the child typed into
+  /// the form is how the *app* will address them, and 엄마님 at the top of a
+  /// text is not how anybody writes to their mother.
+  ///
+  /// The app cannot send either - `07_PHASE_PLAN` is explicit that handing it
+  /// to the messaging app is as far as this goes - so nothing here or
+  /// anywhere else may claim it was sent. This only produces the text.
+  String installLinkMessage(String applicationId) =>
+      '잘보이네 설치 링크예요. 눌러서 설치해 주세요.\n'
+      '${installUrl(applicationId)}';
+
+  /// The second text: where to type the number, then the number alone on
+  /// its last line.
+  ///
+  /// The two quoted phrases are the words on the parent's own screens - the
+  /// 가족 연결 button and the question over the field - so they can be
+  /// matched by eye rather than understood. The number comes last and by
+  /// itself because that is the line somebody reads out down the phone.
+  String codeMessage() =>
+      '설치하고 앱을 여신 뒤 「가족 연결」을 누르세요.\n'
+      '「자녀분이 먼저 번호를 알려 주셨나요?」 아래 칸에 '
+      '이 번호를 넣고 「연결하기」를 눌러 주세요.\n\n'
+      '$code';
 
   static PairLink? fromRow(Map<String, Object?> row) {
     final id = row['id'];

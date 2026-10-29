@@ -913,4 +913,46 @@ void main() {
     await tester.pumpAndSettle();
     await _capture(tester, '27-dashboard-home-care-on');
   });
+
+  testWidgets('33 the guardian with no parent yet', (tester) async {
+    final store = InMemorySeniorLinkRepository();
+    await store.ensureGuardianAccount(displayName: '영희');
+    final auth = InMemoryGuardianAuthRepository()
+      ..seedSignedIn(const GuardianSession(userId: 'u1'));
+    addTearDown(auth.dispose);
+    await pumpApp(
+      tester,
+      overrides: [
+        seniorLinkRepositoryProvider.overrideWithValue(store),
+        pairingRepositoryProvider.overrideWithValue(
+          InMemoryPairingRepository(store),
+        ),
+        guardianAuthRepositoryProvider.overrideWithValue(auth),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(GuardianHomeKeys.promise), findsOneWidget);
+    await _capture(tester, '33-guardian-no-parent');
+  });
+
+  testWidgets('34 the install number, waiting to be used', (tester) async {
+    final store = InMemorySeniorLinkRepository()..pendingLinkConsent = true;
+    await store.ensureGuardianAccount(displayName: '영희');
+    final pairing = InMemoryPairingRepository(store);
+    await pairing.createSeniorInvite(displayName: '엄마');
+    final auth = InMemoryGuardianAuthRepository()
+      ..seedSignedIn(const GuardianSession(userId: 'u1'));
+    addTearDown(auth.dispose);
+    await pumpApp(
+      tester,
+      overrides: [
+        seniorLinkRepositoryProvider.overrideWithValue(store),
+        pairingRepositoryProvider.overrideWithValue(pairing),
+        guardianAuthRepositoryProvider.overrideWithValue(auth),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(GuardianHomeKeys.waitingForConsent), findsOneWidget);
+    await _capture(tester, '34-guardian-invite-waiting');
+  });
 }

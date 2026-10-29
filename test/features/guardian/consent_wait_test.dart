@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/core/supabase/supabase_providers.dart';
@@ -20,7 +21,11 @@ import '../../support/pump_app.dart';
 Future<
   ({InMemorySeniorLinkRepository links, InMemoryPairingRepository pairing})
 >
-_pumpDashboard(WidgetTester tester, {bool withPendingParent = false}) async {
+_pumpDashboard(
+  WidgetTester tester, {
+  bool withPendingParent = false,
+  bool withInvite = false,
+}) async {
   final auth = InMemoryGuardianAuthRepository()
     ..seedSignedIn(const GuardianSession(userId: 'u1', email: 'g@example.com'));
   addTearDown(auth.dispose);
@@ -31,6 +36,11 @@ _pumpDashboard(WidgetTester tester, {bool withPendingParent = false}) async {
   if (withPendingParent) {
     await links.createSeniorProfile(displayName: '엄마');
   }
+  if (withInvite) {
+    // Issued in an earlier run of the app, so nothing on this phone holds
+    // it any more - only the server does.
+    await pairing.createSeniorInvite(displayName: '엄마');
+  }
 
   await pumpApp(
     tester,
@@ -40,6 +50,11 @@ _pumpDashboard(WidgetTester tester, {bool withPendingParent = false}) async {
       pairingRepositoryProvider.overrideWithValue(pairing),
     ],
   );
+  await tester.pumpAndSettle();
+  // Tall enough that 내 계정 at the bottom is built rather than lazily left
+  // out of the tree: what is tested is the content, not the scrolling.
+  tester.view.physicalSize = const Size(390, 6400);
+  addTearDown(tester.view.resetPhysicalSize);
   await tester.pumpAndSettle();
   return (links: links, pairing: pairing);
 }
@@ -93,4 +108,107 @@ void main() {
       expect(find.byKey(GuardianHomeKeys.noParent), findsNothing);
     },
   );
+
+  testWidgets('making the install number keeps it on screen, with both texts', (
+    tester,
+  ) async {
+    // **The real-phone bug.** On the server issuing the invite writes a
+    // waiting link, which moves 홈 onto this page - and this page had no
+    // number on it, so the guardian came back from the messaging app to
+    // nothing they could read out.
+    final h = await _pumpDashboard(tester);
+
+    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '엄마');
+    await tester.tap(find.byKey(GuardianFamilyKeys.invite));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(GuardianHomeKeys.waitingForConsent), findsOneWidget);
+    expect(find.text(h.pairing.issued.last.code), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.sendInstallLink), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.sendInviteCode), findsOneWidget);
+    // Nothing is on the parent's screen yet, so the page may not say there is.
+    expect(find.textContaining('화면이 떠 있어요'), findsNothing);
+  });
+
+  testWidgets('the number is still there after the app is reopened', (
+    tester,
+  ) async {
+    final h = await _pumpDashboard(tester, withInvite: true);
+
+    expect(find.text(h.pairing.issued.single.code), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.sendInviteCode), findsOneWidget);
+  });
+
+  testWidgets('once the parent uses the number, the page asks about consent', (
+    tester,
+  ) async {
+    final h = await _pumpDashboard(tester, withInvite: true);
+    final code = h.pairing.issued.single.code;
+
+    await h.pairing.redeemSeniorInvite(installId: 'senior-phone', code: code);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(GuardianHomeKeys.waitingForConsent), findsOneWidget);
+    expect(find.text(code), findsNothing);
+    expect(find.textContaining('엄마님 폰에 여쭤봤어요'), findsOneWidget);
+  });
+
+  testWidgets('waiting still has 로그아웃 and 계정 삭제', (tester) async {
+    // This page used to end at the card, found on a real phone.
+    await _pumpDashboard(tester, withPendingParent: true);
+
+    expect(find.byKey(GuardianHomeKeys.waitingForConsent), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.signOut), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.deleteAccount), findsOneWidget);
+  });
+
+  testWidgets('with no parent the page says what connecting is for', (
+    tester,
+  ) async {
+    await _pumpDashboard(tester);
+
+    expect(find.byKey(GuardianHomeKeys.noParent), findsOneWidget);
+    expect(find.byKey(GuardianHomeKeys.promise), findsOneWidget);
+    expect(find.text('연결하면 이렇게 도와드릴 수 있어요.'), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.signOut), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.deleteAccount), findsOneWidget);
+    // Why connecting first, then the form, then the account.
+    final promise = tester.getTopLeft(find.byKey(GuardianHomeKeys.promise));
+    final form = tester.getTopLeft(find.byKey(GuardianFamilyKeys.nameField));
+    final signOut = tester.getTopLeft(find.byKey(GuardianFamilyKeys.signOut));
+    expect(promise.dy, lessThan(form.dy));
+    expect(form.dy, lessThan(signOut.dy));
+  });
+
+  testWidgets('a parent cutting the link reaches an open dashboard', (
+    tester,
+  ) async {
+    // **Resume alone was not enough**, found on two real phones: the parent
+    // pressed 끊기 while their child had the dashboard open, and the child's
+    // screen went on saying 연결됨 while every message was refused.
+    final h = await _pumpDashboard(tester);
+    final started = await h.pairing.startSeniorPairing(
+      installId: 'senior-phone',
+    );
+    h.links.pendingLinkConsent = false;
+    await tester.tap(find.text('불러주신 번호 넣기'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(GuardianFamilyKeys.codeField),
+      started.code,
+    );
+    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '엄마');
+    await tester.tap(find.byKey(GuardianFamilyKeys.enterCode));
+    await tester.pumpAndSettle();
+    expect(find.byKey(GuardianHomeKeys.noParent), findsNothing);
+
+    // The parent presses 끊기 on their own phone. Nothing is pressed here.
+    await h.pairing.removeGuardianLink(h.links.guardianAccountId);
+    await tester.pump(const Duration(seconds: 16));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(GuardianHomeKeys.noParent), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.notice), findsOneWidget);
+  });
 }

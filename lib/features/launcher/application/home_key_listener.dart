@@ -80,6 +80,7 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
       if (!mounted) return;
       ref.read(seniorSettingsControllerProvider.notifier).refresh();
       _refreshFamily();
+      _refreshGuardian();
     });
   }
 
@@ -99,23 +100,25 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
     ref.invalidate(seniorGuardiansProvider);
   }
 
-  /// The guardian's half of the same question, and **on resume only.**
+  /// The guardian's half of the same question, on resume **and** on the tick.
   ///
   /// Their dashboard is built from cached `FutureProvider`s, and a Riverpod
   /// container lives as long as the process - so a parent who cut the link
   /// left their child looking at a screen that still named them until the
   /// app was killed, with the notice explaining it sitting unread behind the
-  /// same cache. An ordinary app is backgrounded and resumed constantly, so
-  /// that is the moment to ask again.
+  /// same cache.
   ///
-  /// Not on the 15-second tick. That timer exists because a launcher is the
-  /// screen a phone *sits* on and may never be backgrounded at all; a
-  /// guardian's phone is not, and polling every fifteen seconds while they
-  /// read the dashboard would be network nobody asked for.
+  /// **Resume alone was tried first and was not enough**, found on two real
+  /// phones: the parent pressed 끊기 while their child had the dashboard
+  /// open, and the child's screen went on saying 연결됨 while every message
+  /// they typed was refused. Somebody watching the screen is exactly the
+  /// person resume never reaches. Fifteen seconds is the same answer the
+  /// parent's phone already gets, and it costs three small reads while the
+  /// app is in front of them and none while it is not.
   ///
-  /// Each of the three answers empty without a guardian session, which is
-  /// what makes this safe here: this widget wraps the whole router, so it
-  /// runs on the parent's phone too.
+  /// Each of the three answers empty without a guardian session, and none is
+  /// watched by anything on the parent's phone, which is what makes this safe
+  /// here: this widget wraps the whole router, so it runs there too.
   void _refreshGuardian() {
     ref.invalidate(linkedSeniorProfilesProvider);
     ref.invalidate(pendingSeniorLinksProvider);

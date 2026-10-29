@@ -89,7 +89,10 @@ void main() {
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
     await tester.pumpAndSettle();
 
-    expect(find.text('문자 앱에 내용을 채워 두었어요. 보내기는 직접 눌러 주세요.'), findsOneWidget);
+    expect(
+      find.text('아래 두 문자를 차례로 보내 주세요. 문자 앱이 열리면 보내기는 직접 눌러 주세요.'),
+      findsOneWidget,
+    );
     expect(find.textContaining('문자를 보냈'), findsNothing);
     expect(find.textContaining('발송'), findsNothing);
     expect(h.pairing.issued.last.code, isNotEmpty);
@@ -108,6 +111,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(GuardianFamilyKeys.issuedCode), findsOneWidget);
+  });
+
+  testWidgets('the number comes first, and each text is its own button', (
+    tester,
+  ) async {
+    // **Found on real phones.** The button used to open the messaging app
+    // at once with one text carrying both the link and the number, so the
+    // guardian never saw the number here - and the parent could not find it
+    // in the third line of a message under a two-line link.
+    final h = await _pumpFamilyTab(tester);
+
+    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
+    await tester.tap(find.byKey(GuardianFamilyKeys.invite));
+    await tester.pumpAndSettle();
+
+    final code = h.pairing.issued.last.code;
+    expect(find.text(code), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.sendInstallLink), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.sendInviteCode), findsOneWidget);
+    // The button that made it gives way, so a second press cannot make a
+    // second parent.
+    expect(find.byKey(GuardianFamilyKeys.invite), findsNothing);
   });
 
   testWidgets('a parent with no name is refused before anything is created', (
@@ -141,6 +166,11 @@ void main() {
         pairingRepositoryProvider.overrideWithValue(pairing),
       ],
     );
+    await tester.pumpAndSettle();
+    // The form sits under 연결하면 이렇게 도와드릴 수 있어요 now, below the
+    // fold of a phone-sized viewport.
+    tester.view.physicalSize = const Size(390, 6400);
+    addTearDown(tester.view.resetPhysicalSize);
     await tester.pumpAndSettle();
 
     // No parent yet, so the form is the one on 홈.
@@ -187,7 +217,14 @@ void main() {
     (tester) async {
       await _pumpFamilyTab(tester, withParent: true);
 
-      await tester.tap(find.text('연결 번호 만들기'));
+      // Inside the recovery card: the connect form's own button says the
+      // same words, because it makes the same kind of thing.
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(GuardianFamilyKeys.recovery),
+          matching: find.text('연결 번호 만들기'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byKey(GuardianFamilyKeys.issuedCode), findsOneWidget);

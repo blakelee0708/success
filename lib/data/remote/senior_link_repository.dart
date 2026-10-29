@@ -152,12 +152,12 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
 
   @override
   Future<void> deleteGuardianAccount() async {
-    await _rpc('delete_guardian_account', const {});
+    await _call('delete_guardian_account', const {});
   }
 
   @override
   Future<void> registerPushToken(String token) async {
-    await _rpc('register_guardian_push_token', {'p_token': token});
+    await _call('register_guardian_push_token', {'p_token': token});
   }
 
   @override
@@ -330,6 +330,25 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
         params: {'p_install_id': installId, 'p_platform': platform},
       );
       return code is String && code.isNotEmpty ? code : null;
+    } on sb.PostgrestException catch (e) {
+      throw SeniorLinkException(e.message);
+    }
+  }
+
+  /// For a function that **returns nothing** - PostgREST answers those with
+  /// an empty body, which is success.
+  ///
+  /// They went through [_rpc] until 2026-10-29, which treats an answer with no
+  /// row in it as a failure. That was right for the calls that need a row back
+  /// and wrong for these two: `delete_guardian_account` **deleted the account
+  /// on the server** and then the app said 지우지 못했어요, stayed signed in to
+  /// an account that no longer existed, and never reached the sign-out. Found
+  /// on a real phone. `register_guardian_push_token` had the same fault and it
+  /// was invisible, because nothing waits on it - the token was stored and the
+  /// app quietly believed it was not.
+  Future<void> _call(String name, Map<String, Object?> params) async {
+    try {
+      await _client.rpc(name, params: params);
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);
     }

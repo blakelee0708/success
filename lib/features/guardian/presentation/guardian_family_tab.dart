@@ -33,6 +33,8 @@ class GuardianFamilyKeys {
   static const confirm = Key('guardian-family-confirm');
   static const message = Key('guardian-family-message');
   static const issuedCode = Key('guardian-family-issued-code');
+  static const sendInstallLink = Key('guardian-family-send-install-link');
+  static const sendInviteCode = Key('guardian-family-send-invite-code');
   static const guardians = Key('guardian-family-guardians');
   static const recovery = Key('guardian-family-recovery');
   static const signOut = Key('guardian-family-sign-out');
@@ -81,7 +83,21 @@ class GuardianConnectParentCard extends StatelessWidget {
 /// is left is the once-in-a-while half, so it is a block at the bottom of a
 /// page that already scrolls rather than a destination of its own.
 class GuardianFamilySection extends ConsumerWidget {
-  const GuardianFamilySection({super.key});
+  const GuardianFamilySection({
+    super.key,
+    this.title = '연결 관리',
+    this.notices = true,
+  });
+
+  /// 연결 관리 once there is a parent; 내 계정 when there is none, because
+  /// nothing under it is a connection then - it is a name, a number, the
+  /// policy, signing out and deleting the account.
+  final String title;
+
+  /// Off where the page has already drawn [GuardianNotices] at the top. A
+  /// guardian whose parent cut the link should read that first, not under
+  /// the connect form at the bottom of the page.
+  final bool notices;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -91,9 +107,9 @@ class GuardianFamilySection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 10),
-        const GuardianHeading(title: '연결 관리'),
+        GuardianHeading(title: title),
         const SizedBox(height: 14),
-        const _Notices(),
+        if (notices) const GuardianNotices(),
         // **Only once there is a parent.** With none, 홈 carries this card
         // under its own 아직 연결된 부모님이 없어요, and the two would be the
         // same form twice in one tree - an `IndexedStack` keeps every tab
@@ -519,8 +535,8 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
               ? '부모님 폰의 가족 연결 화면에 4자리 번호가 나옵니다. '
                     '그 번호를 불러 주시면 여기에 넣어 주세요. '
                     '번호로는 전화번호를 알 수 없어서, 이름과 번호는 여기서 받습니다.'
-              : '설치 링크가 담긴 문자를 문자 앱에 채워 드립니다. '
-                    '보내기는 직접 눌러 주세요.',
+              : '번호를 만들면 보낼 문자 두 개를 준비해 드려요.\n'
+                    '보내기는 문자 앱에서 직접 눌러 주세요.',
           style: const TextStyle(
             fontSize: 14,
             height: 1.5,
@@ -599,30 +615,99 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
           ),
         ],
         const SizedBox(height: 14),
-        GuardianPrimaryButton(
-          key: _byCode
-              ? GuardianFamilyKeys.enterCode
-              : GuardianFamilyKeys.invite,
-          onPressed: _busy ? null : _submit,
-          icon: _byCode ? Icons.link_rounded : Icons.sms_rounded,
-          label: _busy ? '준비하는 중이에요' : (_byCode ? '연결하기' : '문자 앱 열기'),
+        // **The number first, the texts after.** This button used to open
+        // the messaging app straight away with one text carrying both the
+        // link and the number, and the guardian never saw the number on this
+        // screen until they came back - on the live server, to a page that
+        // no longer had it. Once issued, the button gives way to the number
+        // and the two texts, so pressing it twice cannot make a second
+        // parent.
+        if (_byCode || issued == null)
+          GuardianPrimaryButton(
+            key: _byCode
+                ? GuardianFamilyKeys.enterCode
+                : GuardianFamilyKeys.invite,
+            onPressed: _busy ? null : _submit,
+            icon: _byCode ? Icons.link_rounded : Icons.add_rounded,
+            label: _busy
+                ? '준비하는 중이에요'
+                : (_byCode ? '연결하기' : '연결 번호 만들기'),
+          )
+        else
+          GuardianInviteSender(
+            link: issued.link,
+            phoneNumber: issued.phoneNumber,
+          ),
+      ],
+    );
+  }
+}
+
+/// The install number, and the two texts that carry it.
+///
+/// Drawn in two places: under the connect form the moment the number is
+/// made, and on 홈's 기다리고 있어요 page for as long as nobody has used it.
+/// One widget for both, so the two cannot come to say different things about
+/// the same number.
+class GuardianInviteSender extends ConsumerWidget {
+  const GuardianInviteSender({super.key, required this.link, this.phoneNumber});
+
+  final PairLink link;
+
+  /// Who the texts are addressed to. Null leaves the recipient for the
+  /// guardian to pick in the messaging app, which is also what happens when
+  /// this is drawn from the server's copy after a restart.
+  final String? phoneNumber;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(guardianPairingControllerProvider.notifier);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          '연결 번호',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppColors.guardianInkSoft,
+          ),
         ),
-        if (issued != null) ...[
-          const SizedBox(height: 16),
-          // Never "문자를 보냈어요": the app hands the message to the messaging
-          // app and cannot see what happens after that.
-          const Text(
-            '문자 앱에 내용을 채워 두었어요. 보내기는 직접 눌러 주세요.',
-            style: TextStyle(fontSize: 14, height: 1.5),
+        const SizedBox(height: 4),
+        _IssuedCode(
+          code: link.code,
+          hint: '부모님 폰의 가족 연결 화면에 넣는 번호예요. 2주 동안 쓸 수 있어요.',
+        ),
+        const SizedBox(height: 16),
+        // Never "문자를 보냈어요": the app hands each text to the messaging
+        // app and cannot see what happens after that.
+        const Text(
+          '아래 두 문자를 차례로 보내 주세요. '
+          '문자 앱이 열리면 보내기는 직접 눌러 주세요.',
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.5,
+            color: AppColors.guardianInk,
           ),
-          const SizedBox(height: 10),
-          _IssuedCode(
-            code: issued.code,
-            hint:
-                '문자가 열리지 않거나 링크로 연결이 안 되면, '
-                '부모님께 이 번호를 불러 주세요.',
+        ),
+        const SizedBox(height: 12),
+        GuardianPrimaryButton(
+          key: GuardianFamilyKeys.sendInstallLink,
+          onPressed: () => unawaited(
+            controller.sendInstallLink(link, phoneNumber: phoneNumber),
           ),
-        ],
+          icon: Icons.download_rounded,
+          label: '① 설치 링크 보내기',
+        ),
+        const SizedBox(height: 10),
+        GuardianPrimaryButton(
+          key: GuardianFamilyKeys.sendInviteCode,
+          onPressed: () => unawaited(
+            controller.sendInviteCode(link, phoneNumber: phoneNumber),
+          ),
+          icon: Icons.pin_rounded,
+          label: '② 연결 번호 보내기',
+        ),
       ],
     );
   }
@@ -891,14 +976,14 @@ class _Card extends StatelessWidget {
 ///
 /// Said once. Marked read as soon as it is drawn, because the thing it
 /// reports is not an action waiting to be taken.
-class _Notices extends ConsumerStatefulWidget {
-  const _Notices();
+class GuardianNotices extends ConsumerStatefulWidget {
+  const GuardianNotices({super.key});
 
   @override
-  ConsumerState<_Notices> createState() => _NoticesState();
+  ConsumerState<GuardianNotices> createState() => _NoticesState();
 }
 
-class _NoticesState extends ConsumerState<_Notices> {
+class _NoticesState extends ConsumerState<GuardianNotices> {
   bool _marked = false;
 
   @override

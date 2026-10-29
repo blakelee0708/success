@@ -16,6 +16,7 @@ import '../application/device_status_lines.dart';
 import '../application/senior_presence.dart';
 import '../application/guardian_home_apps_controller.dart';
 import '../application/guardian_push_registrar.dart';
+import '../application/guardian_pairing_controller.dart';
 import '../application/guardian_session_controller.dart';
 import '../../care/application/care_controller.dart';
 import '../../care/presentation/guardian_care_tab.dart';
@@ -192,6 +193,7 @@ class _ConsentWatcherState extends ConsumerState<_ConsentWatcher> {
       if (!mounted) return;
       ref.invalidate(pendingSeniorLinksProvider);
       ref.invalidate(linkedSeniorProfilesProvider);
+      ref.invalidate(waitingInviteProvider);
     });
   }
 
@@ -240,7 +242,10 @@ class _HomeTab extends ConsumerWidget {
     final careOn =
         ref.watch(careStateProvider).value?.stage == CareStage.active;
 
-    if (profiles.isLoading) {
+    // The first read only. The list is re-read every fifteen seconds now, and
+    // a refresh keeps the last answer while it runs - a spinner on each one
+    // would blank the dashboard four times a minute.
+    if (profiles.isLoading && !profiles.hasValue) {
       return const Center(child: CircularProgressIndicator());
     }
     if (profile == null) {
@@ -253,19 +258,32 @@ class _HomeTab extends ConsumerWidget {
       final waiting = ref.watch(pendingSeniorLinksProvider).value ?? const [];
       if (waiting.isNotEmpty) {
         final who = waiting.first.seniorName;
+        final named = who == null || who.isEmpty ? '부모님' : '$who님';
+        // **An unused install invite means the parent has not installed
+        // yet**, so nothing is on their screen to answer - and saying 화면이
+        // 떠 있어요 to that guardian sent them to ask their mother about a
+        // card she could not see. The server's copy first, so the number is
+        // still here tomorrow; the one just issued while that read is in
+        // flight, so it does not flicker away the moment it is made.
+        final open = ref.watch(waitingInviteProvider);
+        final issued = ref.watch(lastInviteProvider);
+        final invite = open.hasValue ? open.value : issued?.link;
+        final phone = issued?.link.id == invite?.id
+            ? issued?.phoneNumber
+            : null;
         return _TabScaffold(
-          title: '부모님 동의를 기다리고 있어요',
+          title: invite == null ? '부모님 동의를 기다리고 있어요' : '부모님 폰에 앱을 설치해 주세요',
           children: [
             _ConsentWatcher(
               child: _Card(
                 key: GuardianHomeKeys.waitingForConsent,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      who == null || who.isEmpty
-                          ? '부모님 폰에 여쭤봤어요'
-                          : '$who님 폰에 여쭤봤어요',
+                      invite == null
+                          ? '$named 폰에 여쭤봤어요'
+                          : '${who == null || who.isEmpty ? '부모님' : who}께 문자 두 개를 보내 주세요',
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -274,19 +292,32 @@ class _HomeTab extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      '부모님 폰에 연결해도 되는지 여쭤보는 화면이 떠 있어요. '
-                      '허락하시면 바로 이어집니다.',
-                      style: TextStyle(
+                    Text(
+                      invite == null
+                          ? '부모님 폰에 연결해도 되는지 여쭤보는 화면이 떠 있어요. '
+                                '허락하시면 바로 이어집니다.'
+                          : '설치하고 번호를 넣으시면, 부모님 폰에 연결해도 되는지 '
+                                '여쭤보는 화면이 떠요. 허락하시면 바로 이어집니다.',
+                      style: const TextStyle(
                         fontSize: 14.5,
                         height: 1.55,
                         color: AppColors.guardianInkSoft,
                       ),
                     ),
+                    if (invite != null) ...[
+                      const SizedBox(height: 16),
+                      GuardianInviteSender(link: invite, phoneNumber: phone),
+                    ],
                   ],
                 ),
               ),
             ),
+            // **The account is still theirs while they wait.** This branch
+            // used to end at the card, so 로그아웃 and 계정 삭제 were nowhere
+            // on the screen for somebody whose parent had not answered yet -
+            // found on a real phone. No notices here: the one notice there is
+            // says to type a number below, and there is no form below.
+            const GuardianFamilySection(title: '내 계정', notices: false),
           ],
         );
       }
@@ -295,9 +326,19 @@ class _HomeTab extends ConsumerWidget {
       // done.** This card used to read 가족 탭에서 부모님을 추가하면, which
       // is an instruction to go and find a tab - on the first screen a new
       // guardian sees, about the one thing the app cannot work without.
+      //
+      // **And it says what connecting is for.** On a real phone this page
+      // was one sentence saying nobody was connected and a form, which tells
+      // a new guardian what is missing and nothing about why they would
+      // want it. The three lines are what the app does once a parent is
+      // there, and nothing in them is a promise the app does not keep.
+      //
+      // Order is the point: why they lost a connection first, then what
+      // connecting gives them, then the form, then their own account.
       return const _TabScaffold(
         title: '부모님 연결하기',
         children: [
+          GuardianNotices(),
           _Card(
             key: GuardianHomeKeys.noParent,
             child: Column(
@@ -312,15 +353,37 @@ class _HomeTab extends ConsumerWidget {
                     color: AppColors.guardianInk,
                   ),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 6),
                 Text(
-                  '아래에서 부모님을 연결해 주세요. '
-                  '연결되면 홈 화면 정리와 메시지를 쓰실 수 있어요.',
+                  '연결하면 이렇게 도와드릴 수 있어요.',
                   style: TextStyle(
                     fontSize: 14.5,
                     height: 1.55,
                     color: AppColors.guardianInkSoft,
                   ),
+                ),
+                SizedBox(height: 14),
+                _Promise(
+                  key: GuardianHomeKeys.promise,
+                  icon: Icons.grid_view_rounded,
+                  tint: AppColors.guardianTintBlue,
+                  ink: AppColors.guardianTintBlueInk,
+                  title: '부모님 첫 화면을 여기서 정리해 드려요',
+                  detail: '버튼 이름과 색, 앱을 바꿔 드려요',
+                ),
+                _Promise(
+                  icon: Icons.chat_bubble_rounded,
+                  tint: AppColors.guardianTintViolet,
+                  ink: AppColors.guardianTintVioletInk,
+                  title: '메시지가 부모님 폰에 크게 떠요',
+                  detail: '글씨가 안 보이시면 소리로 읽어 드립니다',
+                ),
+                _Promise(
+                  icon: Icons.schedule_rounded,
+                  tint: AppColors.guardianTintGreen,
+                  ink: AppColors.guardianTintGreenInk,
+                  title: '폰 쓰신 때와 배터리가 보여요',
+                  detail: '첫 1주일 무료, 그다음은 안심 케어',
                 ),
               ],
             ),
@@ -332,7 +395,7 @@ class _HomeTab extends ConsumerWidget {
           // to want the last one: somebody who signed up, connected nobody,
           // and changed their mind. It draws no second connect form - every
           // part of it that needs a parent is guarded on having one.
-          GuardianFamilySection(),
+          GuardianFamilySection(title: '내 계정', notices: false),
         ],
       );
     }
@@ -578,6 +641,77 @@ class GuardianHomeKeys {
   static const ring = Key('guardian-home-ring');
   static const appOutOfDate = Key('guardian-home-app-out-of-date');
   static const waitingForConsent = Key('guardian-home-waiting-consent');
+  static const promise = Key('guardian-home-promise');
+}
+
+/// One thing connecting a parent gives the guardian, on the empty page.
+///
+/// A tinted mark rather than a number, for the reason the sign-in screen
+/// already gives: numbered badges read as steps, and these are not done in
+/// any order.
+class _Promise extends StatelessWidget {
+  const _Promise({
+    super.key,
+    required this.icon,
+    required this.tint,
+    required this.ink,
+    required this.title,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final Color tint;
+  final Color ink;
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: tint,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, size: 19, color: ink),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    height: 1.4,
+                    letterSpacing: -0.3,
+                    color: AppColors.guardianInk,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detail,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    height: 1.45,
+                    color: AppColors.guardianInkSoft,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ParentSwitcher extends ConsumerWidget {

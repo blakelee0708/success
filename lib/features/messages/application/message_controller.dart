@@ -6,6 +6,8 @@ import '../../../core/supabase/supabase_providers.dart';
 import '../../../data/senior_link_store.dart';
 import '../../../domain/family_message.dart';
 import '../../guardian/application/guardian_home_apps_controller.dart';
+import '../../guardian/application/guardian_pairing_controller.dart';
+import '../../guardian/application/guardian_session_controller.dart';
 
 /// Which conversation a screen is showing.
 ///
@@ -84,9 +86,15 @@ class MessageController extends Notifier<void> {
   Future<void> send(String body) async {
     final profileId = await ref.read(conversationProfileIdProvider.future);
     if (profileId == null) return;
-    final sent = await ref
-        .read(messageRepositoryProvider)
-        .send(profileId, body: body);
+    final FamilyMessage sent;
+    try {
+      sent = await ref
+          .read(messageRepositoryProvider)
+          .send(profileId, body: body);
+    } on Object {
+      _recheckLinks();
+      rethrow;
+    }
     ref.read(conversationProvider.notifier).append(sent);
     // Neither of these is on the path to the bubble. The push is a round trip
     // to an Edge Function, and the allowance is a third call - awaited, they
@@ -106,15 +114,34 @@ class MessageController extends Notifier<void> {
     final profileId = await ref.read(conversationProfileIdProvider.future);
     if (profileId == null) return;
     final repo = ref.read(messageRepositoryProvider);
-    final path = await repo.uploadImage(
-      profileId,
-      bytes,
-      contentType: contentType,
-    );
-    final sent = await repo.send(profileId, imagePath: path);
+    final FamilyMessage sent;
+    try {
+      final path = await repo.uploadImage(
+        profileId,
+        bytes,
+        contentType: contentType,
+      );
+      sent = await repo.send(profileId, imagePath: path);
+    } on Object {
+      _recheckLinks();
+      rethrow;
+    }
     ref.read(conversationProvider.notifier).append(sent);
     unawaited(_notify(sent));
     ref.invalidate(messageQuotaProvider);
+  }
+
+  /// A refused send is the likeliest moment to learn the parent cut the link.
+  ///
+  /// The tick re-reads within fifteen seconds anyway, but somebody who has
+  /// just been refused is looking at the screen right now, and the notice
+  /// that explains why should not wait for a timer. Each of the three is
+  /// empty without a guardian session, so on the parent's phone this asks
+  /// nothing.
+  void _recheckLinks() {
+    ref.invalidate(linkedSeniorProfilesProvider);
+    ref.invalidate(pendingSeniorLinksProvider);
+    ref.invalidate(guardianNoticesProvider);
   }
 
   /// Puts the parent's message on their children's phones.

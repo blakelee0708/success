@@ -90,6 +90,17 @@ abstract interface class PairingRepository {
   /// The other side of the same wait, for the guardian's own screen.
   Future<List<PendingSeniorLink>> pendingSeniorLinks();
 
+  /// The install invite for [seniorProfileId] that nobody has used yet, or
+  /// null.
+  ///
+  /// **The number has to come back after the app does.** Issuing the invite
+  /// makes a waiting link, which moves 홈 onto its 기다리고 있어요 page - and
+  /// until this existed that page had no number on it at all, so a guardian
+  /// whose parent asked 번호가 뭐였지 the next day had nothing to read out.
+  /// Null once the parent's phone has used it: from then on what is
+  /// outstanding is their answer, not an install.
+  Future<PairLink?> openSeniorInvite(String seniorProfileId);
+
   // --- 끊기 -----------------------------------------------------------------
 
   /// 어르신이 끊는다, from 설정 → 가족 연결 설정 on their own phone.
@@ -297,6 +308,28 @@ class SupabasePairingRepository implements PairingRepository {
       ];
     } on Object {
       return const [];
+    }
+  }
+
+  @override
+  Future<PairLink?> openSeniorInvite(String seniorProfileId) async {
+    try {
+      // Read from the table: `pair_links_owner_read` lets a guardian see
+      // the rows they issued, which is exactly this one.
+      final row = await _client
+          .from('pair_links')
+          .select()
+          .eq('senior_profile_id', seniorProfileId)
+          .eq('mode', PairMode.guardianInvitesSenior.wire)
+          .isFilter('used_at', null)
+          .gt('expires_at', DateTime.now().toUtc().toIso8601String())
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return row == null ? null : PairLink.fromRow(row);
+    } on Object {
+      // The waiting page still draws without it; it only loses the number.
+      return null;
     }
   }
 
@@ -520,7 +553,15 @@ class InMemoryPairingRepository implements PairingRepository {
   Future<PairLink> createSeniorInvite({required String displayName}) async {
     store.assertCanAddSenior();
     final profile = store.addProfile(displayName.trim());
-    store.link(profile.id, actingGuardianId, 'primary');
+    // `create_senior_profile` writes 'pending' on the server, so issuing an
+    // invite puts the guardian on the waiting page there. Mirrored behind
+    // the same switch as everywhere else.
+    if (store.pendingLinkConsent) {
+      store.pendingLinks[profile.id] = 'link-${profile.id}-$actingGuardianId';
+      store.pendingAskedBy[profile.id] = actingGuardianId;
+    } else {
+      store.link(profile.id, actingGuardianId, 'primary');
+    }
     return _issue(
       mode: PairMode.guardianInvitesSenior,
       digits: 6,
@@ -653,6 +694,17 @@ class InMemoryPairingRepository implements PairingRepository {
     store.pendingAskedBy.remove(profileId);
     return true;
   }
+
+  @override
+  Future<PairLink?> openSeniorInvite(String seniorProfileId) async => issued
+      .where(
+        (l) =>
+            l.seniorProfileId == seniorProfileId &&
+            l.mode == PairMode.guardianInvitesSenior &&
+            !_spent.contains(l.id) &&
+            !l.isExpiredAt(now()),
+      )
+      .lastOrNull;
 
   @override
   Future<List<PendingSeniorLink>> pendingSeniorLinks() async => [

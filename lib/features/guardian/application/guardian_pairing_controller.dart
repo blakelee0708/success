@@ -45,16 +45,48 @@ final guardianNoticesProvider = FutureProvider<List<GuardianNotice>>((
 ///
 /// It also outlives switching tabs and coming back, which is the other time
 /// somebody would want to look at it again.
-final lastInviteProvider = NotifierProvider<LastInvite, PairLink?>(
+final lastInviteProvider = NotifierProvider<LastInvite, IssuedInvite?>(
   LastInvite.new,
 );
 
-class LastInvite extends Notifier<PairLink?> {
+class LastInvite extends Notifier<IssuedInvite?> {
   @override
-  PairLink? build() => null;
+  IssuedInvite? build() => null;
 
-  void set(PairLink? link) => state = link;
+  void set(IssuedInvite? invite) => state = invite;
 }
+
+/// An install invite and who its two texts are addressed to.
+///
+/// The number travels with the link because the texts are sent from a
+/// different screen than the one the number was typed on, and asking for
+/// it twice is how the second text goes to nobody.
+class IssuedInvite {
+  const IssuedInvite(this.link, {this.phoneNumber});
+
+  final PairLink link;
+  final String? phoneNumber;
+}
+
+/// The install invite still waiting to be used, for 홈's 기다리고 있어요 page.
+///
+/// Read from the server rather than only from [lastInviteProvider], because
+/// that one is gone the moment the app is closed - and the day after is when
+/// a parent asks 번호가 뭐였지.
+///
+/// It follows *which* parent is waiting rather than the whole list, so the
+/// list being re-read every five seconds does not re-read this twice each
+/// time. The waiting card's own poll invalidates it, which is what notices
+/// the parent's phone using the number.
+final waitingInviteProvider = FutureProvider<PairLink?>((ref) async {
+  final profileId = ref.watch(
+    pendingSeniorLinksProvider.select(
+      (links) => links.value?.firstOrNull?.seniorProfileId,
+    ),
+  );
+  if (profileId == null) return null;
+  return ref.watch(pairingRepositoryProvider).openSeniorInvite(profileId);
+});
 
 /// Everyone looking after the selected parent.
 final guardiansForSelectedProvider = FutureProvider<List<GuardianLink>>((
@@ -71,14 +103,13 @@ class GuardianPairingController extends Notifier<void> {
   @override
   void build() {}
 
-  /// 경로 A. Creates the parent and the invite, then hands the message to the
-  /// SMS app.
+  /// 경로 A. Creates the parent and the invite, and shows the number.
   ///
-  /// Returns the link so the caller can show the code too. It deliberately
-  /// does not report whether the message was sent, because the app cannot know
-  /// — opening the messaging app is as far as `07_PHASE_PLAN` allows, and the
-  /// same rule as SOS applies: never claim an action the user still has to
-  /// take themselves.
+  /// **It no longer opens the messaging app by itself.** It used to, with one
+  /// text carrying both the link and the number - and on the live server
+  /// issuing the invite moves 홈 onto its waiting page, so the guardian came
+  /// back from the messaging app to a screen with no number on it. The number
+  /// is shown first now, and each of the two texts is its own button.
   Future<PairLink> inviteSenior({
     required String displayName,
     String? phoneNumber,
@@ -86,24 +117,28 @@ class GuardianPairingController extends Notifier<void> {
     final link = await ref
         .read(pairingRepositoryProvider)
         .createSeniorInvite(displayName: displayName);
+    ref
+        .read(lastInviteProvider.notifier)
+        .set(IssuedInvite(link, phoneNumber: phoneNumber));
     _connected();
-
-    // Not awaited. The invite exists whether or not the messaging app opens,
-    // and the app cannot see what happens there anyway — so holding the
-    // guardian on a spinner until another app answers would make them wait for
-    // a result that is never coming.
-    unawaited(
-      _openMessagingApp(
-        phoneNumber: phoneNumber,
-        body: link.installMessage(
-          seniorName: displayName,
-          applicationId: applicationId,
-        ),
-      ),
-    );
-    ref.read(lastInviteProvider.notifier).set(link);
     return link;
   }
+
+  /// Text one: the store link.
+  ///
+  /// Returns as soon as the messaging app is asked to open. It deliberately
+  /// does not report whether anything was sent, because the app cannot know,
+  /// and the same rule as SOS applies: never claim an action the user still
+  /// has to take themselves.
+  Future<void> sendInstallLink(PairLink link, {String? phoneNumber}) =>
+      _openMessagingApp(
+        phoneNumber: phoneNumber,
+        body: link.installLinkMessage(applicationId),
+      );
+
+  /// Text two: where to type the number, and the number.
+  Future<void> sendInviteCode(PairLink link, {String? phoneNumber}) =>
+      _openMessagingApp(phoneNumber: phoneNumber, body: link.codeMessage());
 
   /// 경로 B. The number the parent read out, plus the two things it could not
   /// carry.

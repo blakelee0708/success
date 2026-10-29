@@ -2621,8 +2621,8 @@ there was nothing to tap. The screen has had a third button, 이메일로
 guardian actually walks. `screenshots_test.dart` was walking the dead path
 too.
 
-628 passing when that was written; 781 at its peak, and 748 now that 소리
-울리기's four test files have gone with the feature. 0 failing, about 3
+628 passing when that was written; 781 at its peak, 748 once 소리
+울리기's four test files had gone with the feature, and 782 now. 0 failing, about 3
 minutes.
 
 ## The app icon is a document, not a drawing
@@ -3231,6 +3231,33 @@ nothing to do with the lock, and they **seed the link with the service key**
 rather than inviting. Seeding is setup; the gate is checked in one place. The
 helper is called `seed_sibling` and says so in each file, so lifting the lock
 means putting an invite back there.
+
+## 두 폰으로 처음 써 봤더니 네 개가 깨져 있었다
+
+2026-10-29, the first test on two real handsets. None of the four could have
+been caught by `flutter test` as it stood, and the reason is the same each
+time: the twins answered more kindly than the server.
+
+- **계정 삭제 said it failed and had succeeded.** `delete_guardian_account`
+  returns `void`, PostgREST answers that with an empty body, and `_rpc`
+  treated anything that was not a row as a failure. `_call` is for functions
+  that return nothing; `register_guardian_push_token` had the same fault and
+  was failing in silence.
+- **A parent's 끊기 never reached a child looking at the dashboard.** The
+  guardian's providers were re-read on resume only, and somebody watching the
+  screen is the person resume never reaches. `HomeKeyListener`'s 15초 tick
+  now re-reads them too, a refused send re-reads them at once, and the
+  dashboard keeps its last answer during a refresh rather than spinning.
+- **No parent meant one sentence and a form.** The page now says what
+  connecting is for, and 내 계정 (로그아웃, 계정 삭제) is on it and on the
+  waiting page, which had neither.
+- **The install number vanished.** `create_senior_profile` writes 'pending',
+  so issuing an invite moves 홈 onto the waiting page - which had no number.
+  The twin linked immediately, so every test saw the form keep it. The twin
+  mirrors 'pending' behind `pendingLinkConsent` now, the waiting page shows
+  the number from `openSeniorInvite` (it survives a restart), and the one
+  text became two: the store link, then where to type the number with the
+  number alone on its last line.
 
 ## Conventions
 
