@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/guardian_name_screen.dart';
 import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/core/supabase/supabase_config.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
@@ -179,6 +180,16 @@ void main() {
     await _submit(tester, email: 'guardian@example.com', password: 'hunter2');
 
     expect(auth.currentSession, isNotNull);
+
+    // **The name question comes first, once.** Nothing ever wrote
+    // `guardian_accounts.display_name`, so four screens fell back to the
+    // literal word 보호자 - including the card a senior answers on their own
+    // phone. A fresh account answers it before it sees the dashboard.
+    expect(find.byKey(GuardianNameScreen.field), findsOneWidget);
+    await tester.enterText(find.byKey(GuardianNameScreen.field), '영희');
+    await tester.tap(find.byKey(GuardianNameScreen.save));
+    await tester.pumpAndSettle();
+
     expect(find.byKey(GuardianNavKeys.bar), findsOneWidget);
   });
 

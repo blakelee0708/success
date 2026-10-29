@@ -13,7 +13,7 @@ import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart
 
 import '../../support/pump_app.dart';
 
-/// 자녀 폰에서 홈 화면 정리는 평생 2회.
+/// 자녀 폰에서 홈 화면 정리는 평생 3회.
 ///
 /// The screen's job is to say the number **before** a save, not to report a
 /// refusal after one. A guardian told only by an error has already arranged
@@ -90,7 +90,10 @@ void main() {
     await _pumpLauncherTab(tester, h);
 
     expect(find.byKey(GuardianLauncherTab.allowanceKey), findsOneWidget);
-    expect(find.textContaining('무료로 2번 더'), findsOneWidget);
+    expect(
+      find.textContaining('무료로 $guardianHomeEditsFree번 더'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('and that their parent is never limited', (tester) async {
@@ -105,7 +108,10 @@ void main() {
     final h = await _family(used: 1);
     await _pumpLauncherTab(tester, h);
 
-    expect(find.textContaining('무료로 1번 더'), findsOneWidget);
+    expect(
+      find.textContaining('무료로 ${guardianHomeEditsFree - 1}번 더'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('spent, it says so instead of counting down to nothing', (

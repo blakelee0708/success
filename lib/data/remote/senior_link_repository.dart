@@ -401,6 +401,23 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     authUserId: guardianAuthUserId,
   )).id;
 
+  /// Links waiting on the senior's own answer: profile id -> link id.
+  ///
+  /// **The twin attaches a guardian straight away and the server does not.**
+  /// `claim_senior_pairing_code`, `redeem_family_invite` and
+  /// `create_senior_profile` all write `status = 'pending'` now, and the
+  /// parent answers on their own phone before anything is shared. Mirroring
+  /// that here by default would mean rewriting the harness of every test that
+  /// connects a family, so it is behind [pendingLinkConsent] and the server
+  /// rule is proved by `tool/verify_supabase_link_consent.py` instead.
+  final Map<String, String> pendingLinks = {};
+
+  /// Who is waiting, per profile. The card names them.
+  final Map<String, String> pendingAskedBy = {};
+
+  /// Whether the pairing twin leaves new links waiting, as the server does.
+  bool pendingLinkConsent = false;
+
   /// Registers a profile as belonging to [role], used by the pairing twin.
   void link(String profileId, String guardianId, String role) {
     (rolesByProfile[profileId] ??= {})[guardianId] = role;

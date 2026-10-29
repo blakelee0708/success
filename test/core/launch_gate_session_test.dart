@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/data/remote/senior_link_repository.dart';
 import 'package:app/features/guardian/presentation/widgets/guardian_nav_bar.dart';
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
@@ -43,9 +44,17 @@ void main() {
   ) async {
     final auth = _signedIn();
     addTearDown(auth.dispose);
+    // Named, because a guardian with no name is asked for one before their
+    // dashboard - which is a different screen from the splash and is the
+    // subject of `guardian_name_test`, not this one.
+    final links = InMemorySeniorLinkRepository();
+    await links.ensureGuardianAccount(displayName: '영희');
     await pumpApp(
       tester,
-      overrides: [guardianAuthRepositoryProvider.overrideWithValue(auth)],
+      overrides: [
+        guardianAuthRepositoryProvider.overrideWithValue(auth),
+        seniorLinkRepositoryProvider.overrideWithValue(links),
+      ],
     );
     await tester.pump(const Duration(milliseconds: 300));
 

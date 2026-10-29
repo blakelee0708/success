@@ -116,7 +116,7 @@ const careCapabilities = <CareCapability>[
     icon: Icons.battery_alert_rounded,
     tint: AppColors.guardianTintAmber,
     tintInk: AppColors.guardianTintAmberInk,
-    seniorLine: '배터리가 얼마 안 남았을 때',
+    seniorLine: '배터리가 얼마 안 남았는지',
   ),
   CareCapability(
     key: 'phone_unused',
@@ -126,7 +126,7 @@ const careCapabilities = <CareCapability>[
     icon: Icons.bedtime_rounded,
     tint: AppColors.guardianTintViolet,
     tintInk: AppColors.guardianTintVioletInk,
-    seniorLine: '이틀 넘게 폰을 안 켜셨을 때',
+    seniorLine: '이틀 넘게 안 켜셨는지',
   ),
   CareCapability(
     key: 'message_read',
@@ -136,7 +136,7 @@ const careCapabilities = <CareCapability>[
     icon: Icons.done_all_rounded,
     tint: AppColors.guardianTintGreen,
     tintInk: AppColors.guardianTintGreenInk,
-    seniorLine: '자녀분 메시지를 읽으셨을 때',
+    seniorLine: '메시지를 읽으셨는지',
   ),
   CareCapability(
     key: 'remote_ring',

@@ -39,7 +39,7 @@ class HomeEditAllowance {
 /// the server has to enforce it and the screen has to say it before a save
 /// is attempted - a guardian told only by a refusal has already lost the
 /// arrangement they made.
-const guardianHomeEditsFree = 2;
+const guardianHomeEditsFree = 3;
 
 final homeEditAllowanceProvider = Provider<HomeEditAllowance>((ref) {
   final profile = ref.watch(selectedSeniorProfileProvider);

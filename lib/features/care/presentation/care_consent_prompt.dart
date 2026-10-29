@@ -118,9 +118,15 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
               // 쓰시는 기능은 broke after 기능 and left 은 alone on a line of
               // its own — on the one screen in the app where a senior is
               // being asked to agree to something.
+              // **The frame had to cover all four and did not.** It read
+              // 이런 때에 자녀분이 알림을 받아요, and the first line under it
+              // is 폰을 쓰신 때와 배터리 - which is not a 때 and not an
+              // 알림, it is something the child looks at. One frame that
+              // holds the readings and the alerts together, and every line
+              // under it answers 알다.
               const Text(
-                '허락하시면 이런 때에\n'
-                '자녀분이 알림을 받아요.',
+                '허락하시면 자녀분이\n'
+                '이런 걸 알 수 있어요.',
                 style: TextStyle(
                   fontSize: 20,
                   height: 1.55,

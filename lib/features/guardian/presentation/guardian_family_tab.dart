@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
+import '../../../core/supabase/supabase_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/pair_link.dart';
@@ -30,6 +31,9 @@ class GuardianFamilyKeys {
   static const signOutConfirm = Key('guardian-family-sign-out-confirm');
   static const familyInvite = Key('guardian-family-invite-family');
   static const requestPrimary = Key('guardian-family-request-primary');
+  static const myName = Key('guardian-family-my-name');
+  static const myNameEdit = Key('guardian-family-my-name-edit');
+  static const myNameField = Key('guardian-family-my-name-field');
 }
 
 /// 부모님 연결하기, on its own, for the one screen that needs it alone.
@@ -105,8 +109,107 @@ class GuardianFamilySection extends ConsumerWidget {
             ),
           ),
         ],
+        const _Card(child: _MyName()),
         const SizedBox(height: 8),
         const _Card(child: _SignOut()),
+      ],
+    );
+  }
+}
+
+/// 부모님이 부르시는 이름, after the one-question screen has asked for it.
+///
+/// It is asked once, before the dashboard, and it is what a senior reads on
+/// their own phone - so it needs somewhere to be corrected when a guardian
+/// typed it in a hurry or their mother started calling them something else.
+class _MyName extends ConsumerStatefulWidget {
+  const _MyName();
+
+  @override
+  ConsumerState<_MyName> createState() => _MyNameState();
+}
+
+class _MyNameState extends ConsumerState<_MyName> {
+  bool _busy = false;
+
+  Future<void> _edit(String current) async {
+    final controller = TextEditingController(text: current);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('부모님이 뭐라고 부르세요?'),
+        content: TextField(
+          key: GuardianFamilyKeys.myNameField,
+          controller: controller,
+          autofocus: true,
+          cursorColor: AppColors.guardianPrimary,
+          decoration: guardianField(label: '부모님이 부르시는 이름', hint: '영희, 큰아들, 막내'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('그만두기'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    // An empty answer leaves the old name standing: this is the one field in
+    // the app that may not become blank, because the senior's card reads it.
+    if (name == null || name.isEmpty || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(seniorLinkRepositoryProvider)
+          .ensureGuardianAccount(displayName: name);
+      ref.invalidate(guardianAccountProvider);
+    } on Object {
+      // The old name is still on the server and still on screen.
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = ref.watch(guardianAccountProvider).value?.displayName ?? '';
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '부모님이 부르시는 이름',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  color: AppColors.guardianInk,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                name,
+                key: GuardianFamilyKeys.myName,
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  color: AppColors.guardianInkSoft,
+                ),
+              ),
+            ],
+          ),
+        ),
+        TextButton(
+          key: GuardianFamilyKeys.myNameEdit,
+          onPressed: _busy ? null : () => _edit(name),
+          child: const Text('바꾸기'),
+        ),
       ],
     );
   }

@@ -22,6 +22,7 @@ import '../../messages/application/unread_notice.dart';
 import '../../messages/application/message_controller.dart';
 import '../../messages/presentation/guardian_message_tab.dart';
 import 'guardian_family_tab.dart';
+import 'guardian_name_screen.dart';
 import 'guardian_launcher_tab.dart';
 import 'widgets/guardian_hero_card.dart';
 import 'widgets/guardian_nav_bar.dart';
@@ -65,6 +66,22 @@ class _GuardianDashboardScreenState
   }
 
   Widget _build(BuildContext context) {
+    // **Asked once, before anything else, and there is no way past it.**
+    // `guardian_accounts.display_name` was null for every guardian in the
+    // system because nothing ever wrote it, and four screens fell back to the
+    // literal word 보호자 - including the card a senior answers on their own
+    // phone. A family with two children cannot be asked to agree to
+    // they-do-not-know-who.
+    //
+    // Null from the provider is a guardian with no signal rather than one
+    // with no name, so it leaves the dashboard alone.
+    final account = ref.watch(guardianAccountProvider).value;
+    if (account != null && (account.displayName ?? '').trim().isEmpty) {
+      return GuardianNameScreen(
+        suggestion: ref.watch(guardianSessionProvider).value?.providerName,
+      );
+    }
+
     return Scaffold(
       // The ground is a gradient, so it belongs to the body rather than to
       // `backgroundColor`, and every tab sits on the same one.
@@ -185,6 +202,51 @@ class _HomeTab extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (profile == null) {
+      // **Waiting is not the same as nothing.** On the install-SMS path the
+      // guardian creates the profile and their parent's phone has not even
+      // connected; on 경로 B they typed the number and the card is on their
+      // mother's screen. Saying 아직 연결된 부모님이 없어요 to either reads as
+      // the connection having failed, and the first thing they would do is
+      // do it again.
+      final waiting = ref.watch(pendingSeniorLinksProvider).value ?? const [];
+      if (waiting.isNotEmpty) {
+        final who = waiting.first.seniorName;
+        return _TabScaffold(
+          title: '부모님 동의를 기다리고 있어요',
+          children: [
+            _Card(
+              key: GuardianHomeKeys.waitingForConsent,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    who == null || who.isEmpty
+                        ? '부모님 폰에 여쭤봤어요'
+                        : '$who님 폰에 여쭤봤어요',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.4,
+                      color: AppColors.guardianInk,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '부모님 폰에 연결해도 되는지 여쭤보는 화면이 떠 있어요. '
+                    '허락하시면 바로 이어집니다.',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      height: 1.55,
+                      color: AppColors.guardianInkSoft,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      }
+
       // **The thing to do sits under the sentence saying it has not been
       // done.** This card used to read 가족 탭에서 부모님을 추가하면, which
       // is an instruction to go and find a tab - on the first screen a new
@@ -455,6 +517,7 @@ class GuardianHomeKeys {
   static const care = Key('guardian-home-care');
   static const ring = Key('guardian-home-ring');
   static const appOutOfDate = Key('guardian-home-app-out-of-date');
+  static const waitingForConsent = Key('guardian-home-waiting-consent');
 }
 
 class _ParentSwitcher extends ConsumerWidget {

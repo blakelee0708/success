@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 758 tests, all passing
+flutter test             # currently 777 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -1619,7 +1619,7 @@ priced can stop them reaching their family.
 | 긴급 연락, 읽어드리기, 빠른 답장 | O | O |
 | 가족 연결, 형제 초대 | O | O |
 | 가족 메시지 | 월 30회 / 사진 5장 | 무제한 |
-| 자녀 폰에서 홈 화면 정리 | 평생 2회 | 무제한 |
+| 자녀 폰에서 홈 화면 정리 | 평생 3회 | 무제한 |
 | 안부 신호, 배터리·소리 | 첫 1주일 | O |
 | 배터리 부족·폰 미사용 알림, 읽음 확인 | X | O |
 
@@ -1655,6 +1655,13 @@ paid capabilities all checked.
 Four places can now say no, and the shape of each is the same: **say the
 number before the save, and when it runs out make an offer rather than report
 a fault.**
+
+홈 화면 정리 went from **2 to 3** on 2026-10-29
+(`20261029000000_home_edits_three.sql`, applied live). Two is a tight first
+impression: a guardian arranges the screen, their parent asks for one thing
+changed, and the allowance is gone before anybody has decided whether the app
+is any good. The rule under it is unchanged and is the one to check against -
+the senior's own phone is never limited.
 
 - **홈 화면 정리** carries a band above the list - blue while there is room,
   amber once spent - and a spent edit raises a sheet rather than the snackbar
@@ -1753,6 +1760,12 @@ the block cannot creep back a line at a time.
 
 It also counts the glyphs — sixteen at 20px in a 318px card — because that is
 the screen where a wrapped line once left 은 alone.
+
+**The card's frame had to cover all four and did not.** It read 허락하시면
+이런 때에 자녀분이 알림을 받아요, and the first line under it is 폰을 쓰신
+때와 배터리 - which is not a 때 and not an 알림, it is something the child
+looks at. It is 허락하시면 자녀분이 이런 걸 알 수 있어요 now, and every
+`seniorLine` under it answers 알다.
 
 Which leaves **the two alerts**, and they are worded as *when the guardian is
 told* rather than *what is collected*, since the collection is the free
@@ -2805,6 +2818,81 @@ coalesced like the rest, and is applied to the live project.
 asking Play for the new build itself and offering the senior one button - is
 the half that actually fixes it, and it needs native code and a Play Console.
 This is the half that can be built today: telling the person who can act.
+
+## 가족 연결 동의, which the senior gives on their own phone
+
+**A guardian typed a number and was connected.** Nothing ever asked the
+person whose phone it is. On 경로 B they had at least pressed 번호 보여주기;
+on the install-SMS path they did nothing at all, and when a sibling joined by
+invitation their mother was never told it had happened.
+
+Play's rule for an app that looks at another adult's phone is that the adult
+knows and agrees, on their own device. After taking 위치 out, this is the most
+valuable thing in the app for 심사.
+
+`20261029010000_link_consent.sql`, applied live. **No constraint had to
+widen**: `guardian_senior_links.status` has carried `'pending'` since Phase 4
+and nothing ever wrote it.
+
+The three places a guardian attaches now write `pending`:
+`create_senior_profile`, `claim_senior_pairing_code`, `redeem_family_invite`.
+Redeeming a recovery code or an install invite attaches a **device**, not a
+guardian, so they are untouched - the link those land on was either answered
+already or is still waiting, and the card is on the phone that just connected.
+
+- **`pending_guardian_link` returns one at a time, oldest first.** Two
+  children connecting the same afternoon is two cards, each naming one
+  person; a card saying 두 명이 연결을 부탁하셨어요 would be a single yes to
+  two different people.
+- **Only the phone the link is about may answer.** `answer_guardian_link` is
+  scoped by `auth.uid()` to the active device of that profile - a guardian
+  who could approve their own link would have made the card a formality.
+  Three refusals are checked: the guardian themselves, an unrelated account,
+  and no session at all.
+- **아니요 removes the row rather than marking it.** It is not final and not a
+  punishment: the guardian can ask again, and a 아니요 pressed by mistake must
+  not lock a family out. What it must not do is leave a row some later query
+  reads as a connection.
+- **`linked_senior_profiles` stays active-only.** Every screen behind it -
+  홈 화면 정리, 메시지, 돌봄 - would otherwise point at a parent who has not
+  agreed, and the RLS underneath would refuse each one separately.
+  `pending_guardian_links` is the separate, smaller question the guardian's
+  empty state needs: *is somebody still thinking about it?* Without it the
+  dashboard says 아직 연결된 부모님이 없어요 to a guardian who just sent the
+  SMS, which reads as the connection having failed - and the first thing they
+  would do is do it again.
+
+**`tool/verify_supabase_link_consent.py` is the only thing that proves any of
+it**, 22 checks against the live project. `flutter test` runs on the in-memory
+twins and the twin links immediately unless `pendingLinkConsent` is set;
+mirroring the server by default would have meant rewriting the harness of
+every test that connects a family. One check in it was a **false pass** for
+one run - it called `linked_senior_profiles`, which is not an RPC at all, so
+a 404 counted as *the guardian sees nothing*. The Dart reads the table and
+RLS does the hiding, and the verifier reads it the same way now.
+
+### 부모님이 뭐라고 부르세요
+
+The card names who is asking, and nothing could.
+`guardian_accounts.display_name` was null for **every guardian in the
+system**: all three callers of `ensureGuardianAccount` passed no name, and the
+connect form asks for the *parent's* name and phone. Four screens fell back to
+the literal word 보호자 - the family list, the parent's 긴급 연락 tile, the
+ring card, and the name over a bubble when a parent has two children.
+
+Asked **once, before the dashboard, with no way past it**. It belongs to the
+account rather than to a link, which is why it is not on the connect form: a
+sibling joining by invitation never sees that form, and a family with two
+children is exactly where a name matters. Kakao and Google hand over a
+nickname and it is prefilled as a **suggestion** - what goes on the parent's
+screen is what the parent calls them, and a Kakao nickname is as likely to be
+호야 as 영희. Email sign-up supplies nothing.
+
+It is not their legal name, the same rule the parent's own field follows:
+`김영희님이 연결을 부탁하셨어요` is the wrong answer and `영희가` is the right
+one. 연결 관리 is where it is changed later, and an empty answer there leaves
+the old name standing - this is the one field in the app that may not become
+blank, because a senior's card reads it.
 
 ## Conventions
 

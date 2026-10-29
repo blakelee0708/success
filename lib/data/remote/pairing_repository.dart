@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../../domain/pair_link.dart';
+import '../../domain/pending_guardian_link.dart';
 import '../../domain/senior_profile.dart';
 import 'senior_link_repository.dart';
 
@@ -70,6 +71,23 @@ abstract interface class PairingRepository {
 
   /// Everyone looking after this parent. Includes the caller.
   Future<List<GuardianLink>> guardiansFor(String seniorProfileId);
+
+  /// The guardian this phone's owner has not answered about yet, if any.
+  ///
+  /// One at a time, oldest first: two children connecting the same afternoon
+  /// is two cards, each naming one person. A card saying 두 명이 연결을
+  /// 부탁하셨어요 would be a single yes to two different people.
+  Future<PendingGuardianLink?> pendingGuardianLink();
+
+  /// 허락합니다 / 아니요, answered on the senior's own phone.
+  ///
+  /// A refusal removes the row rather than marking it: it is not final and
+  /// not a punishment, the guardian can ask again, and a 아니요 pressed by
+  /// mistake must not lock a family out.
+  Future<bool> answerGuardianLink(String linkId, {required bool approve});
+
+  /// The other side of the same wait, for the guardian's own screen.
+  Future<List<PendingSeniorLink>> pendingSeniorLinks();
 
   // --- Primary guardian -----------------------------------------------------
 
@@ -199,6 +217,51 @@ class SupabasePairingRepository implements PairingRepository {
   }
 
   @override
+  Future<PendingGuardianLink?> pendingGuardianLink() async {
+    try {
+      final rows = await _client.rpc('pending_guardian_link');
+      if (rows is! List || rows.isEmpty) return null;
+      final row = rows.first;
+      return row is Map<String, Object?>
+          ? PendingGuardianLink.fromRow(row)
+          : null;
+    } on Object {
+      // A launcher with no signal draws its home screen, not an error.
+      return null;
+    }
+  }
+
+  @override
+  Future<bool> answerGuardianLink(
+    String linkId, {
+    required bool approve,
+  }) async {
+    try {
+      final answered = await _client.rpc(
+        'answer_guardian_link',
+        params: {'p_link_id': linkId, 'p_approve': approve},
+      );
+      return answered == true;
+    } on sb.PostgrestException catch (e) {
+      throw SeniorLinkException(e.message);
+    }
+  }
+
+  @override
+  Future<List<PendingSeniorLink>> pendingSeniorLinks() async {
+    try {
+      final rows = await _client.rpc('pending_guardian_links');
+      if (rows is! List) return const [];
+      return [
+        for (final row in rows)
+          if (row is Map<String, Object?>) ?PendingSeniorLink.fromRow(row),
+      ];
+    } on Object {
+      return const [];
+    }
+  }
+
+  @override
   Future<void> requestPrimaryGuardian(String seniorProfileId) => _rpc(
     'request_primary_guardian',
     {'p_senior_profile_id': seniorProfileId},
@@ -322,9 +385,17 @@ class InMemoryPairingRepository implements PairingRepository {
     String? phoneNumber,
   }) async {
     final link = _claim(code, PairMode.seniorSharesCode);
-    store.rename(link.seniorProfileId!, displayName.trim());
-    store.link(link.seniorProfileId!, actingGuardianId, 'primary');
-    return store.profiles[link.seniorProfileId]!;
+    final profileId = link.seniorProfileId!;
+    store.rename(profileId, displayName.trim());
+    // The server leaves this waiting on the senior's own answer. See
+    // `pendingLinkConsent`.
+    if (store.pendingLinkConsent) {
+      store.pendingLinks[profileId] = 'link-$profileId-$actingGuardianId';
+      store.pendingAskedBy[profileId] = actingGuardianId;
+    } else {
+      store.link(profileId, actingGuardianId, 'primary');
+    }
+    return store.profiles[profileId]!;
   }
 
   @override
@@ -410,6 +481,51 @@ class InMemoryPairingRepository implements PairingRepository {
         status: 'active',
         displayName: store.guardianNames[entry.key],
         phoneNumber: store.guardianPhones[entry.key],
+      ),
+  ];
+
+  @override
+  Future<PendingGuardianLink?> pendingGuardianLink() async {
+    // Keyed off the waiting rows rather than off what this guardian is
+    // linked to: a pending link is precisely one that has not been linked
+    // yet, so looking in `linkedProfileIds` finds nothing by definition.
+    final entry = store.pendingLinks.entries.firstOrNull;
+    if (entry == null) return null;
+    return PendingGuardianLink(
+      linkId: entry.value,
+      guardianName: store.guardianNames[store.pendingAskedBy[entry.key]],
+      role: 'primary',
+    );
+  }
+
+  @override
+  Future<bool> answerGuardianLink(
+    String linkId, {
+    required bool approve,
+  }) async {
+    final profileId = store.pendingLinks.entries
+        .where((e) => e.value == linkId)
+        .map((e) => e.key)
+        .firstOrNull;
+    if (profileId == null) return false;
+    store.pendingLinks.remove(profileId);
+    if (approve) {
+      store.link(
+        profileId,
+        store.pendingAskedBy[profileId] ?? store.guardianAccountId,
+        'primary',
+      );
+    }
+    store.pendingAskedBy.remove(profileId);
+    return true;
+  }
+
+  @override
+  Future<List<PendingSeniorLink>> pendingSeniorLinks() async => [
+    for (final entry in store.pendingLinks.entries)
+      PendingSeniorLink(
+        seniorProfileId: entry.key,
+        seniorName: store.profiles[entry.key]?.displayName,
       ),
   ];
 

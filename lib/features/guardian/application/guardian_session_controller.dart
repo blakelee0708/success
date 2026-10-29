@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/supabase/supabase_providers.dart';
 import '../../../data/remote/guardian_auth_repository.dart';
 import '../../../domain/guardian_account.dart';
+import '../../../domain/pending_guardian_link.dart';
 import '../../../domain/senior_profile.dart';
 
 /// The signed-in guardian, or null. Follows sign-in, sign-out and token
@@ -23,6 +24,39 @@ final guardianSignedInProvider = Provider<bool>((ref) {
   // loading, `value` is null for the same reason a signed-out guardian is, and
   // treating those alike would bounce a signed-in guardian to the splash.
   return ((stream.hasValue ? stream.value : null) ?? restored) != null;
+});
+
+/// This guardian's own account row, created on first read.
+///
+/// Watched by the dashboard because `display_name` decides whether the name
+/// question has been answered - and that name is what a senior reads on their
+/// own phone when their child asks to connect.
+final guardianAccountProvider = FutureProvider<GuardianAccount?>((ref) async {
+  final session = ref.watch(guardianSessionProvider);
+  if (!session.hasValue || session.value == null) return null;
+  try {
+    return await ref.read(seniorLinkRepositoryProvider).ensureGuardianAccount();
+  } on Object {
+    // A guardian with no signal is not a guardian with no name. Null here
+    // leaves the dashboard as it was rather than sending them to a form they
+    // have already filled in.
+    return null;
+  }
+});
+
+/// Parents who have not answered yet.
+///
+/// `linkedSeniorProfiles` stays active-only on purpose: every screen behind
+/// it - 홈 화면 정리, 메시지, 돌봄 - would otherwise be pointed at a parent
+/// who has not agreed, and the RLS underneath would refuse each one
+/// separately. This is the smaller question the empty state needs: is
+/// somebody still thinking about it?
+final pendingSeniorLinksProvider = FutureProvider<List<PendingSeniorLink>>((
+  ref,
+) async {
+  final session = ref.watch(guardianSessionProvider);
+  if (!session.hasValue || session.value == null) return const [];
+  return ref.watch(pairingRepositoryProvider).pendingSeniorLinks();
 });
 
 /// The parents this guardian manages. Empty until they add one.

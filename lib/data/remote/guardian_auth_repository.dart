@@ -213,7 +213,20 @@ class SupabaseGuardianAuthRepository implements GuardianAuthRepository {
   static GuardianSession? _toSession(sb.Session? session) {
     final user = session?.user;
     if (user == null) return null;
-    return GuardianSession(userId: user.id, email: user.email);
+    // Kakao and Google put a nickname in the metadata under one of several
+    // names depending on the provider; email sign-up puts nothing there.
+    final meta = user.userMetadata ?? const <String, dynamic>{};
+    final name = [
+      meta['name'],
+      meta['full_name'],
+      meta['nickname'],
+      meta['preferred_username'],
+    ].whereType<String>().map((v) => v.trim()).where((v) => v.isNotEmpty);
+    return GuardianSession(
+      userId: user.id,
+      email: user.email,
+      providerName: name.isEmpty ? null : name.first,
+    );
   }
 
   /// Only the cases a guardian can do something about are translated; anything

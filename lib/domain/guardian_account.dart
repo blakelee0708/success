@@ -4,19 +4,28 @@
 /// timing and expiry stay inside the auth repository so no screen can be
 /// tempted to make a decision from them.
 class GuardianSession {
-  const GuardianSession({required this.userId, this.email});
+  const GuardianSession({required this.userId, this.email, this.providerName});
 
   final String userId;
   final String? email;
+
+  /// What the provider calls them, when the provider says.
+  ///
+  /// Kakao and Google hand over a nickname; email sign-up hands over nothing.
+  /// It is only ever a **suggestion** for 부모님이 뭐라고 부르세요, never the
+  /// answer: what goes on the parent's screen is what the parent calls them,
+  /// and a Kakao nickname is as likely to be 호야 as 영희.
+  final String? providerName;
 
   @override
   bool operator ==(Object other) =>
       other is GuardianSession &&
       other.userId == userId &&
-      other.email == email;
+      other.email == email &&
+      other.providerName == providerName;
 
   @override
-  int get hashCode => Object.hash(userId, email);
+  int get hashCode => Object.hash(userId, email, providerName);
 }
 
 /// The guardian's row in `guardian_accounts`, created on first sign-in.

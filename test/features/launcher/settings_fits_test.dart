@@ -71,25 +71,22 @@ void main() {
       // Exactly one of 첫 화면으로 정하기 and 잘보이네 사용하지 않기 is ever
       // drawn, so the count is seven either way - but which one it is decides
       // the longest line, so both are walked.
-      testWidgets(
-        '설정 does not scroll at ${size.name}'
-        '${isHomeApp ? '' : ', with the home-app row'}',
-        (tester) async {
-          await _openSettings(tester, size: size, isHomeApp: isHomeApp);
+      testWidgets('설정 does not scroll at ${size.name}'
+          '${isHomeApp ? '' : ', with the home-app row'}', (tester) async {
+        await _openSettings(tester, size: size, isHomeApp: isHomeApp);
 
-          for (final state in tester.stateList<ScrollableState>(
-            find.byType(Scrollable),
-          )) {
-            expect(
-              state.position.maxScrollExtent,
-              0,
-              reason:
-                  '설정 scrolls at ${size.name}: '
-                  '${state.position.maxScrollExtent.round()}px below the fold',
-            );
-          }
-        },
-      );
+        for (final state in tester.stateList<ScrollableState>(
+          find.byType(Scrollable),
+        )) {
+          expect(
+            state.position.maxScrollExtent,
+            0,
+            reason:
+                '설정 scrolls at ${size.name}: '
+                '${state.position.maxScrollExtent.round()}px below the fold',
+          );
+        }
+      });
     }
   }
 }

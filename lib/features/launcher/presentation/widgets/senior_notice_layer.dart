@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../care/presentation/care_consent_prompt.dart';
+import '../../../family/presentation/link_consent_prompt.dart';
 import '../../../family/presentation/primary_guardian_prompt.dart';
 import '../../../messages/application/unread_notice.dart';
 import '../../../messages/presentation/family_message_prompt.dart';
@@ -34,11 +35,15 @@ class SeniorNoticeLayer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // **First of the three questions.** Nothing a guardian asks for means
+    // anything until this one is answered - 안심 케어 is bought by somebody
+    // who is not connected yet, and the handover moves a role nobody holds.
+    final linkWaiting = ref.watch(pendingGuardianLinkProvider).value != null;
     final careWaiting = ref.watch(careConsentPendingProvider).value != null;
     final handoverWaiting =
         ref.watch(pendingPrimaryGuardianProvider).value != null;
     final unread = ref.watch(unreadFromFamilyProvider);
-    if (!careWaiting && !handoverWaiting && unread == null) {
+    if (!linkWaiting && !careWaiting && !handoverWaiting && unread == null) {
       return const SizedBox.shrink();
     }
 
@@ -51,7 +56,7 @@ class SeniorNoticeLayer extends ConsumerWidget {
     // unlike them it is not a question and the senior may simply have reached
     // for their phone to make a call. Covering the whole screen for that
     // would take the phone away from them to tell them something.
-    if (careWaiting || handoverWaiting) {
+    if (linkWaiting || careWaiting || handoverWaiting) {
       return Positioned.fill(
         key: SeniorNoticeLayer.layerKey,
         child: ColoredBox(
@@ -61,9 +66,11 @@ class SeniorNoticeLayer extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
               child: Center(
                 child: SingleChildScrollView(
-                  child: careWaiting
-                      ? const CareConsentPrompt()
-                      : const PrimaryGuardianPrompt(),
+                  child: switch ((linkWaiting, careWaiting)) {
+                    (true, _) => const LinkConsentPrompt(),
+                    (_, true) => const CareConsentPrompt(),
+                    _ => const PrimaryGuardianPrompt(),
+                  },
                 ),
               ),
             ),
