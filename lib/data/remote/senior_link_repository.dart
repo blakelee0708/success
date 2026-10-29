@@ -158,7 +158,7 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
       final rows = await _client
           .from('senior_profiles')
           .select()
-          .order('created_at');
+          .order('created_at', ascending: true);
       return [for (final row in rows) ?SeniorProfile.fromRow(row)];
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);

@@ -24,7 +24,10 @@ class SupabaseHomeAppsRepository implements HomeAppsRepository {
         .from('home_apps')
         .select()
         .eq('senior_profile_id', seniorProfileId)
-        .order('sort_order');
+        // Named, though `launcherAppsFromRows` sorts these again anyway -
+        // which is the only reason the home screen was not drawn backwards
+        // too. See the note in `message_repository.dart`.
+        .order('sort_order', ascending: true);
     return launcherAppsFromRows(rows);
   }
 

@@ -128,13 +128,26 @@ class SupabaseMessageRepository implements MessageRepository {
   @override
   Future<List<FamilyMessage>> conversation(String seniorProfileId) async {
     try {
+      // **`ascending` defaults to `false` in postgrest-dart**, so a bare
+      // `.order('created_at')` is newest first - the opposite of supabase-js
+      // and the opposite of what this list is read as everywhere else.
+      // `ConversationView` draws index 0 at the bottom and counts back from
+      // the end, and `ConversationNotifier.append` puts a sent message last,
+      // so both were quietly putting the newest message at the top of the
+      // thread. On a phone it read as the conversation running backwards.
+      //
+      // Descending is still what the **limit** wants: 200 newest, not 200
+      // oldest, on a thread longer than that. So the direction is named and
+      // the rows are turned round here, where it is one line and visible.
       final rows = await _client
           .from('messages')
           .select()
           .eq('senior_profile_id', seniorProfileId)
-          .order('created_at')
+          .order('created_at', ascending: false)
           .limit(200);
-      return [for (final row in rows) ?FamilyMessage.fromRow(row)];
+      return [
+        for (final row in rows.reversed) ?FamilyMessage.fromRow(row),
+      ];
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);
     }

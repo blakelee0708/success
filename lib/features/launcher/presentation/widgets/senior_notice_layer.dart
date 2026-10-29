@@ -28,8 +28,24 @@ import '../../../messages/presentation/family_message_prompt.dart';
 /// only by somebody who already knows to look for it. It is **last**, because
 /// the two above it can only be answered by this person and money is held
 /// against one of them, and because unlike them it can be put off.
+///
+/// **It is on 가족 연결 as well as the home**, and that was found on a phone.
+/// 경로 B leaves the senior standing on the 가족 연결 screen looking at the
+/// number they just read out, which is exactly where they are when their
+/// child finishes typing it - and the layer was only ever in the home
+/// screens' `Stack`. The card could not be drawn where the person was
+/// standing. They pressed Back, arrived at the home, and only then were
+/// asked. A consent screen nobody can reach is not a consent screen.
 class SeniorNoticeLayer extends ConsumerWidget {
-  const SeniorNoticeLayer({super.key});
+  const SeniorNoticeLayer({super.key, this.messages = true});
+
+  /// Whether an unread message may use this layer.
+  ///
+  /// False on 가족 연결: that screen is one task long and the senior is in
+  /// the middle of it. The questions still show, because they are the reason
+  /// the layer is there at all and the senior is the only one who can answer
+  /// them.
+  final bool messages;
 
   static const layerKey = Key('senior-notice-layer');
 
@@ -42,7 +58,7 @@ class SeniorNoticeLayer extends ConsumerWidget {
     final careWaiting = ref.watch(careConsentPendingProvider).value != null;
     final handoverWaiting =
         ref.watch(pendingPrimaryGuardianProvider).value != null;
-    final unread = ref.watch(unreadFromFamilyProvider);
+    final unread = messages ? ref.watch(unreadFromFamilyProvider) : null;
     if (!linkWaiting && !careWaiting && !handoverWaiting && unread == null) {
       return const SizedBox.shrink();
     }

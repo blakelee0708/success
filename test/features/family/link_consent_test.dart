@@ -9,6 +9,7 @@ import 'package:app/data/senior_link_store.dart';
 import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
+import 'package:app/features/family/presentation/family_link_screen.dart';
 import 'package:app/features/family/presentation/link_consent_prompt.dart';
 import 'package:app/features/launcher/application/home_key_listener.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
@@ -175,6 +176,42 @@ void main() {
 
     expect(find.byKey(LinkConsentPrompt.promptKey), findsOneWidget);
     expect(find.textContaining('영희님이'), findsOneWidget);
+  });
+
+  testWidgets('the card reaches the senior on 가족 연결, where they are standing', (
+    tester,
+  ) async {
+    // **경로 B ends on that screen, not on the home.** The senior presses
+    // 번호 보여주기, reads the number out and waits there - and that is the
+    // moment their child types it. The layer was only in the home screens'
+    // `Stack`, so the card could not be drawn where the person was: on a
+    // phone it took a press of Back to be asked at all.
+    final h = await _pumpSeniorHome(tester, guardianName: '영희', asked: false);
+
+    // The route a senior actually walks: the 가족 button on their own home,
+    // which before a family is attached is the one that connects one.
+    await tester.tap(find.text('가족 연결').first);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(FamilyLinkKeys.visibility),
+      findsOneWidget,
+      reason: 'should be standing on 가족 연결',
+    );
+    expect(find.byKey(LinkConsentPrompt.promptKey), findsNothing);
+
+    // The child types the number while the senior stands on this screen.
+    final started = await h.pairing.startSeniorPairing(
+      installId: 'senior-phone',
+    );
+    await h.pairing.claimSeniorPairingCode(
+      code: started.code,
+      displayName: '어머니',
+    );
+
+    await tester.pump(HomeKeyListener.refreshEvery);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(LinkConsentPrompt.promptKey), findsOneWidget);
   });
 
   test(

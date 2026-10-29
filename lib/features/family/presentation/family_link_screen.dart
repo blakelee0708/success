@@ -13,7 +13,9 @@ import '../../../core/widgets/clay_pad.dart';
 import '../../../data/remote/senior_link_repository.dart';
 import '../../../domain/pair_link.dart';
 import '../../launcher/application/senior_settings_controller.dart';
+import '../../launcher/presentation/widgets/senior_notice_layer.dart';
 import '../application/senior_pairing_controller.dart';
+import 'link_consent_prompt.dart';
 
 /// Widget keys the tests drive.
 class FamilyLinkKeys {
@@ -86,110 +88,123 @@ class _FamilyLinkScreenState extends ConsumerState<FamilyLinkScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('가족 연결')),
       bottomNavigationBar: const SafeArea(child: GoHomeBar()),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          child: MediaQuery.withClampedTextScaling(
-            // Raising the text size is the point of this app, so the code and
-            // the field grow with it rather than being pinned small.
-            minScaleFactor: scale?.scale ?? 1.0,
-            maxScaleFactor: scale?.scale ?? 1.0,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (connected)
-                  const _Connected()
-                else ...[
-                  const _ShowCode(),
-                  const SizedBox(height: 34),
-                  const Divider(
-                    height: 2,
-                    thickness: 2,
-                    color: AppColors.seniorHairline,
-                  ),
-                  const SizedBox(height: 26),
-                  _EnterCode(
-                    controller: _code,
-                    busy: _busy,
-                    error: _error,
-                    onSubmit: _enterCode,
-                  ),
-                ],
-                const SizedBox(height: 30),
-                // **자녀가 보는 것 lives here now.** It was a row in 설정 and 설정 had
-                // to fit one screen without scrolling - the rule 사용법 has had from
-                // the start and this one never did, with more than half the list
-                // below the fold. This screen is where it belongs anyway: what the
-                // children can see is about the family, and the question only has a
-                // subject once there is one.
-                SizedBox(
-                  key: FamilyLinkKeys.visibility,
-                  height: 84,
-                  child: ClayPad(
-                    light: AppColors.seniorButtonYellowLight,
-                    face: AppColors.seniorButtonYellow,
-                    deep: AppColors.seniorButtonYellowDeep,
-                    wall: AppColors.seniorButtonYellowWall,
-                    radius: 26,
-                    onTap: () => context.push(Routes.familyVisibility),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 18),
-                      child: Row(
-                        children: [
-                          // Yellow cannot hold white lettering, the same rule the
-                          // 카카오톡 tile and the amber 가족 button follow.
-                          Icon(
-                            Icons.visibility_rounded,
-                            size: 34,
-                            color: AppColors.seniorInk,
-                          ),
-                          SizedBox(width: 16),
-                          Expanded(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '자녀가 보는 것',
-                                    style: TextStyle(
-                                      fontSize: 23,
-                                      height: 1.2,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: -0.5,
-                                      color: AppColors.seniorInk,
-                                    ),
-                                  ),
-                                  SizedBox(height: 3),
-                                  Text(
-                                    '무엇이 전해지는지 누르세요',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.seniorInk,
-                                    ),
-                                  ),
-                                ],
+      // The question has to be answerable where the person is standing.
+      // 경로 B ends with the senior on this screen holding the number out,
+      // and that is the moment their child types it - so the card arrives
+      // here, not two screens away. Without the `Stack` the layer has
+      // nothing to fill and the senior had to press Back to be asked.
+      body: Stack(
+        children: [
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+              child: MediaQuery.withClampedTextScaling(
+                // Raising the text size is the point of this app, so the code and
+                // the field grow with it rather than being pinned small.
+                minScaleFactor: scale?.scale ?? 1.0,
+                maxScaleFactor: scale?.scale ?? 1.0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (connected)
+                      const _Connected()
+                    else ...[
+                      const _ShowCode(),
+                      const SizedBox(height: 34),
+                      const Divider(
+                        height: 2,
+                        thickness: 2,
+                        color: AppColors.seniorHairline,
+                      ),
+                      const SizedBox(height: 26),
+                      _EnterCode(
+                        controller: _code,
+                        busy: _busy,
+                        error: _error,
+                        onSubmit: _enterCode,
+                      ),
+                    ],
+                    const SizedBox(height: 30),
+                    // **자녀가 보는 것 lives here now.** It was a row in 설정 and 설정 had
+                    // to fit one screen without scrolling - the rule 사용법 has had from
+                    // the start and this one never did, with more than half the list
+                    // below the fold. This screen is where it belongs anyway: what the
+                    // children can see is about the family, and the question only has a
+                    // subject once there is one.
+                    SizedBox(
+                      key: FamilyLinkKeys.visibility,
+                      height: 84,
+                      child: ClayPad(
+                        light: AppColors.seniorButtonYellowLight,
+                        face: AppColors.seniorButtonYellow,
+                        deep: AppColors.seniorButtonYellowDeep,
+                        wall: AppColors.seniorButtonYellowWall,
+                        radius: 26,
+                        onTap: () => context.push(Routes.familyVisibility),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 18),
+                          child: Row(
+                            children: [
+                              // Yellow cannot hold white lettering, the same rule the
+                              // 카카오톡 tile and the amber 가족 button follow.
+                              Icon(
+                                Icons.visibility_rounded,
+                                size: 34,
+                                color: AppColors.seniorInk,
                               ),
-                            ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '자녀가 보는 것',
+                                        style: TextStyle(
+                                          fontSize: 23,
+                                          height: 1.2,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.5,
+                                          color: AppColors.seniorInk,
+                                        ),
+                                      ),
+                                      SizedBox(height: 3),
+                                      Text(
+                                        '무엇이 전해지는지 누르세요',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.seniorInk,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Icon(
+                                Icons.chevron_right,
+                                size: 28,
+                                color: AppColors.seniorInk,
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 10),
-                          Icon(
-                            Icons.chevron_right,
-                            size: 28,
-                            color: AppColors.seniorInk,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+          // Questions only. An unread message is not one, and this screen is
+          // one task long.
+          const SeniorNoticeLayer(messages: false),
+        ],
       ),
     );
   }
@@ -218,10 +233,14 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
   /// typing.
   void _watchForGuardian() {
     _poll?.cancel();
-    _poll = Timer.periodic(
-      const Duration(seconds: 3),
-      (_) => ref.invalidate(seniorGuardiansProvider),
-    );
+    _poll = Timer.periodic(const Duration(seconds: 3), (_) {
+      ref.invalidate(seniorGuardiansProvider);
+      // **And whether they are being asked to agree.** Since the consent
+      // card exists, a claimed code does not attach a guardian - it raises a
+      // question on this phone. Refreshing only the roster left this screen
+      // spinning at a senior whose child had already typed the number.
+      ref.invalidate(pendingGuardianLinkProvider);
+    });
   }
 
   @override

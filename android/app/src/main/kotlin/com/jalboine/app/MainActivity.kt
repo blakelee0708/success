@@ -21,6 +21,9 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import java.util.concurrent.Executors
 import android.provider.MediaStore
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
@@ -40,6 +43,21 @@ class MainActivity : FlutterActivity() {
     private var alarm: MediaPlayer? = null
     private var tts: TextToSpeech? = null
 
+    /** One thread, reused. A pool per call would outlive the call. */
+    private val work = Executors.newSingleThreadExecutor()
+    private val main = Handler(Looper.getMainLooper())
+
+    /**
+     * The app list for the life of this process.
+     *
+     * Installing or removing an app while the launcher is running is rare and
+     * the cost of missing it is small - the senior sees the list they saw a
+     * moment ago. The cost of not caching is four seconds every time the
+     * 추가하기 slot is pressed, on the one screen a senior reaches by
+     * pressing something and waiting.
+     */
+    private var appList: List<Map<String, Any?>>? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).apply {
@@ -52,7 +70,36 @@ class MainActivity : FlutterActivity() {
                             call.argument<String>("fallbackUrl"),
                         )
                     )
-                    "installedApps" -> result.success(installedApps())
+                    // **Off the main thread, and this is the one call that
+                    // must be.** A method channel handler runs on the UI
+                    // thread, and listing the apps draws and PNG-encodes an
+                    // icon for every launcher activity on the phone - eighty
+                    // of them on an ordinary handset. Measured on a real
+                    // phone it took four to five seconds, and for all of it
+                    // the whole app was frozen: the senior pressed 전화 and
+                    // nothing happened until the list was finished. Nothing
+                    // else here is expensive enough to matter.
+                    "installedApps" -> {
+                        val cached = appList
+                        if (cached != null) {
+                            result.success(cached)
+                        } else {
+                            work.execute {
+                                val apps = try {
+                                    installedApps()
+                                } catch (e: Exception) {
+                                    emptyList()
+                                }
+                                // A `Result` may only be answered on the main
+                                // thread; answering from the worker is the
+                                // mistake this would otherwise introduce.
+                                main.post {
+                                    appList = apps
+                                    result.success(apps)
+                                }
+                            }
+                        }
+                    }
                     "isDefaultHome" -> result.success(isDefaultHome())
                     "deviceStatus" -> result.success(deviceStatus())
                     "startEmergencySound" -> result.success(startEmergencySound())
@@ -429,6 +476,11 @@ class MainActivity : FlutterActivity() {
         tts?.stop()
         tts?.shutdown()
         tts = null
+        // The activity is going; a worker still holding a `Result` for it is
+        // not worth keeping alive. `shutdown` lets a running listing finish
+        // and refuses new ones.
+        work.shutdown()
+        main.removeCallbacksAndMessages(null)
         super.onDestroy()
     }
 
