@@ -1,0 +1,25 @@
+# Dependency alerts and update PRs.
+#
+# Chosen over the other GitHub checkers because it is the one that reads
+# this app at all: CodeQL has no Dart support, and Copilot review and the
+# Claude Code Action both need a paid key only the owner can add.
+#
+# Monthly and capped, because every pub update PR here means a fresh CI
+# APK build, and Flutter's own pinned SDK (`.metadata`) holds most packages
+# back anyway - a weekly flood of PRs that cannot be merged is noise.
+version: 2
+updates:
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    target-branch: "main"
+
+  # The workflows pin action versions; this keeps them from going stale.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    target-branch: "main"

@@ -57,9 +57,15 @@ final careStateProvider = FutureProvider<CareState>((ref) async {
   if (care.isWaitingOnSenior) {
     return CareState(stage: CareStage.waitingOnSenior, subscription: care);
   }
-  if (care.isRefunded ||
-      profile.paidConsentStatus == PaidConsentStatus.refused) {
+  // **Only the parent's 아니요 is a refusal.** A row is refunded three ways
+  // now - the parent said no, the guardian cancelled before they answered,
+  // or somebody left - and reading every refund as the first one told a
+  // guardian who reconnected that their mother had turned them down.
+  if (profile.paidConsentStatus == PaidConsentStatus.refused) {
     return CareState(stage: CareStage.refused, subscription: care);
+  }
+  if (care.isRefunded) {
+    return const CareState(stage: CareStage.notBought);
   }
   // Both halves, and the consent one decides: a paid subscription whose senior
   // said nothing is not active.

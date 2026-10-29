@@ -98,6 +98,17 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
   void _refreshFamily() {
     ref.invalidate(pendingGuardianLinkProvider);
     ref.invalidate(seniorGuardiansProvider);
+    // Only while the phone shows no family, which is exactly what a phone
+    // that was moved onto another profile shows - so a connected phone asks
+    // nothing extra every fifteen seconds.
+    if ((ref.read(seniorGuardiansProvider).value ?? const []).isEmpty) {
+      unawaited(
+        ref
+            .read(seniorPairingControllerProvider.notifier)
+            .followMovedPhone()
+            .catchError((Object _) {}),
+      );
+    }
   }
 
   /// The guardian's half of the same question, on resume **and** on the tick.

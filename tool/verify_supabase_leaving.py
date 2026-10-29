@@ -364,6 +364,34 @@ try:
           len(subs) == 1 and subs[0]["status"] == "canceled"
           and subs[0]["refunded_at"] is None, subs)
 
+    # A cancelled month that has run out was delivered in full. Leaving
+    # afterwards must not record a refund for it - which the first version
+    # of `settle_care_after_leaving` did, for every 'canceled' row.
+    sql("update public.subscriptions set current_period_end = now() - "
+        "interval '1 day' where senior_profile_id = '%s' and plan = 'care'"
+        % profile3)
+    st, out = call("/rest/v1/rpc/leave_senior", token=c1,
+                   body={"p_senior_profile_id": profile3})
+    assert st in (200, 204), (st, out)
+    subs = sql("select status, refunded_at from public.subscriptions "
+               "where senior_profile_id = '%s' and plan = 'care'" % profile3)
+    check("leaving after a used-up cancelled month refunds nothing",
+          len(subs) == 1 and subs[0]["status"] == "canceled"
+          and subs[0]["refunded_at"] is None, subs)
+
+    # The child who paid is cut while a sibling stays. The gate needs the
+    # buyer's own link, so they lose 안심 케어 - and the first version kept
+    # their money, because it refunded only when nobody was left.
+    phone6, _i6, profile6, (f1, _f2) = family("큰아버지", ("민수", "지영"))
+    buy_and_agree(f1, phone6, profile6)
+    st, _ = call("/rest/v1/rpc/remove_guardian_link", token=phone6,
+                 body={"p_guardian_account_id": account_id(f1)})
+    assert st in (200, 204), (st, _)
+    subs = sql("select status from public.subscriptions "
+               "where senior_profile_id = '%s' and plan = 'care'" % profile6)
+    check("a paying child cut while a sibling stays gets the month back",
+          len(subs) == 1 and subs[0]["status"] == "refunded", subs)
+
     # ======================================================================
     # 5. 부모님이 폰을 바꾸셨을 때
     # ======================================================================
@@ -406,6 +434,17 @@ try:
                % pair_new["senior_profile_id"])
     check("and the empty profile is gone, so the child has one parent again",
           gone[0]["n"] == 0, gone)
+
+    # The new phone still has the empty profile's id saved, and nothing
+    # tells it otherwise - so the app asks the one question it can: which
+    # profile is my own device row on now. That read is
+    # `profileOfThisPhone`, and it has to work under RLS.
+    st, mine = call("/rest/v1/senior_devices?select=senior_profile_id"
+                    "&install_id=eq.%s&is_active=eq.true" % new_install,
+                    token=new_phone, method="GET")
+    check("the moved phone can read which profile it is on now",
+          st == 200 and mine and mine[0]["senior_profile_id"] == profile4,
+          (st, mine))
 
     # --- only an empty one may be absorbed ---------------------------------
     phone5, _i5, profile5, (e1,) = family("남의 어머니")

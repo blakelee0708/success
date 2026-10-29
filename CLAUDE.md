@@ -2622,7 +2622,7 @@ guardian actually walks. `screenshots_test.dart` was walking the dead path
 too.
 
 628 passing when that was written; 781 at its peak, 748 once 소리
-울리기's four test files had gone with the feature, and 782 now. 0 failing, about 3
+울리기's four test files had gone with the feature, and 790 now. 0 failing, about 3
 minutes.
 
 ## The app icon is a document, not a drawing
@@ -3258,6 +3258,36 @@ time: the twins answered more kindly than the server.
   the number from `openSeniorInvite` (it survives a restart), and the one
   text became two: the store link, then where to type the number with the
   number alone on its last line.
+
+## 코드 리뷰가 찾은 열 개
+
+2026-10-29, `/code-review` over the leaving, 1대1 and real-phone commits.
+All ten were checked against the code before anything was changed, and all
+ten were real. The shape repeats: **the twin answered more kindly than the
+server**, or two copies of one rule disagreed.
+
+- `guardianNotices` read every row; the twin read unread ones. On the live
+  project the 끊김 notice came back every 15 seconds forever.
+- 어머니 폰을 바꿨어요 moved the handset on the server and told the handset
+  nothing. `followMovedPhone` asks which profile its own device row is on,
+  only while the phone shows no family.
+- A refund from leaving read as the parent refusing 안심 케어. Only
+  `paid_consent_status = 'refused'` is a refusal now.
+- `remove_guardian_link` refunded only when nobody was left, though the gate
+  needs the buyer's own link - so a child cut beside a sibling kept paying.
+- `settle_care_after_leaving` refunded a cancelled month that had run out.
+- `stillRunningAt` read a null end as forever; the server reads it as over.
+- 영희과 / 영희이 on the senior's 끊기 dialog. `korean_particle.dart`.
+- 해지 before the parent answers promised days that never existed.
+- `delete-account.html` carried the project keys with nothing checking them.
+- The twin's one-to-one lock ignored pending links.
+
+The two server fixes are `20261029090000_leaving_refunds.sql`, with three
+new checks in `verify_supabase_leaving.py`. **Not yet applied to the live
+project as of this commit** - the apply step needs the owner's approval.
+
+Dependabot (`.github/dependabot.yml`) was added in the same pass, monthly
+and for pub and Actions only. CodeQL was not: it cannot read Dart.
 
 ## Conventions
 

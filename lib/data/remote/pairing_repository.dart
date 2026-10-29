@@ -362,9 +362,15 @@ class SupabasePairingRepository implements PairingRepository {
       // Read from the table rather than through a function: the policy is
       // `guardian_account_id = current_guardian_account_id()`, so the row
       // the caller may see is exactly the row addressed to them.
+      //
+      // **Unread only.** The twin always returned unread ones and this did
+      // not, so on the live project a notice marked read came back on every
+      // 15-second refresh and sat on 홈 for good - the line written to be
+      // said once, said forever.
       final rows = await _client
           .from('guardian_notices')
           .select()
+          .isFilter('read_at', null)
           .order('created_at', ascending: false)
           .limit(20);
       return [

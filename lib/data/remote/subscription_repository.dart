@@ -189,6 +189,9 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
   /// Which guardian this fake is acting as, so a sibling can be stood in for.
   String actingGuardianId = 'account-1';
 
+  /// What the twin calls now, for the month an approval starts.
+  DateTime Function() now = DateTime.now;
+
   int _seq = 0;
 
   @override
@@ -281,6 +284,10 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
       status: approve ? SubscriptionStatus.active : SubscriptionStatus.refunded,
       seniorProfileId: seniorProfileId,
       refundedAt: approve ? null : DateTime(2026, 7, 31),
+      // The server starts the month on approval (`one_month_after`). Left
+      // null here, a cancelled row read as running forever on the screen
+      // while the server had already stopped it.
+      currentPeriodEnd: approve ? now().add(const Duration(days: 30)) : null,
     );
     store.setConsent(
       seniorProfileId,

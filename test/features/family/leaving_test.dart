@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +16,9 @@ import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/guardian_account.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
+import 'package:app/domain/subscription.dart';
+import 'package:app/features/family/application/senior_pairing_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/care/presentation/guardian_care_tab.dart';
 import 'package:app/features/family/presentation/family_link_screen.dart';
 import 'package:app/features/guardian/presentation/guardian_dashboard_screen.dart';
@@ -158,6 +160,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(FamilyLinkKeys.removeConfirm), findsOneWidget);
+    // 영희 ends in a vowel. The dialog used to say 영희과 and 영희이, and
+    // the fallback 자녀분 ends in ㄴ, which is why no test caught it.
+    expect(find.text('영희와 연결을 끊을까요?'), findsOneWidget);
+    expect(find.textContaining('영희가 이 폰을 볼 수 없게'), findsOneWidget);
     expect(find.textContaining('버튼과 글씨 크기는 그대로 있어요'), findsOneWidget);
     expect(find.textContaining('나중에 다시 연결하실 수 있어요'), findsOneWidget);
     // Neither button may read as the other one. 그만두기 is the word the row
@@ -597,5 +603,89 @@ void main() {
     expect(find.byKey(GuardianCareKeys.cancelling), findsOneWidget);
     expect(find.byKey(GuardianCareKeys.waiting), findsNothing);
     expect(find.text('남은 기간까지 쓰실 수 있어요'), findsOneWidget);
+  });
+
+  // ===========================================================
+  // 검토에서 나온 것
+  // ===========================================================
+
+  testWidgets('a refund from leaving is not read as the parent refusing', (
+    tester,
+  ) async {
+    // A row is refunded three ways now - the parent said no, the guardian
+    // cancelled before they answered, or somebody left. Reading every refund
+    // as the first told a guardian who reconnected that their mother had
+    // turned them down, when she had agreed.
+    final h = await _family();
+    await h.subs.startCare(h.profileId);
+    await h.subs.resolveCareConsent(h.profileId, true);
+    final paid = h.subs.subscriptions.single;
+    h.subs.subscriptions[0] = Subscription(
+      id: paid.id,
+      plan: paid.plan,
+      status: SubscriptionStatus.refunded,
+      seniorProfileId: paid.seniorProfileId,
+      refundedAt: DateTime(2026, 10, 29),
+    );
+    await _pumpGuardianHome(tester, h);
+    await _openCareTab(tester);
+
+    expect(find.byKey(GuardianCareKeys.refused), findsNothing);
+    expect(find.byKey(GuardianCareKeys.buyCare), findsOneWidget);
+  });
+
+  testWidgets('해지 before the parent answers says the money comes back', (
+    tester,
+  ) async {
+    // Nothing ran, so there is no remaining period to keep - the server
+    // refunds it. The dialog used to promise 남은 기간까지 쓰실 수 있어요.
+    final h = await _family();
+    await h.subs.startCare(h.profileId);
+    await _pumpGuardianHome(tester, h);
+    await _openCareTab(tester);
+
+    await tester.ensureVisible(find.byKey(GuardianCareKeys.cancel));
+    await tester.tap(find.byKey(GuardianCareKeys.cancel));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('돌려드립니다'), findsOneWidget);
+    expect(find.textContaining('남은 기간까지는'), findsNothing);
+  });
+
+  testWidgets('a phone moved onto its old profile follows it', (tester) async {
+    // 어머니 폰을 바꿨어요, answered on the child's phone, moves this
+    // handset onto the original profile and deletes the empty one it had
+    // saved. Nothing else tells this phone, so it went on asking about a
+    // profile that no longer existed.
+    final h = await _family();
+    final links = InMemorySeniorLinkStore(
+      const SeniorLink(installId: 'senior-phone', seniorProfileId: 'gone'),
+    );
+    await pumpApp(
+      tester,
+      overrides: [
+        ..._overrides(h),
+        seniorLinkStoreProvider.overrideWithValue(links),
+      ],
+      prefs: {
+        SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
+          const SeniorSettings(
+            screenMode: ScreenMode.easy,
+            apps: defaultEasyApps,
+          ).toJson(),
+        ),
+      },
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(Scaffold).first),
+    );
+    await container
+        .read(seniorPairingControllerProvider.notifier)
+        .followMovedPhone();
+    await tester.pumpAndSettle();
+
+    expect((await links.load()).seniorProfileId, h.profileId);
   });
 }

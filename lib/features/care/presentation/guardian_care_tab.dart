@@ -566,7 +566,12 @@ class _Bottom extends ConsumerWidget {
             rowKey: GuardianCareKeys.cancel,
             icon: Icons.highlight_off_rounded,
             label: '안심 케어 해지하기',
-            onTap: () => _confirmCancel(context, ref, profile.displayName),
+            onTap: () => _confirmCancel(
+              context,
+              ref,
+              profile.displayName,
+              started: stage == CareStage.active,
+            ),
           ),
         // 이메일 rather than a number, because the reader is different. The
         // senior's 문의하기 dials; an adult with an ordinary phone writes,
@@ -585,8 +590,9 @@ class _Bottom extends ConsumerWidget {
   Future<void> _confirmCancel(
     BuildContext context,
     WidgetRef ref,
-    String seniorName,
-  ) async {
+    String seniorName, {
+    required bool started,
+  }) async {
     final go = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -595,8 +601,12 @@ class _Bottom extends ConsumerWidget {
         // What is **not** lost comes first, the same rule 로그아웃 and
         // 연결 끊기 both follow. A guardian who reads 해지 as 연결 끊기 will
         // not press it, and one who presses it expecting that is worse off.
+        //
+        // **Two different outcomes.** A running month is kept to its end; one
+        // the parent never agreed to has delivered nothing, so the server
+        // refunds it and withdraws the question from their phone.
         content: Text(
-          '남은 기간까지는 지금처럼 쓰실 수 있어요. 다음 결제만 없습니다.\n'
+          '${started ? '남은 기간까지는 지금처럼 쓰실 수 있어요. 다음 결제만 없습니다.' : '아직 부모님이 허락하지 않으셔서 쓰신 기간이 없어요. 결제한 금액은 돌려드립니다.'}\n'
           '$seniorName님 폰은 그대로입니다. 연결도, 홈 화면도, 메시지도 그대로예요.\n'
           '언제든 다시 신청하실 수 있어요.',
           style: const TextStyle(fontSize: 14.5, height: 1.55),

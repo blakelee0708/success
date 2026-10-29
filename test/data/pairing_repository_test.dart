@@ -177,6 +177,20 @@ void main() {
       expect(body, isNot(contains('referrer')));
     });
 
+    test('a parent still waiting counts against the one-to-one lock', () async {
+      // `assert_can_add_senior` counts 'pending' links. The twin counted
+      // only linked ones, so a second invite passed here and the server
+      // refused it.
+      final store = InMemorySeniorLinkRepository()..pendingLinkConsent = true;
+      final pairing = InMemoryPairingRepository(store);
+      await pairing.createSeniorInvite(displayName: '어머니');
+
+      await expectLater(
+        pairing.createSeniorInvite(displayName: '아버지'),
+        throwsA(isA<SeniorLinkException>()),
+      );
+    });
+
     test('an unused invite can be read back, and a used one cannot', () async {
       // The number has to survive the app being closed: the day after is
       // when a parent asks 번호가 뭐였지.

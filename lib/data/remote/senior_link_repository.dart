@@ -119,6 +119,16 @@ abstract interface class SeniorLinkRepository {
   /// exists*; it means a guardian is attached.
   Future<String?> supportCode(String installId, {String? platform});
 
+  /// Which profile this install's active device row belongs to on the
+  /// server, or null when it cannot say.
+  ///
+  /// **The phone does not otherwise find out it was moved.** 어머니 폰을
+  /// 바꿨어요 is answered on the child's phone: the server moves the new
+  /// handset's row onto the original profile and deletes the empty one this
+  /// phone had saved. Nothing told this phone, so it went on asking about a
+  /// profile that no longer existed and showed no family at all.
+  Future<String?> profileOfThisPhone(String installId);
+
   /// Pushes the two settings that live on the profile rather than in
   /// `home_apps`, so the guardian's dashboard can show what the parent chose.
   Future<void> updateProfileSettings(
@@ -335,6 +345,24 @@ class SupabaseSeniorLinkRepository implements SeniorLinkRepository {
     }
   }
 
+  @override
+  Future<String?> profileOfThisPhone(String installId) async {
+    try {
+      // `senior_devices_read` lets a device read its own row by
+      // `auth_user_id`, which is the row this asks about.
+      final row = await _client
+          .from('senior_devices')
+          .select('senior_profile_id')
+          .eq('install_id', installId)
+          .eq('is_active', true)
+          .maybeSingle();
+      final id = row?['senior_profile_id'];
+      return id is String ? id : null;
+    } on Object {
+      return null;
+    }
+  }
+
   /// For a function that **returns nothing** - PostgREST answers those with
   /// an empty body, which is success.
   ///
@@ -468,10 +496,16 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// taking on another one.
   void assertCanAddSenior({String? exceptProfileId}) {
     if (!oneToOne) return;
-    final mine = rolesByProfile.entries
-        .where((e) => e.value.containsKey(guardianAccountId))
-        .map((e) => e.key)
-        .where((id) => id != exceptProfileId);
+    // Waiting links count, as `assert_can_add_senior` counts 'pending':
+    // without them a second invite passed here and the server refused it.
+    final mine = {
+      ...rolesByProfile.entries
+          .where((e) => e.value.containsKey(guardianAccountId))
+          .map((e) => e.key),
+      ...pendingAskedBy.entries
+          .where((e) => e.value == guardianAccountId)
+          .map((e) => e.key),
+    }.where((id) => id != exceptProfileId);
     if (mine.isNotEmpty) {
       throw const SeniorLinkException('지금은 부모님 한 분만 연결할 수 있어요.');
     }
@@ -480,9 +514,10 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// Refuses a second child on one parent.
   void assertCanAddGuardian(String profileId, String guardianId) {
     if (!oneToOne) return;
-    final others = (rolesByProfile[profileId] ?? const {}).keys.where(
-      (id) => id != guardianId,
-    );
+    final others = {
+      ...(rolesByProfile[profileId] ?? const {}).keys,
+      ?pendingAskedBy[profileId],
+    }.where((id) => id != guardianId);
     if (others.isNotEmpty) {
       throw const SeniorLinkException('부모님 한 분에 자녀 한 명만 연결할 수 있어요.');
     }
@@ -742,6 +777,13 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     if (offline) throw const SeniorLinkException('번호를 읽지 못했어요.');
     return supportCodeValue;
   }
+
+  @override
+  Future<String?> profileOfThisPhone(String installId) async =>
+      activeDeviceByProfile.entries
+          .where((e) => e.value.installId == installId)
+          .map((e) => e.key)
+          .firstOrNull;
 
   @override
   Future<void> updateProfileSettings(

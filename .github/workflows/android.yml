@@ -115,6 +115,23 @@ jobs:
           fi
           echo "ok: reset.html carries the matching publishable key"
 
+      # delete-account.html carries the same two values, and Play requires
+      # that page to work. Held to reset.html rather than to the secrets, so
+      # this runs on a keyless build too: the step above already ties
+      # reset.html to the APK, and a third copy only has to agree with it.
+      - name: Check delete-account.html names the same project as reset.html
+        run: |
+          read_var() { sed -n "s/^var $1 *= *'\([^']*\)'.*/\1/p" "$2" | head -1; }
+          for v in SUPABASE_URL PUBLISHABLE; do
+            a="$(read_var "$v" site/reset.html)"
+            b="$(read_var "$v" site/delete-account.html)"
+            if [ -z "$a" ] || [ -z "$b" ] || [ "$a" != "$b" ]; then
+              echo "::error::site/delete-account.html and site/reset.html disagree on $v. The deletion page would sign people in against a project that does not hold their account."
+              exit 1
+            fi
+          done
+          echo "ok: delete-account.html and reset.html name the same project"
+
       # The screens are reviewed as PNGs — there is no display in the
       # development environment — so they are worth keeping off the run.
       - name: Upload screenshots

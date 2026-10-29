@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/format/korean_particle.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_pad.dart';
@@ -555,7 +556,7 @@ class _ConnectedState extends ConsumerState<_Connected> {
       builder: (dialogContext) => AlertDialog(
         key: FamilyLinkKeys.removeConfirm,
         title: Text(
-          '$name과 연결을 끊을까요?',
+          '${gwaWa(name)} 연결을 끊을까요?',
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
         ),
         // **잃는 것이 없다는 말이 먼저.** The same rule the 사용하지 않기
@@ -563,7 +564,7 @@ class _ConnectedState extends ConsumerState<_Connected> {
         // this as losing their buttons will never press it, and one who is
         // afraid of that will not ask.
         content: Text(
-          '$name이 이 폰을 볼 수 없게 됩니다.\n'
+          '${iGa(name)} 이 폰을 볼 수 없게 됩니다.\n'
           '버튼과 글씨 크기는 그대로 있어요.\n'
           '나중에 다시 연결하실 수 있어요.',
           style: const TextStyle(fontSize: 19, height: 1.6),

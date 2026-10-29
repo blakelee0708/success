@@ -76,6 +76,25 @@ class SeniorPairingController extends AsyncNotifier<PairLink?> {
     return profile;
   }
 
+  /// 가족 연결을 끊는다, one child at a time.
+  ///
+  /// Nothing about the phone changes - the buttons, colours, text size and
+  /// contact numbers all stay. And it is reversible: the same child can be
+  /// connected again, and the old conversation comes back with them, because
+  /// it is the same profile and the person agreeing is the senior herself.
+  ///
+  /// The child who is cut gets back what is left of their own 안심 케어:
+  /// the gate needs the buyer's own link, so they can no longer use it. A
+  /// sibling who stays keeps theirs - the one who was kept did nothing
+  /// wrong. The server decides that, not this.
+  Future<void> removeGuardian(String guardianAccountId) async {
+    await _signIn();
+    await ref
+        .read(pairingRepositoryProvider)
+        .removeGuardianLink(guardianAccountId);
+    ref.invalidate(seniorGuardiansProvider);
+  }
+
   /// The parent's phone has no account, so it signs in anonymously — and
   /// nothing did that until now, which is why both paths on this screen
   /// failed on a real phone with `번호를 받지 못했어요`. Every function they
@@ -85,23 +104,27 @@ class SeniorPairingController extends AsyncNotifier<PairLink?> {
   /// that knows what the senior is trying to do, so it is the one whose error
   /// the screen should show; a second message about signing in would name a
   /// thing this app never asked them to do.
-  /// 가족 연결을 끊는다, one child at a time.
+  /// Adopts the profile the server says this phone belongs to, when that is
+  /// not the one saved here.
   ///
-  /// Nothing about the phone changes - the buttons, colours, text size and
-  /// contact numbers all stay. And it is reversible: the same child can be
-  /// connected again, and the old conversation comes back with them, because
-  /// it is the same profile and the person agreeing is the senior herself.
+  /// The one case today is 어머니 폰을 바꿨어요: the child's phone moves this
+  /// handset onto the original profile and deletes the empty one it made
+  /// when it showed its number. Without this the new phone went on asking
+  /// about a profile that was gone - no family, no conversation, no buttons
+  /// from the guardian - while the move had worked everywhere else.
   ///
-  /// 안심 케어 goes off only when the **last** child goes. Two children and
-  /// one cut: the one who was kept did nothing wrong, and taking away what
-  /// they paid for would be the app punishing the wrong person. The server
-  /// decides that, not this.
-  Future<void> removeGuardian(String guardianAccountId) async {
-    await _signIn();
-    await ref
-        .read(pairingRepositoryProvider)
-        .removeGuardianLink(guardianAccountId);
-    ref.invalidate(seniorGuardiansProvider);
+  /// Returns quietly on any doubt. A phone that cannot say leaves the saved
+  /// profile alone, because adopting a wrong one would be far worse.
+  Future<void> followMovedPhone() async {
+    final link = await ref.read(seniorLinkStoreProvider).load();
+    final saved = link.seniorProfileId;
+    if (saved == null) return;
+    if (!await ref.read(seniorAuthProvider).ensure()) return;
+    final actual = await ref
+        .read(seniorLinkRepositoryProvider)
+        .profileOfThisPhone(link.installId);
+    if (actual == null || actual == saved) return;
+    await _remember(actual);
   }
 
   Future<void> _signIn() => ref.read(seniorAuthProvider).ensure();

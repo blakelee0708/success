@@ -10,6 +10,7 @@ import '../../../core/router/routes.dart';
 import '../../../core/supabase/supabase_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/remote/senior_link_repository.dart';
+import '../../../domain/guardian_notice.dart';
 import '../../../domain/pair_link.dart';
 import '../../../domain/senior_profile.dart';
 import '../application/guardian_home_apps_controller.dart';
@@ -986,9 +987,16 @@ class GuardianNotices extends ConsumerStatefulWidget {
 class _NoticesState extends ConsumerState<GuardianNotices> {
   bool _marked = false;
 
+  /// What this screen has already shown. Marking them read empties the next
+  /// fetch, and the dashboard re-reads every fifteen seconds - so without
+  /// this the line would vanish while the guardian was reading it.
+  List<GuardianNotice> _shown = const [];
+
   @override
   Widget build(BuildContext context) {
-    final notices = ref.watch(guardianNoticesProvider).value ?? const [];
+    final fetched = ref.watch(guardianNoticesProvider).value ?? const [];
+    if (fetched.isNotEmpty) _shown = fetched;
+    final notices = _shown;
     if (notices.isEmpty) return const SizedBox.shrink();
 
     if (!_marked) {
@@ -1065,8 +1073,15 @@ class _LeaveState extends ConsumerState<_Leave> {
     // Said only when it is true, and read before the dialog opens so the
     // sentence about the refund cannot appear for somebody with nothing to
     // refund.
-    final careOn =
-        ref.read(careStateProvider).value?.stage == CareStage.active;
+    //
+    // Every stage the server refunds on leaving: a running month, a
+    // cancelled one with days left, and one still waiting on the parent.
+    final careOn = switch (ref.read(careStateProvider).value?.stage) {
+      CareStage.active ||
+      CareStage.cancelling ||
+      CareStage.waitingOnSenior => true,
+      _ => false,
+    };
     final go = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(

@@ -63,12 +63,17 @@ class Subscription {
   ///
   /// A cancelled row is **not** an inactive one until its month is up, which
   /// is the server's rule too - `care_is_active` accepts it while
-  /// `current_period_end` is in the future. A null end is read as still
-  /// running: the guardian paid for a month and nothing here knows when it
-  /// ends, so stopping early would take away what they bought.
+  /// `current_period_end` is in the future.
+  ///
+  /// **A null end is not running**, because the server says so: `null >
+  /// now()` is not true, so `care_is_active` stopped the readings the moment
+  /// such a row was cancelled. Reading it as running forever left the tab
+  /// promising 남은 기간까지는 지금처럼 쓰실 수 있어요 about days that had
+  /// already ended.
   bool stillRunningAt(DateTime now) =>
       status == SubscriptionStatus.canceled &&
-      (currentPeriodEnd == null || currentPeriodEnd!.isAfter(now));
+      currentPeriodEnd != null &&
+      currentPeriodEnd!.isAfter(now);
 
   static Subscription? fromRow(Map<String, Object?> row) {
     final id = row['id'];
