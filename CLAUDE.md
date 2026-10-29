@@ -3103,7 +3103,7 @@ inside the app.
 
 ### What proves it
 
-`tool/verify_supabase_leaving.py`, 48 checks against the live project, and it
+`tool/verify_supabase_leaving.py`, 51 checks against the live project, and it
 is **the only thing that can**: the in-memory twins have no RLS, so a removed
 guardian reads everything there and every widget test passes. What it walks is
 the five things a removed guardian must no longer reach - the profile, the
@@ -3283,8 +3283,9 @@ server**, or two copies of one rule disagreed.
 - The twin's one-to-one lock ignored pending links.
 
 The two server fixes are `20261029090000_leaving_refunds.sql`, with three
-new checks in `verify_supabase_leaving.py`. **Not yet applied to the live
-project as of this commit** - the apply step needs the owner's approval.
+new checks in `verify_supabase_leaving.py`. Applied to the live project on
+the owner's approval; `verify_supabase_leaving.py` (51) and
+`verify_supabase_care_cancel.py` (28) both pass against it.
 
 Dependabot (`.github/dependabot.yml`) was added in the same pass, monthly
 and for pub and Actions only. CodeQL was not: it cannot read Dart.
