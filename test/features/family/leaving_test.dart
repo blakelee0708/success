@@ -453,58 +453,26 @@ void main() {
   // ===========================================================
   // 부모님이 폰을 바꾸셨을 때
   // ===========================================================
-  testWidgets('a second code asks whether the parent changed phone', (
+  testWidgets('the new phone\'s number moves the parent, in one step', (
     tester,
   ) async {
     // The parent does what they always do and presses 번호 보여주기 on the
-    // new handset, which makes a second, empty profile. The child is who
-    // knows a phone was replaced, so the question is asked here - **before**
-    // the code is spent, because claiming it uses it up.
+    // new handset, which makes a second, empty profile. With a parent
+    // already here the card asks for nothing else - 무조건 자녀 하나, 부모
+    // 하나, so the number can only be that parent's new phone.
     final h = await _family();
     await _pumpGuardianHome(tester, h);
 
     final newPhone = await h.pairing.startSeniorPairing(
       installId: 'new-senior-phone',
     );
-
-    await tester.ensureVisible(find.text('불러주신 번호 넣기'));
-    await tester.tap(find.text('불러주신 번호 넣기'));
-    await tester.pumpAndSettle();
+    expect(find.text('부모님이 폰을 바꾸셨나요?'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(GuardianFamilyKeys.codeField));
     await tester.enterText(
       find.byKey(GuardianFamilyKeys.codeField),
       newPhone.code,
     );
-    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '엄마');
     await tester.tap(find.byKey(GuardianFamilyKeys.enterCode));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(GuardianFamilyKeys.samePhoneAsk), findsOneWidget);
-    expect(find.text('어머니님 폰을 바꿨어요'), findsOneWidget);
-    // **One question, because 1대1 leaves one answer.** 다른 분이에요 sat
-    // here for a guardian taking on a second parent, and the server refuses
-    // that now - so the button could only ever have produced a refusal.
-    expect(find.text('다른 분이에요'), findsNothing);
-    expect(find.text('아니요'), findsOneWidget);
-  });
-
-  testWidgets('answering 폰을 바꿨어요 keeps one parent, not two', (tester) async {
-    final h = await _family();
-    await _pumpGuardianHome(tester, h);
-
-    final newPhone = await h.pairing.startSeniorPairing(
-      installId: 'new-senior-phone',
-    );
-    await tester.ensureVisible(find.text('불러주신 번호 넣기'));
-    await tester.tap(find.text('불러주신 번호 넣기'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(GuardianFamilyKeys.codeField),
-      newPhone.code,
-    );
-    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '엄마');
-    await tester.tap(find.byKey(GuardianFamilyKeys.enterCode));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('어머니님 폰을 바꿨어요'));
     await tester.pumpAndSettle();
 
     expect(h.store.linkedProfileIds, [h.profileId]);
@@ -513,34 +481,6 @@ void main() {
       h.store.activeDeviceByProfile[h.profileId]?.installId,
       'new-senior-phone',
     );
-  });
-
-  testWidgets('answering 아니요 says the limit rather than failing', (
-    tester,
-  ) async {
-    // It used to make a second parent. The app is 1대1 now, so the one thing
-    // a guardian pressing 아니요 needs to be told is why there is no second
-    // door - said here rather than after a refusal they would otherwise
-    // walk into.
-    final h = await _family();
-    await _pumpGuardianHome(tester, h);
-
-    final other = await h.pairing.startSeniorPairing(installId: 'father-phone');
-    await tester.ensureVisible(find.text('불러주신 번호 넣기'));
-    await tester.tap(find.text('불러주신 번호 넣기'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(GuardianFamilyKeys.codeField),
-      other.code,
-    );
-    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
-    await tester.tap(find.byKey(GuardianFamilyKeys.enterCode));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('아니요'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('지금은 부모님 한 분만 연결할 수 있어요.'), findsOneWidget);
-    expect(h.store.linkedProfileIds, [h.profileId]);
   });
 
   // ===========================================================

@@ -14,11 +14,6 @@ abstract interface class SubscriptionRepository {
   /// Everything this guardian has bought.
   Future<List<Subscription>> forGuardian();
 
-  /// Whether this guardian may take on another parent.
-  Future<bool> hasFamilyPlan();
-
-  Future<Subscription> startFamilyPlan();
-
   /// Step 1 of the paid flow. Comes back
   /// [SubscriptionStatus.pendingSeniorConsent] — paying does not switch
   /// anything on.
@@ -58,14 +53,6 @@ class SupabaseSubscriptionRepository implements SubscriptionRepository {
       throw SeniorLinkException(e.message);
     }
   }
-
-  @override
-  Future<bool> hasFamilyPlan() async =>
-      await _client.rpc('has_family_plan') == true;
-
-  @override
-  Future<Subscription> startFamilyPlan() async =>
-      _subscription(await _rpc('start_family_plan', const {}));
 
   @override
   Future<Subscription> startCare(String seniorProfileId) async => _subscription(
@@ -197,23 +184,6 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
   @override
   Future<List<Subscription>> forGuardian() async =>
       List.unmodifiable(subscriptions);
-
-  @override
-  Future<bool> hasFamilyPlan() async => subscriptions.any(
-    (s) =>
-        s.plan == SubscriptionPlan.family &&
-        s.status == SubscriptionStatus.active,
-  );
-
-  @override
-  Future<Subscription> startFamilyPlan() async {
-    if (await hasFamilyPlan()) {
-      throw const SeniorLinkException('이미 신청되어 있어요.');
-    }
-    // No senior consent: this plan changes how many parents the guardian may
-    // manage, and each of those parents still pairs with them separately.
-    return _add(SubscriptionPlan.family, SubscriptionStatus.active, null);
-  }
 
   @override
   Future<Subscription> startCare(String seniorProfileId) async {

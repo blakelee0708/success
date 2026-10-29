@@ -445,9 +445,6 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// `guardians_for_senior` returns. Optional there and optional here.
   final Map<String, String> guardianPhones = {};
 
-  /// Who [resolvePrimaryGuardian] is waiting on, per profile.
-  final Map<String, String> pendingPrimaryByProfile = {};
-
   /// The install this fake treats as the senior's own phone, so the twin can
   /// enforce "only the senior device may answer" the way the database does.
   String? seniorInstallId;
@@ -464,8 +461,7 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// Links waiting on the senior's own answer: profile id -> link id.
   ///
   /// **The twin attaches a guardian straight away and the server does not.**
-  /// `claim_senior_pairing_code`, `redeem_family_invite` and
-  /// `create_senior_profile` all write `status = 'pending'` now, and the
+  /// `claim_senior_pairing_code` and `create_senior_profile` both write `status = 'pending'` now, and the
   /// parent answers on their own phone before anything is shared. Mirroring
   /// that here by default would mean rewriting the harness of every test that
   /// connects a family, so it is behind [pendingLinkConsent] and the server
@@ -478,24 +474,12 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
   /// Whether the pairing twin leaves new links waiting, as the server does.
   bool pendingLinkConsent = false;
 
-  /// Whether this twin holds the 1대1 lock, which the server does.
-  ///
-  /// **Default true, unlike [pendingLinkConsent].** That one is off by
-  /// default because mirroring it would have meant rewriting the harness of
-  /// every test that connects a family; this one is the product as it
-  /// actually behaves, and a twin that quietly allows what the server
-  /// refuses is how a screen gets built against a rule that is not there.
-  ///
-  /// Switched off by the few tests that are *about* a second guardian or a
-  /// second parent - the code behind those is untouched and has to keep
-  /// working for the day the lock lifts.
-  bool oneToOne = true;
-
   /// Refuses a second parent. `exceptProfileId` is the reconnect case: a
   /// guardian re-entering a code for the parent they already have is not
   /// taking on another one.
+  ///
+  /// Always on, because the product is 1대1 - 무조건 자녀 하나, 부모 하나.
   void assertCanAddSenior({String? exceptProfileId}) {
-    if (!oneToOne) return;
     // Waiting links count, as `assert_can_add_senior` counts 'pending':
     // without them a second invite passed here and the server refused it.
     final mine = {
@@ -513,7 +497,6 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
 
   /// Refuses a second child on one parent.
   void assertCanAddGuardian(String profileId, String guardianId) {
-    if (!oneToOne) return;
     final others = {
       ...(rolesByProfile[profileId] ?? const {}).keys,
       ?pendingAskedBy[profileId],
@@ -735,16 +718,7 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     if (profile == null) {
       throw const SeniorLinkException('부모님 정보를 찾지 못했어요.');
     }
-    return SeniorProfile(
-      id: profile.id,
-      displayName: profile.displayName,
-      customerCode: profile.customerCode,
-      ageBand: profile.ageBand,
-      screenMode: profile.screenMode,
-      fontSize: profile.fontSize,
-      paidConsentStatus: profile.paidConsentStatus,
-      pendingPrimaryGuardianId: pendingPrimaryByProfile[seniorProfileId],
-    );
+    return profile;
   }
 
   @override
@@ -795,9 +769,8 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
     final profile = profiles[seniorProfileId];
     if (profile == null) return;
     // `copyWith`, not a rebuild by hand. Listing the fields dropped
-    // `pendingPrimaryGuardianId` and `guardianHomeEdits`, so a settings push
-    // in a test silently cancelled a pending handover and refunded the
-    // guardian's spent edits.
+    // `guardianHomeEdits`, so a settings push in a test silently refunded
+    // the guardian's spent edits.
     profiles[seniorProfileId] = profile.copyWith(
       screenMode: screenMode ?? profile.screenMode,
       fontSize: fontSize ?? profile.fontSize,

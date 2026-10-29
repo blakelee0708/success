@@ -6,9 +6,8 @@ import '../../domain/pending_guardian_link.dart';
 import '../../domain/senior_profile.dart';
 import 'senior_link_repository.dart';
 
-/// Everything Phase 5 adds: the two ways a family gets connected, getting a
-/// replaced phone back onto its profile, inviting a sibling, and moving who
-/// the primary guardian is.
+/// The two ways a parent and their one child get connected, getting a
+/// replaced phone back onto its profile, and leaving.
 ///
 /// Every call is a database function. Redeeming a code is the case where the
 /// caller cannot yet be allowed to read the row they are about to use, so none
@@ -64,11 +63,7 @@ abstract interface class PairingRepository {
     String? osVersion,
   });
 
-  // --- Family guardians -----------------------------------------------------
-
-  Future<PairLink> createFamilyInvite(String seniorProfileId);
-
-  Future<SeniorProfile> redeemFamilyInvite(String code);
+  // --- Guardians -------------------------------------------------------------
 
   /// Everyone looking after this parent. Includes the caller.
   Future<List<GuardianLink>> guardiansFor(String seniorProfileId);
@@ -138,15 +133,6 @@ abstract interface class PairingRepository {
 
   /// Marks them read so the line is said once rather than every open.
   Future<void> markNoticesRead(List<String> ids);
-
-  // --- Primary guardian -----------------------------------------------------
-
-  /// Asks to take over as primary. Nothing changes until the senior's phone
-  /// answers.
-  Future<void> requestPrimaryGuardian(String seniorProfileId);
-
-  /// Answered on the senior's phone, and nowhere else.
-  Future<void> resolvePrimaryGuardian(String seniorProfileId, bool approve);
 }
 
 class SupabasePairingRepository implements PairingRepository {
@@ -232,17 +218,6 @@ class SupabasePairingRepository implements PairingRepository {
       'p_os_version': osVersion,
     }),
   );
-
-  @override
-  Future<PairLink> createFamilyInvite(String seniorProfileId) async => _link(
-    await _rpc('create_family_invite', {
-      'p_senior_profile_id': seniorProfileId,
-    }),
-  );
-
-  @override
-  Future<SeniorProfile> redeemFamilyInvite(String code) async =>
-      _profile(await _rpc('redeem_family_invite', {'p_code': code.trim()}));
 
   @override
   Future<List<GuardianLink>> guardiansFor(String seniorProfileId) async {
@@ -373,9 +348,7 @@ class SupabasePairingRepository implements PairingRepository {
           .isFilter('read_at', null)
           .order('created_at', ascending: false)
           .limit(20);
-      return [
-        for (final row in rows) ?GuardianNotice.fromRow(row),
-      ];
+      return [for (final row in rows) ?GuardianNotice.fromRow(row)];
     } on Object {
       // A dashboard with no signal draws itself. There is nothing here a
       // guardian has to be stopped for.
@@ -395,19 +368,6 @@ class SupabasePairingRepository implements PairingRepository {
       // Said twice is better than a screen that will not open.
     }
   }
-
-  @override
-  Future<void> requestPrimaryGuardian(String seniorProfileId) => _rpc(
-    'request_primary_guardian',
-    {'p_senior_profile_id': seniorProfileId},
-  );
-
-  @override
-  Future<void> resolvePrimaryGuardian(String seniorProfileId, bool approve) =>
-      _rpc('resolve_primary_guardian', {
-        'p_senior_profile_id': seniorProfileId,
-        'p_approve': approve,
-      });
 
   Future<Map<String, Object?>> _rpc(
     String name,
@@ -620,27 +580,6 @@ class InMemoryPairingRepository implements PairingRepository {
   }
 
   @override
-  Future<PairLink> createFamilyInvite(String seniorProfileId) async {
-    _requireManages(seniorProfileId);
-    return _issue(
-      mode: PairMode.guardianInviteFamily,
-      digits: 6,
-      profileId: seniorProfileId,
-      lifetime: const Duration(days: 7),
-    );
-  }
-
-  @override
-  Future<SeniorProfile> redeemFamilyInvite(String code) async {
-    final link = _claim(code, PairMode.guardianInviteFamily);
-    store.assertCanAddSenior(exceptProfileId: link.seniorProfileId);
-    store.assertCanAddGuardian(link.seniorProfileId!, actingGuardianId);
-    // Never 'primary': joining by invitation does not take over the account.
-    store.link(link.seniorProfileId!, actingGuardianId, 'family');
-    return store.profiles[link.seniorProfileId]!;
-  }
-
-  @override
   Future<List<GuardianLink>> guardiansFor(String seniorProfileId) async => [
     for (final entry in (store.rolesByProfile[seniorProfileId] ?? {}).entries)
       GuardianLink(
@@ -795,37 +734,6 @@ class InMemoryPairingRepository implements PairingRepository {
         readAt: now(),
       );
     }
-  }
-
-  @override
-  Future<void> requestPrimaryGuardian(String seniorProfileId) async {
-    _requireManages(seniorProfileId);
-    if (store.rolesByProfile[seniorProfileId]?[actingGuardianId] == 'primary') {
-      throw const SeniorLinkException('이미 대표 보호자예요.');
-    }
-    store.pendingPrimaryByProfile[seniorProfileId] = actingGuardianId;
-  }
-
-  @override
-  Future<void> resolvePrimaryGuardian(
-    String seniorProfileId,
-    bool approve,
-  ) async {
-    // Only the phone in the senior's hand. A guardian approving their own
-    // request would make the approval ceremonial.
-    if (store.activeDeviceByProfile[seniorProfileId]?.installId !=
-        store.seniorInstallId) {
-      throw const SeniorLinkException('부모님 폰에서만 답할 수 있어요.');
-    }
-    final pending = store.pendingPrimaryByProfile.remove(seniorProfileId);
-    if (pending == null) throw const SeniorLinkException('답할 요청이 없어요.');
-    if (!approve) return;
-
-    final roles = store.rolesByProfile[seniorProfileId] ??= {};
-    for (final id in roles.keys.toList()) {
-      if (roles[id] == 'primary') roles[id] = 'family';
-    }
-    roles[pending] = 'primary';
   }
 
   void _requireManages(String seniorProfileId) {

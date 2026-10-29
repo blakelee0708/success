@@ -24,7 +24,6 @@ class SeniorProfile {
     this.screenMode,
     this.fontSize,
     this.paidConsentStatus = PaidConsentStatus.none,
-    this.pendingPrimaryGuardianId,
     this.guardianHomeEdits = 0,
     this.removedSlots = const {},
   });
@@ -46,11 +45,6 @@ class SeniorProfile {
   final FontSize? fontSize;
 
   final PaidConsentStatus paidConsentStatus;
-
-  /// A guardian waiting for the senior to agree that they should be the one
-  /// answering for them. Null when nothing is outstanding — only one request
-  /// can be open at a time, so asking is never two questions at once.
-  final String? pendingPrimaryGuardianId;
 
   /// How many times a guardian has saved this parent's home screen from
   /// their own phone.
@@ -85,10 +79,8 @@ class SeniorProfile {
   );
 
   /// Added because the in-memory twin rebuilt this by hand in two places and
-  /// **both dropped `pendingPrimaryGuardianId`** - a field that decides
-  /// whether the senior's home screen raises the handover card. Every new
-  /// field would have been dropped the same way, silently, in a double that
-  /// exists to make tests trustworthy.
+  /// both dropped fields. Every new field would have been dropped the same
+  /// way, silently, in a double that exists to make tests trustworthy.
   SeniorProfile copyWith({
     String? displayName,
     ScreenMode? screenMode,
@@ -104,7 +96,6 @@ class SeniorProfile {
     screenMode: screenMode ?? this.screenMode,
     fontSize: fontSize ?? this.fontSize,
     paidConsentStatus: paidConsentStatus ?? this.paidConsentStatus,
-    pendingPrimaryGuardianId: pendingPrimaryGuardianId,
     guardianHomeEdits: guardianHomeEdits ?? this.guardianHomeEdits,
     removedSlots: removedSlots ?? this.removedSlots,
   );
@@ -126,7 +117,6 @@ class SeniorProfile {
       paidConsentStatus:
           _byName(PaidConsentStatus.values, row['paid_consent_status']) ??
           PaidConsentStatus.none,
-      pendingPrimaryGuardianId: row['pending_primary_guardian_id'] as String?,
       guardianHomeEdits: switch (row['guardian_home_edits']) {
         final int n => n,
         final num n => n.toInt(),
@@ -153,7 +143,6 @@ class SeniorProfile {
       other.screenMode == screenMode &&
       other.fontSize == fontSize &&
       other.paidConsentStatus == paidConsentStatus &&
-      other.pendingPrimaryGuardianId == pendingPrimaryGuardianId &&
       other.guardianHomeEdits == guardianHomeEdits &&
       // Part of equality, and it has to be: `selectedSeniorProfileProvider`
       // is a plain Provider, so a new profile that compares equal to the old
@@ -172,7 +161,6 @@ class SeniorProfile {
     screenMode,
     fontSize,
     paidConsentStatus,
-    pendingPrimaryGuardianId,
     guardianHomeEdits,
     Object.hashAllUnordered(removedSlots),
   );

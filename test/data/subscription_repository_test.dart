@@ -191,34 +191,6 @@ void main() {
     });
   });
 
-  group('the family plan', () {
-    test('is absent until bought', () async {
-      final h = await _family();
-
-      expect(await h.subs.hasFamilyPlan(), isFalse);
-    });
-
-    test('needs no senior consent, being about the guardian', () async {
-      final h = await _family();
-
-      final plan = await h.subs.startFamilyPlan();
-
-      expect(plan.status, SubscriptionStatus.active);
-      expect(plan.seniorProfileId, isNull);
-      expect(await h.subs.hasFamilyPlan(), isTrue);
-    });
-
-    test('buying it twice is refused', () async {
-      final h = await _family();
-      await h.subs.startFamilyPlan();
-
-      await expectLater(
-        h.subs.startFamilyPlan(),
-        throwsA(isA<SeniorLinkException>()),
-      );
-    });
-  });
-
   group('the interfaces are declared, not faked', () {
     test('the unbuilt background sync does nothing rather than pretending', () {
       // The readings themselves are real now — they ride on the check-in. What

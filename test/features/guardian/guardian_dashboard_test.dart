@@ -124,12 +124,9 @@ void main() {
   ) async {
     await _gotoDashboard(tester);
 
-    // Recovery, the family invite and the guardian list all belong to a
-    // specific parent. The cases that need one live in
-    // guardian_family_tab_test.dart.
+    // Recovery belongs to a specific parent. The cases that need one live
+    // in guardian_family_tab_test.dart.
     expect(find.byKey(GuardianFamilyKeys.recovery), findsNothing);
-    expect(find.byKey(GuardianFamilyKeys.familyInvite), findsNothing);
-    expect(find.byKey(GuardianFamilyKeys.guardians), findsNothing);
   });
 
   testWidgets('the home tab does not offer editing a parent who is not there', (

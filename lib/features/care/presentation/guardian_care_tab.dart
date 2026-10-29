@@ -21,7 +21,6 @@ class GuardianCareKeys {
   static const waiting = Key('care-waiting');
   static const refused = Key('care-refused');
   static const active = Key('care-active');
-  static const familyPlan = Key('care-family-plan');
   static const message = Key('care-message');
   static const alerts = Key('care-alerts');
   static const cancel = Key('care-cancel');
@@ -72,19 +71,9 @@ class GuardianCareTab extends ConsumerWidget {
             child: _CareState(seniorName: profile.displayName, care: care),
           ),
         const _Card(child: _Features()),
-        // **가족 플랜 was here and the app is 1대1 now.** It sold 부모님을
-        // 두 분 이상 - the owner locked that on 2026-10-29, and
-        // `assert_can_add_senior` no longer lets the plan raise the limit,
-        // so the card would be selling something that cannot be used.
-        //
-        // Nothing on the server is deleted: the plan, its rows and
-        // `has_family_plan()` are all still there, and there is no Play
-        // Billing yet either way, so no money was ever going to move. The
-        // widget stays below for the same reason the card does not.
         if (profile != null) _Card(child: _Alerts(seniorProfileId: profile.id)),
         // **연결 관리 was here and moved to 홈.** Nothing in it was about
-        // 안심 케어 - leaving a parent, inviting a sibling, reconnecting a
-        // phone, a name, a number, signing out - and a guardian who has not
+        // 안심 케어 - leaving a parent, reconnecting a phone, a name, a number, signing out - and a guardian who has not
         // bought the tier has no reason to open this tab, which left them
         // with no route to any of it.
         //
@@ -396,79 +385,6 @@ class _Feature extends StatelessWidget {
             ],
           ),
         ),
-      ],
-    );
-  }
-}
-
-/// 가족 플랜, which nothing draws while the app is 1대1.
-///
-/// Kept rather than deleted: the lock is two numbers in
-/// `20261029080000_one_to_one.sql`, and putting the plan back has to be one
-/// line on the tab above plus one condition in `assert_can_add_senior`.
-class _FamilyPlan extends ConsumerStatefulWidget {
-  @override
-  ConsumerState<_FamilyPlan> createState() => _FamilyPlanState();
-}
-
-class _FamilyPlanState extends ConsumerState<_FamilyPlan> {
-  bool _busy = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final has = ref.watch(hasFamilyPlanProvider).value ?? false;
-
-    return Column(
-      key: GuardianCareKeys.familyPlan,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '가족 플랜',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.4,
-            color: AppColors.guardianInk,
-          ),
-        ),
-        const SizedBox(height: 6),
-        // Two different things that both say 가족: inviting a sibling to help
-        // with one parent is free, and this is about looking after more than
-        // one parent yourself.
-        const Text(
-          '부모님을 두 분 이상 돌보실 때 필요합니다. '
-          '형제자매를 초대하는 것은 이 플랜과 무관하게 무료예요.',
-          style: TextStyle(fontSize: 14, height: 1.5),
-        ),
-        const SizedBox(height: 12),
-        if (has)
-          const Text(
-            '가족 플랜을 쓰고 계세요.',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.guardianInk,
-            ),
-          )
-        else
-          GuardianPrimaryButton(
-            onPressed: _busy
-                ? null
-                : () async {
-                    setState(() => _busy = true);
-                    try {
-                      await ref
-                          .read(careControllerProvider.notifier)
-                          .buyFamilyPlan();
-                    } on Object {
-                      // The button stays; nothing changed.
-                    } finally {
-                      if (mounted) setState(() => _busy = false);
-                    }
-                  },
-            icon: Icons.people_rounded,
-            label: _busy ? '신청하는 중이에요' : '가족 플랜 신청하기',
-          ),
       ],
     );
   }

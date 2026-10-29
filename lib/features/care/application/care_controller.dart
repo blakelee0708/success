@@ -76,10 +76,6 @@ final careStateProvider = FutureProvider<CareState>((ref) async {
   return CareState(stage: CareStage.waitingOnSenior, subscription: care);
 });
 
-final hasFamilyPlanProvider = FutureProvider<bool>(
-  (ref) => ref.watch(subscriptionRepositoryProvider).hasFamilyPlan(),
-);
-
 final careAlertsProvider = FutureProvider<List<CareAlert>>((ref) async {
   final profile = ref.watch(selectedSeniorProfileProvider);
   if (profile == null) return const [];
@@ -110,11 +106,6 @@ class CareController extends Notifier<void> {
     // The readings are what the subscription buys, so the dashboard has to
     // be asked again - on a null `current_period_end` they stop today.
     ref.invalidate(seniorReadingsProvider);
-  }
-
-  Future<void> buyFamilyPlan() async {
-    await ref.read(subscriptionRepositoryProvider).startFamilyPlan();
-    ref.invalidate(hasFamilyPlanProvider);
   }
 }
 

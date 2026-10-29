@@ -14,7 +14,6 @@ import 'package:app/data/senior_link_store.dart';
 import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/guardian_account.dart';
 import 'package:app/domain/launcher_app.dart';
-import 'package:app/domain/senior_profile.dart';
 import 'package:app/domain/senior_settings.dart';
 import 'package:app/features/care/data/care_capabilities.dart';
 import 'package:app/features/care/presentation/care_consent_prompt.dart';
@@ -357,40 +356,13 @@ void main() {
     expect(find.textContaining('보이스피싱'), findsNothing);
   });
 
-  testWidgets('the family plan is not offered while the app is 1대1', (
-    tester,
-  ) async {
-    // **It sold 부모님을 두 분 이상**, and the owner locked that on
-    // 2026-10-29. `assert_can_add_senior` no longer lets the plan raise the
-    // limit, so a card selling it would be selling something that cannot be
-    // used - the same call as every other button this app takes off a screen
-    // rather than leaves there failing.
-    //
-    // Nothing is deleted. The plan, its rows and `has_family_plan()` are all
-    // still on the server, the widget is still in the file, and there is no
-    // Play Billing either way. When the lock lifts this flips back.
+  testWidgets('nothing on the tab sells a second parent', (tester) async {
+    // 무조건 자녀 하나, 부모 하나. 가족 플랜 sold 부모님을 두 분 이상 and is
+    // gone from the app.
     final h = await _family();
     await _pumpCareTab(tester, h);
 
-    expect(find.byKey(GuardianCareKeys.familyPlan), findsNothing);
     expect(find.text('가족 플랜 신청하기'), findsNothing);
     expect(find.textContaining('두 분 이상'), findsNothing);
-    expect(await h.subs.hasFamilyPlan(), isFalse);
-  });
-
-  testWidgets('buying it still needs no senior involvement, where it can be '
-      'bought at all', (tester) async {
-    // Through the repository rather than a button, because there is no
-    // button any more. What is checked is the rule that outlives the lock:
-    // the plan is about the guardian's account, so the parent is never asked
-    // about it - unlike 안심 케어, which they must agree to.
-    final h = await _family();
-    await h.subs.startFamilyPlan();
-
-    expect(await h.subs.hasFamilyPlan(), isTrue);
-    expect(
-      h.store.profiles[h.profileId]!.paidConsentStatus,
-      isNot(PaidConsentStatus.pending),
-    );
   });
 }

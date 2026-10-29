@@ -30,7 +30,6 @@ import 'package:app/features/family/presentation/family_link_screen.dart';
 import 'package:app/features/messages/presentation/conversation_view.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/care/presentation/care_consent_prompt.dart';
-import 'package:app/features/family/presentation/primary_guardian_prompt.dart';
 import 'package:app/features/launcher/presentation/app_settings_screen.dart';
 import 'package:app/features/launcher/presentation/senior_settings_screen.dart';
 import 'package:app/features/launcher/presentation/widgets/home_strip.dart';
@@ -588,15 +587,9 @@ void main() {
     await _capture(tester, '17-detailed-home');
   });
 
-  testWidgets('the two cards that sit on the senior\'s home', (tester) async {
-    // 안심 케어 동의 and the primary-guardian handover. Both are answered on
-    // the parent's own phone and both appear above the tiles, and neither
-    // had a picture — which is how they stayed on the pre-2026-10-20 look.
+  testWidgets('the card that sits on the senior\'s home', (tester) async {
+    // 안심 케어 동의, answered on the parent's own phone over the tiles.
     final store = InMemorySeniorLinkRepository();
-    // The handover card needs a second guardian to hand to, and the twin
-    // holds the 1대1 lock by default the way the server does. The card is
-    // still drawn by `SeniorNoticeLayer` and still has to look right.
-    store.oneToOne = false;
     final pairing = InMemoryPairingRepository(store);
     final subs = InMemorySubscriptionRepository(store);
     await store.ensureGuardianAccount(displayName: '김보호');
@@ -646,17 +639,6 @@ void main() {
     expect(find.byKey(CareConsentPrompt.promptKey), findsOneWidget);
     await _capture(tester, '24-care-consent-card');
 
-    await subs.resolveCareConsent(profile.id, true);
-    // A sibling asks to take over, which is the only way this card appears —
-    // the guardian who claimed the code is already the primary one.
-    final invite = await pairing.createFamilyInvite(profile.id);
-    pairing.actingGuardianId = 'sibling';
-    await pairing.redeemFamilyInvite(invite.code);
-    await pairing.requestPrimaryGuardian(profile.id);
-    pairing.actingGuardianId = 'account-1';
-    await pumpSeniorHome();
-    expect(find.byKey(PrimaryGuardianPrompt.promptKey), findsOneWidget);
-    await _capture(tester, '25-primary-guardian-card');
   });
 
   testWidgets('the senior screens that are still on the old design', (

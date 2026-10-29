@@ -7,12 +7,6 @@ import 'package:app/domain/pair_link.dart';
 ({InMemorySeniorLinkRepository store, InMemoryPairingRepository pairing})
 _fresh({DateTime Function()? now}) {
   final store = InMemorySeniorLinkRepository();
-    // **Off, because this is one of the few places that is *about* a second
-    // guardian.** The twin holds the 1대1 lock by default, the way the
-    // server does since `20261029080000_one_to_one.sql` - and the code
-    // exercised here is untouched by that lock and has to keep working for
-    // the day it lifts.
-  store.oneToOne = false;
   return (
     store: store,
     pairing: InMemoryPairingRepository(store, now: now ?? DateTime.now),
@@ -266,115 +260,5 @@ void main() {
         );
       },
     );
-  });
-
-  group('family guardians', () {
-    test('an invited sibling joins as family, never primary', () async {
-      final h = _fresh();
-      final started = await h.pairing.startSeniorPairing(
-        installId: 'install-1',
-      );
-      final profile = await h.pairing.claimSeniorPairingCode(
-        code: started.code,
-        displayName: '어머니',
-      );
-
-      final invite = await h.pairing.createFamilyInvite(profile.id);
-      h.pairing.actingGuardianId = 'sibling';
-      await h.pairing.redeemFamilyInvite(invite.code);
-
-      final guardians = await h.pairing.guardiansFor(profile.id);
-      expect(guardians, hasLength(2));
-      expect(guardians.where((g) => g.isPrimary), hasLength(1));
-      expect(
-        guardians.firstWhere((g) => g.guardianAccountId == 'sibling').role,
-        'family',
-      );
-    });
-  });
-
-  group('changing the primary guardian', () {
-    /// One parent, a primary guardian and a sibling who joined by invitation.
-    Future<
-      ({
-        InMemorySeniorLinkRepository store,
-        InMemoryPairingRepository pairing,
-        String profileId,
-      })
-    >
-    family() async {
-      final h = _fresh();
-      final started = await h.pairing.startSeniorPairing(
-        installId: 'senior-phone',
-      );
-      final profile = await h.pairing.claimSeniorPairingCode(
-        code: started.code,
-        displayName: '어머니',
-      );
-      final invite = await h.pairing.createFamilyInvite(profile.id);
-      h.pairing.actingGuardianId = 'sibling';
-      await h.pairing.redeemFamilyInvite(invite.code);
-      return (store: h.store, pairing: h.pairing, profileId: profile.id);
-    }
-
-    test('a request alone changes nothing', () async {
-      final h = await family();
-
-      await h.pairing.requestPrimaryGuardian(h.profileId);
-
-      final guardians = await h.pairing.guardiansFor(h.profileId);
-      expect(
-        guardians.firstWhere((g) => g.isPrimary).guardianAccountId,
-        'account-1',
-      );
-    });
-
-    test('the senior device approves it, and the roles swap', () async {
-      final h = await family();
-      await h.pairing.requestPrimaryGuardian(h.profileId);
-
-      await h.pairing.resolvePrimaryGuardian(h.profileId, true);
-
-      final guardians = await h.pairing.guardiansFor(h.profileId);
-      expect(guardians.where((g) => g.isPrimary), hasLength(1));
-      expect(
-        guardians.firstWhere((g) => g.isPrimary).guardianAccountId,
-        'sibling',
-      );
-    });
-
-    test('the senior can refuse, and nothing moves', () async {
-      final h = await family();
-      await h.pairing.requestPrimaryGuardian(h.profileId);
-
-      await h.pairing.resolvePrimaryGuardian(h.profileId, false);
-
-      final guardians = await h.pairing.guardiansFor(h.profileId);
-      expect(
-        guardians.firstWhere((g) => g.isPrimary).guardianAccountId,
-        'account-1',
-      );
-    });
-
-    test('answering twice is refused', () async {
-      final h = await family();
-      await h.pairing.requestPrimaryGuardian(h.profileId);
-      await h.pairing.resolvePrimaryGuardian(h.profileId, true);
-
-      await expectLater(
-        h.pairing.resolvePrimaryGuardian(h.profileId, true),
-        throwsA(isA<SeniorLinkException>()),
-      );
-    });
-
-    test('the guardian who is already primary cannot ask', () async {
-      final h = await family();
-      h.pairing.actingGuardianId = 'account-1';
-
-      await expectLater(
-        h.pairing.requestPrimaryGuardian(h.profileId),
-        throwsA(isA<SeniorLinkException>()),
-      );
-    });
   });
 }

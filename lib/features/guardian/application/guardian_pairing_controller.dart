@@ -88,15 +88,6 @@ final waitingInviteProvider = FutureProvider<PairLink?>((ref) async {
   return ref.watch(pairingRepositoryProvider).openSeniorInvite(profileId);
 });
 
-/// Everyone looking after the selected parent.
-final guardiansForSelectedProvider = FutureProvider<List<GuardianLink>>((
-  ref,
-) async {
-  final profile = ref.watch(selectedSeniorProfileProvider);
-  if (profile == null) return const [];
-  return ref.watch(pairingRepositoryProvider).guardiansFor(profile.id);
-});
-
 /// The guardian half of Phase 5: issuing codes and typing the one their parent
 /// read out.
 class GuardianPairingController extends Notifier<void> {
@@ -163,14 +154,6 @@ class GuardianPairingController extends Notifier<void> {
   Future<PairLink> createRecoveryCode(String seniorProfileId) =>
       ref.read(pairingRepositoryProvider).createRecoveryCode(seniorProfileId);
 
-  Future<PairLink> createFamilyInvite(String seniorProfileId) =>
-      ref.read(pairingRepositoryProvider).createFamilyInvite(seniorProfileId);
-
-  Future<void> redeemFamilyInvite(String code) async {
-    await ref.read(pairingRepositoryProvider).redeemFamilyInvite(code);
-    _connected();
-  }
-
   /// Both halves of 연결됨, because a new link is 'pending' now.
   ///
   /// `linkedSeniorProfilesProvider` is active-only, so on its own it comes
@@ -195,7 +178,6 @@ class GuardianPairingController extends Notifier<void> {
   /// 해지하기 - that one keeps the days already paid for.
   Future<void> leaveSenior(String seniorProfileId) async {
     await ref.read(pairingRepositoryProvider).leaveSenior(seniorProfileId);
-    ref.invalidate(guardiansForSelectedProvider);
     _connected();
   }
 
@@ -214,13 +196,6 @@ class GuardianPairingController extends Notifier<void> {
         .moveSeniorToNewPhone(code: code, seniorProfileId: seniorProfileId);
     ref.invalidate(selectedSeniorDeviceProvider);
     _connected();
-  }
-
-  Future<void> requestPrimary(String seniorProfileId) async {
-    await ref
-        .read(pairingRepositoryProvider)
-        .requestPrimaryGuardian(seniorProfileId);
-    ref.invalidate(guardiansForSelectedProvider);
   }
 
   /// Opens the messaging app with the body filled in. A missing number is

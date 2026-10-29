@@ -19,7 +19,7 @@ typedef Harness = ({
 Future<Harness> _pumpFamilyTab(
   WidgetTester tester, {
   bool withParent = false,
-  bool withSibling = false,
+  bool pendingConsent = false,
 }) async {
   final auth = InMemoryGuardianAuthRepository()
     ..seedSignedIn(const GuardianSession(userId: 'u1', email: 'g@example.com'));
@@ -30,18 +30,16 @@ Future<Harness> _pumpFamilyTab(
   await store.ensureGuardianAccount(displayName: '김보호');
   if (withParent) {
     final started = await pairing.startSeniorPairing(installId: 'senior-phone');
-    final profile = await pairing.claimSeniorPairingCode(
+    await pairing.claimSeniorPairingCode(
       code: started.code,
       displayName: '어머니',
     );
-    if (withSibling) {
-      final invite = await pairing.createFamilyInvite(profile.id);
-      pairing.actingGuardianId = 'sibling';
-      await pairing.redeemFamilyInvite(invite.code);
-      pairing.actingGuardianId = 'account-1';
-    }
   }
 
+  // As the server does it: a new link waits for the parent's answer, so
+  // issuing an install number moves 홈 onto its waiting page. Off by default
+  // because most of these tests are about the form, not the wait.
+  store.pendingLinkConsent = pendingConsent;
   await pumpApp(
     tester,
     overrides: [
@@ -83,7 +81,7 @@ void main() {
     // **With no parent yet**, because the app is 1대1 and a guardian who
     // already has one cannot invite a second. The form is the same one
     // either way - 연결 관리 and the empty state on 홈 both draw it.
-    final h = await _pumpFamilyTab(tester);
+    final h = await _pumpFamilyTab(tester, pendingConsent: true);
 
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
@@ -104,7 +102,7 @@ void main() {
     // Path A depends on the Play install referrer, which only survives a store
     // install — so the fallback has to be in front of the guardian, not buried.
     // With no parent yet, because the app is 1대1.
-    await _pumpFamilyTab(tester);
+    await _pumpFamilyTab(tester, pendingConsent: true);
 
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
@@ -120,7 +118,7 @@ void main() {
     // at once with one text carrying both the link and the number, so the
     // guardian never saw the number here - and the parent could not find it
     // in the third line of a message under a two-line link.
-    final h = await _pumpFamilyTab(tester);
+    final h = await _pumpFamilyTab(tester, pendingConsent: true);
 
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
@@ -232,42 +230,20 @@ void main() {
     },
   );
 
-  testWidgets('nothing on the tab offers a second child or a second parent', (
+  testWidgets('with a parent, the form only takes their new phone\'s number', (
     tester,
   ) async {
-    // **The 1대1 lock, read off the screen.** 가족 초대하기, 연결된 가족 and
-    // 대표 보호자 맡기 all had cards here, and the server refuses every one
-    // of the things they led to since
-    // `20261029080000_one_to_one.sql` - so a button for any of them could
-    // only ever produce a refusal, which is what this app takes off screens
-    // rather than leaves on them.
-    //
-    // The widgets are all still in the file. When the lock lifts this test
-    // flips back to asserting they are there, which is the whole shape of
-    // the promise: two numbers out, three cards back.
+    // 무조건 자녀 하나, 부모 하나. Once a parent is connected there is no
+    // install text to send and no second parent to name - the card is the
+    // phone-change question and nothing else.
     await _pumpFamilyTab(tester, withParent: true);
 
+    expect(find.text('부모님이 폰을 바꾸셨나요?'), findsOneWidget);
+    expect(find.text('설치 문자 보내기'), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.invite), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.nameField), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.codeField), findsOneWidget);
     expect(find.text('가족 초대하기'), findsNothing);
-    expect(find.byKey(GuardianFamilyKeys.familyInvite), findsNothing);
-    expect(find.byKey(GuardianFamilyKeys.guardians), findsNothing);
-    expect(find.byKey(GuardianFamilyKeys.requestPrimary), findsNothing);
     expect(find.textContaining('대표 보호자'), findsNothing);
-  });
-
-  testWidgets('a second parent is refused rather than half-built', (
-    tester,
-  ) async {
-    // The twin holds the same rule the server does - see
-    // `InMemorySeniorLinkRepository.oneToOne`. A twin that quietly allowed
-    // what the server refuses is how a screen gets built against a rule
-    // that is not there.
-    final h = await _pumpFamilyTab(tester, withParent: true);
-
-    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
-    await tester.tap(find.byKey(GuardianFamilyKeys.invite));
-    await tester.pumpAndSettle();
-
-    expect(find.text('지금은 부모님 한 분만 연결할 수 있어요.'), findsOneWidget);
-    expect(h.store.linkedProfileIds.length, 1);
   });
 }

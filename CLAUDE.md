@@ -325,6 +325,9 @@ feature working.
 
 ## Two children, one thread
 
+**Deleted 2026-10-29 with the rest of the two-child code.** Kept below only
+as the record of why the name over a bubble existed.
+
 The conversation is the family's, not each guardian's — the same decision that
 makes the monthly allowance the family's, and for the same reason: the parent
 is the one reading it.
@@ -2622,7 +2625,8 @@ guardian actually walks. `screenshots_test.dart` was walking the dead path
 too.
 
 628 passing when that was written; 781 at its peak, 748 once 소리
-울리기's four test files had gone with the feature, and 790 now. 0 failing, about 3
+울리기's four test files had gone with the feature, 790 at the next peak, and
+770 now that the two-child tests are gone. 0 failing, about 3
 minutes.
 
 ## The app icon is a document, not a drawing
@@ -3124,8 +3128,10 @@ refund table is a rule the server already follows with nothing to refund.
 
 **Restated by the owner the same day, and it is the rule: 무조건 자녀 하나,
 부모 하나.** Nothing is designed, reported or tested as a two-child or
-two-parent case. The lock below stays reversible because it was built that
-way, not because anything is waiting for it to lift.
+two-parent case, and **the app code for those cases is deleted, not hidden**
+- see `## 1대1 밖의 것은 앱에서 지웠다` below. What follows describes the lock
+as it was built first; the parts about keeping widgets for later no longer
+hold.
 
 The owner's call on 2026-10-29: 복잡할 거 같아. The app could put several
 children on one parent **and** several parents on one child, and almost
@@ -3182,7 +3188,8 @@ would have made a 끊기 permanent.
 
 ### The twin holds the same rule, and that is deliberate
 
-`InMemorySeniorLinkRepository.oneToOne` defaults to **true**, unlike
+The twin's lock is **always on** now; the `oneToOne` switch is gone. It
+used to default to **true**, unlike
 `pendingLinkConsent` which defaults to false. That one is off because
 mirroring it would have meant rewriting the harness of every test that
 connects a family; this one is the product as it actually behaves, and a twin
@@ -3297,6 +3304,34 @@ the owner's approval; `verify_supabase_leaving.py` (48) and
 
 Dependabot (`.github/dependabot.yml`) was added in the same pass, monthly
 and for pub and Actions only. CodeQL was not: it cannot read Dart.
+
+## 1대1 밖의 것은 앱에서 지웠다
+
+2026-10-29, the owner's word: 다 지워. The 1대1 lock had kept every
+two-person feature in the app, hidden, so it could come back. It does not
+come back, so the app no longer carries it:
+
+| 지운 것 | 무엇이었나 |
+|---|---|
+| `PrimaryGuardianPrompt` and its test | 대표 보호자 바꾸기 card on the parent's home |
+| `createFamilyInvite` / `redeemFamilyInvite`, `PairMode.guardianInviteFamily` | 가족 초대 |
+| `requestPrimaryGuardian` / `resolvePrimaryGuardian`, `pendingPrimaryGuardianId` | 대표 보호자 바꾸기 |
+| `_Guardians`, `guardiansForSelectedProvider` | 연결된 가족 list |
+| `_ParentSwitcher` | choosing between two parents on 홈 |
+| `_FamilyPlan`, `hasFamilyPlan`, `startFamilyPlan`, `SubscriptionPlan.family` | 가족 플랜 |
+| the name over a bubble, `two_children_test.dart` | telling two children apart in one thread |
+| `InMemorySeniorLinkRepository.oneToOne` | switching the twin's lock off |
+
+**One screen changed rather than went.** With a parent connected, 연결 관리's
+connect card offered 설치 문자 보내기 for a second parent, which could only
+be refused. It is `_ConnectParent(phoneChange: true)` now: 부모님이 폰을
+바꾸셨나요?, the four digits, and nothing else - no switcher, no name, and no
+separate 폰을 바꿨어요 dialog, since there is only one parent it can mean.
+
+**The server still has the functions** (`create_family_invite`,
+`request_primary_guardian`, `start_family_plan` and the rest). Nothing in the
+app calls them and the 1대1 gate refuses what they lead to; dropping them is
+a live-project change and was not part of this.
 
 ## Conventions
 

@@ -1,9 +1,8 @@
 /// Which kind of attachment a code or link grants.
 ///
-/// The four are one table because they are one idea — a short-lived secret
+/// They are one table because they are one idea — a short-lived secret
 /// that grants exactly one attachment — but they are not interchangeable, and
-/// redeeming asks for the mode so a family invite can never be spent as a
-/// recovery.
+/// redeeming asks for the mode so one kind can never be spent as another.
 enum PairMode {
   /// 경로 A: the guardian creates the profile and texts an install link.
   guardianInvitesSenior('guardian_invites_senior'),
@@ -12,10 +11,7 @@ enum PairMode {
   seniorSharesCode('senior_shares_code'),
 
   /// A replacement or reinstalled phone rejoining the profile it already had.
-  recovery('recovery'),
-
-  /// A sibling joining as a second guardian. Free, per the PRD.
-  guardianInviteFamily('guardian_invite_family');
+  recovery('recovery');
 
   const PairMode(this.wire);
 

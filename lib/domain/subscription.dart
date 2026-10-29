@@ -1,10 +1,7 @@
 /// What was bought.
 enum SubscriptionPlan {
   /// 안심 케어 — bought for one parent, and inert until that parent agrees.
-  care('care'),
-
-  /// Lets one guardian look after more than one parent.
-  family('family');
+  care('care');
 
   const SubscriptionPlan(this.wire);
 
@@ -41,8 +38,7 @@ class Subscription {
   final SubscriptionPlan plan;
   final SubscriptionStatus status;
 
-  /// Null for [SubscriptionPlan.family]: that plan belongs to the guardian's
-  /// account rather than to any one parent.
+  /// The parent it was bought for.
   final String? seniorProfileId;
 
   final DateTime? refundedAt;
