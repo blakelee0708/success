@@ -83,6 +83,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.fontSize,
         builder: (context, state) => const FontSizeScreen(),
       ),
+      GoRoute(
+        path: Routes.screenMode,
+        builder: (context, state) =>
+            const ScreenModeChoiceScreen(changing: true),
+      ),
     ],
   );
 });

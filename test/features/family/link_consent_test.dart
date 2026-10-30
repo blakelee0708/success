@@ -1,6 +1,10 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart' show FontLoader, rootBundle;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:app/core/theme/app_theme.dart';
 
 import 'package:app/core/supabase/supabase_providers.dart';
 import 'package:app/data/remote/pairing_repository.dart';
@@ -29,6 +33,7 @@ _pumpSeniorHome(
   WidgetTester tester, {
   String? guardianName,
   bool asked = true,
+  FontSize fontSize = FontSize.normal,
 }) async {
   final store = InMemorySeniorLinkRepository();
   final pairing = InMemoryPairingRepository(store)
@@ -58,8 +63,9 @@ _pumpSeniorHome(
     ],
     prefs: {
       SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
-        const SeniorSettings(
+        SeniorSettings(
           screenMode: ScreenMode.easy,
+          fontSize: fontSize,
           apps: defaultEasyApps,
         ).toJson(),
       ),
@@ -70,6 +76,59 @@ _pumpSeniorHome(
 }
 
 void main() {
+  setUpAll(() async {
+    // The app's own faces. Measuring against whatever the harness falls back
+    // to measures a phone nobody has.
+    final korean = FontLoader(AppTheme.fontFamily);
+    for (final asset in const [
+      'assets/fonts/NotoSansKR-Regular.ttf',
+      'assets/fonts/NotoSansKR-Bold.ttf',
+    ]) {
+      korean.addFont(rootBundle.load(asset));
+    }
+    await korean.load();
+  });
+
+  for (final size in FontSize.values) {
+    testWidgets('허락합니다 is on screen without scrolling at ${size.name}', (
+      tester,
+    ) async {
+      // Scrolling is what this app's readers fail at most, and this is the
+      // card that asks them to agree to something. It sat in a scroll view
+      // and ran 300px past a 844px phone at 제일 크게.
+      await _pumpSeniorHome(tester, guardianName: '영희', fontSize: size);
+
+      expect(
+        find.descendant(
+          of: find.byKey(SeniorNoticeLayer.layerKey),
+          matching: find.byType(Scrollable),
+        ),
+        findsNothing,
+      );
+      final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+      final yes = tester.getRect(find.byKey(LinkConsentPrompt.approveKey));
+      expect(yes.bottom, lessThanOrEqualTo(screen.height), reason: '$yes');
+
+      // Shrinking is the fallback for the two largest sizes only: at the
+      // sizes most people use, the card is drawn as written.
+      final box = tester.renderObject<RenderBox>(
+        find.descendant(
+          of: find.byKey(SeniorNoticeLayer.layerKey),
+          matching: find.byType(FittedBox),
+        ),
+      );
+      final card = tester.getSize(find.byKey(LinkConsentPrompt.promptKey));
+      final scale = box.size.height / card.height;
+      if (size == FontSize.largest) {
+        // 0.80 on 2026-10-30. Below this the card has grown enough to undo
+        // most of what 제일 크게 is for, and wants cutting instead.
+        expect(scale, greaterThanOrEqualTo(0.75));
+      } else {
+        expect(scale, closeTo(1, 0.001), reason: size.name);
+      }
+    });
+  }
+
   testWidgets('the card names who is asking', (tester) async {
     // 가족 연결 요청이 있어요 tells a senior nothing they can act on, and with
     // two children a card that cannot name one asks somebody to agree to
@@ -225,6 +284,17 @@ void main() {
         expect(line, isNot(contains('부모님의')), reason: line);
         expect('· $line'.length, lessThanOrEqualTo(16), reason: line);
       }
+      // 18px in the same card holds seventeen.
+      for (final line in LinkConsentPrompt.weekNote) {
+        expect(line.length, lessThanOrEqualTo(17), reason: line);
+      }
     },
   );
+
+  test('the free week is named with its length, and what follows it', () {
+    // It read 스마트폰 현황 확인하기, with no time on it, for something that
+    // stops on the eighth day unless 안심 케어 is agreed to.
+    expect(LinkConsentPrompt.can.join(), contains('1주일'));
+    expect(LinkConsentPrompt.weekNote.join(), contains('안심 케어'));
+  });
 }

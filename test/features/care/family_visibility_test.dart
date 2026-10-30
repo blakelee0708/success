@@ -135,6 +135,13 @@ void main() {
   });
 
   group('what the screen says', () {
+    test('the paid section says what the free week shows', () {
+      // 안심 케어를 허락하시면 over the readings was false for the first seven
+      // days after the connection, which show them without 안심 케어.
+      expect(familySeesNote(FamilySees.withCare), contains('1주일'));
+      expect(familySeesNote(FamilySees.always), isNull);
+    });
+
     test('both sections have something in them', () {
       for (final sees in FamilySees.values) {
         expect(familySees(sees), isNotEmpty, reason: '$sees');

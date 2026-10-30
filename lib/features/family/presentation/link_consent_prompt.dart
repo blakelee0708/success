@@ -52,7 +52,19 @@ class LinkConsentPrompt extends ConsumerStatefulWidget {
   ///
   /// Not 부모님의 홈 화면: the reader is the parent, and their own home screen
   /// described in the third person is somebody else talking about them.
-  static const can = ['홈 화면 버튼 정리하기', '메시지 주고받기', '스마트폰 현황 확인하기'];
+  ///
+  /// The third is the free week, and it is said here because this is the
+  /// only consent the senior gives before it starts: since
+  /// `20261030030000_trial_from_consent.sql` it runs from this 허락, and
+  /// 안심 케어's own card only appears once somebody pays. It used to read
+  /// 스마트폰 현황 확인하기 with no time on it, which promised for good what
+  /// stops on the eighth day.
+  static const can = ['홈 화면 버튼 정리하기', '메시지 주고받기', '첫 1주일 폰 상태 보기'];
+
+  /// What happens after the week, one whole line each. What 폰 상태 is
+  /// lives on 자녀가 보는 것; spelling it out here as well made this the
+  /// tallest card in the app.
+  static const weekNote = ['1주일 뒤에는 안심 케어를', '허락하셔야 보여요.'];
 
   @override
   ConsumerState<LinkConsentPrompt> createState() => _LinkConsentPromptState();
@@ -135,7 +147,16 @@ class _LinkConsentPromptState extends ConsumerState<LinkConsentPrompt> {
                   color: AppColors.seniorInk,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
+              Text(
+                LinkConsentPrompt.weekNote.join('\n'),
+                style: const TextStyle(
+                  fontSize: 18,
+                  height: 1.55,
+                  color: AppColors.seniorInkMuted,
+                ),
+              ),
+              const SizedBox(height: 12),
               // **No list of what is not collected.** A list of things that
               // are not happening plants worries in a reader who did not
               // arrive with them, and this reader is on their own phone

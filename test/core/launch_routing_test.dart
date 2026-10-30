@@ -24,7 +24,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The app becomes the phone's launcher: pressing Home must land here.
-    expect(find.text('앨범'), findsOneWidget);
+    expect(find.text('사진 보기'), findsOneWidget);
     expect(find.text('눌러보세요'), findsNothing);
   });
 

@@ -9,6 +9,7 @@ import '../../../domain/app_category.dart';
 import '../../launcher/presentation/widgets/category_picker.dart';
 import '../../../domain/senior_settings.dart';
 import '../../launcher/application/senior_settings_controller.dart';
+import '../../launcher/presentation/widgets/go_home_bar.dart';
 import '../../launcher/presentation/widgets/home_app_coach.dart';
 import '../../launcher/data/app_launcher.dart';
 import 'widgets/screen_mode_preview.dart';
@@ -29,8 +30,16 @@ class ScreenModeChoiceKeys {
 /// Each card carries a picture of the screen it chooses. It used to describe
 /// them — "큰 버튼 4개" — in two tall boxes that were mostly empty, which asked
 /// the person who finds reading hardest to read their way to the answer.
+///
+/// [changing] is the same screen opened from 바꾸기 → 화면 바꾸기. The cards
+/// are the same, because they are the same choice; what differs is that the
+/// home-app question is not asked again (onboarding is the one place
+/// `06_PERMISSION_AND_POLICY` allows it, and 바꾸기 has its own row for it)
+/// and that there is a way home without choosing.
 class ScreenModeChoiceScreen extends ConsumerWidget {
-  const ScreenModeChoiceScreen({super.key});
+  const ScreenModeChoiceScreen({super.key, this.changing = false});
+
+  final bool changing;
 
   Future<void> _choose(
     BuildContext context,
@@ -41,6 +50,12 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
         .read(seniorSettingsControllerProvider.notifier)
         .chooseScreenMode(mode);
     if (!context.mounted) return;
+    if (changing) {
+      context.go(
+        mode == ScreenMode.easy ? Routes.easyHome : Routes.detailedHome,
+      );
+      return;
+    }
 
     // The one request `06_PERMISSION_AND_POLICY` allows during onboarding, so
     // onboarding is where it belongs. It used to wait on the home screen as a
@@ -132,6 +147,7 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
     ref.watch(isDefaultHomeProvider);
 
     return Scaffold(
+      bottomNavigationBar: changing ? const SafeArea(child: GoHomeBar()) : null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 28, 18, 24),
@@ -150,8 +166,11 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 7),
-              const Text(
-                '나중에 언제든 바꿀 수 있어요',
+              // The buttons stay because `chooseScreenMode` keeps an
+              // arrangement that already exists, which is what makes this
+              // line true when the screen is reopened from 바꾸기.
+              Text(
+                changing ? '버튼은 그대로 있어요' : '나중에 바꾸기에서 다시 고를 수 있어요',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,

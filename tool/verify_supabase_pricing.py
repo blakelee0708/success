@@ -219,10 +219,26 @@ try:
           and row.get("battery_percent") == 72, (st, out))
     check("and is told when the week ends", row.get("trial_ends_at"), out)
 
-    # Age the link past the window. The trial runs from when a family first
-    # attached to this parent, not from the guardian's sign-up.
+    # The week runs from the parent's 허락, not from the request: a link
+    # asked for long ago and agreed to today is a fresh week. Before
+    # 20261030030000 this read created_at, so the clock ran while the parent
+    # had not yet been asked.
     sql("update public.guardian_senior_links "
         "set created_at = now() - interval '8 days' "
+        f"where senior_profile_id = '{profile_id}'")
+    st, out = readings(g1, profile_id)
+    row = (out or [{}])[0] if isinstance(out, list) else {}
+    check("an old request agreed to today still gets its week",
+          row.get("visible") is True, out)
+
+    links = sql("select approved_at is not null as stamped "
+                "from public.guardian_senior_links "
+                f"where senior_profile_id = '{profile_id}'")
+    check("the 허락 stamped approved_at", links and links[0]["stamped"], links)
+
+    # Age the 허락 past the window.
+    sql("update public.guardian_senior_links "
+        "set approved_at = now() - interval '8 days' "
         f"where senior_profile_id = '{profile_id}'")
     st, out = readings(g1, profile_id)
     row = (out or [{}])[0] if isinstance(out, list) else {}

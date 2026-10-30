@@ -272,7 +272,7 @@ T? _byName<T extends Enum>(List<T> values, Object? name) {
 const List<LauncherApp> defaultEasyApps = [
   LauncherApp(id: 'phone', label: '전화', category: AppCategory.phone),
   LauncherApp(id: 'message', label: '문자', category: AppCategory.message),
-  LauncherApp(id: 'gallery', label: '앨범', category: AppCategory.gallery),
+  LauncherApp(id: 'gallery', label: '사진 보기', category: AppCategory.gallery),
   LauncherApp(id: 'youtube', label: '영상 보기', category: AppCategory.youtube),
 ];
 

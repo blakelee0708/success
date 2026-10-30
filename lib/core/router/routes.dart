@@ -28,6 +28,10 @@ class Routes {
   static const manual = '/settings/manual';
   static const fontSize = '/settings/font-size';
 
+  /// The onboarding choice again, from 바꾸기. Same two cards, no home-app
+  /// question after, and a way home without choosing.
+  static const screenMode = '/settings/screen-mode';
+
   /// What the senior's family can see. Reached from 설정 → 가족,
   /// because the consent card asks once and then goes away.
   static const familyVisibility = '/settings/family-visibility';

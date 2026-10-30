@@ -88,6 +88,19 @@ String familySeesTitle(FamilySees sees) => switch (sees) {
   FamilySees.withCare => '안심 케어를 허락하시면',
 };
 
+/// A line under a section's list, where one is owed.
+///
+/// The free week is the reason there is one: for the first seven days after
+/// the senior agrees to the connection, the 안심 케어 readings are shown
+/// without 안심 케어, and a heading saying 안심 케어를 허락하시면 over them
+/// was true from the eighth day only. The link consent card says the same
+/// thing in its own words.
+String? familySeesNote(FamilySees sees) => switch (sees) {
+  FamilySees.always => null,
+  FamilySees.withCare =>
+    '가족 연결을 허락하신 뒤 첫 1주일은 안심 케어 없이도 폰을 쓰신 때, 배터리와 소리가 보입니다.',
+};
+
 /// Which `CareReadiness` a section has to agree with.
 CareReadiness readinessFor(FamilySees sees) => switch (sees) {
   FamilySees.always => CareReadiness.free,

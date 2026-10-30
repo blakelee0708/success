@@ -3,11 +3,11 @@ import 'package:app/domain/app_category.dart';
 import 'package:app/domain/launcher_app.dart';
 
 void main() {
-  test('easy defaults are the 2x2 set: 전화 문자 앨범 영상 보기', () {
+  test('easy defaults are the 2x2 set: 전화 문자 사진 보기 영상 보기', () {
     expect(defaultEasyApps.map((a) => a.label).toList(), [
       '전화',
       '문자',
-      '앨범',
+      '사진 보기',
       '영상 보기',
     ]);
     expect(defaultEasyApps.map((a) => a.category).toList(), [

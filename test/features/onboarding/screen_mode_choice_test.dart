@@ -18,6 +18,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // Easy home renders its 2x2 default tiles.
-    expect(find.text('앨범'), findsOneWidget);
+    expect(find.text('사진 보기'), findsOneWidget);
   });
 }

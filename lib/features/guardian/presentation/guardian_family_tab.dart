@@ -672,7 +672,7 @@ class GuardianInviteSender extends ConsumerWidget {
         const SizedBox(height: 4),
         _IssuedCode(
           code: link.code,
-          hint: '부모님 폰의 가족 연결 화면에 넣는 번호예요. 14일 동안 쓸 수 있어요.',
+          hint: '부모님 폰의 가족 연결 화면에 넣는 번호예요. 7일 동안 쓸 수 있어요.',
         ),
         const SizedBox(height: 16),
         // Never "문자를 보냈어요": the app hands each text to the messaging

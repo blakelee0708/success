@@ -296,7 +296,7 @@ class _HomeTab extends ConsumerWidget {
             : '${who == null || who.isEmpty ? '부모님' : who}께 '
                   '${(ref.watch(appConfigProvider).value?.storeListed ?? false) ? '문자 두 개를' : '연결 번호 문자를'} 보내 주세요';
         final detail = expired
-            ? '보내신 번호는 14일이 지나 더 이상 쓸 수 없어요. '
+            ? '보내신 번호는 7일이 지나 더 이상 쓸 수 없어요. '
                   '새 번호를 만들어 다시 보내 주세요.'
             : invite == null
             ? '부모님 폰에 연결해도 되는지 여쭤보는 화면이 떠 있어요. '

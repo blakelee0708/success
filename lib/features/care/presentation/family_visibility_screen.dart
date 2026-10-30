@@ -112,6 +112,18 @@ class _Section extends StatelessWidget {
               ],
             ),
           ),
+        if (familySeesNote(sees) case final note?)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              note,
+              style: const TextStyle(
+                fontSize: 18,
+                height: 1.5,
+                color: AppColors.seniorInkMuted,
+              ),
+            ),
+          ),
       ],
     );
   }

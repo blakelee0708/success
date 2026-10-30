@@ -49,7 +49,7 @@ void main() {
     final launcher = FakeAppLauncher(defaultHome: true);
     await _pumpHome(tester, launcher);
 
-    await tester.tap(find.text('앨범'));
+    await tester.tap(find.text('사진 보기'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('다음 단계'), findsNothing);

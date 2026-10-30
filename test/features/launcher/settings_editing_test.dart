@@ -35,7 +35,7 @@ void main() {
     expect((await _stored()).apps.map((a) => a.label), [
       '전화',
       '문자',
-      '앨범',
+      '사진 보기',
       '영상 보기',
     ]);
   });

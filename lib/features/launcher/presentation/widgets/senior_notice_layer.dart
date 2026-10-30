@@ -86,11 +86,23 @@ class SeniorNoticeLayer extends ConsumerWidget {
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-              child: Center(
-                child: SingleChildScrollView(
-                  child: linkWaiting
-                      ? const LinkConsentPrompt()
-                      : const CareConsentPrompt(),
+              // **Shrunk to fit rather than scrolled.** At 제일 크게 both
+              // cards ran past a 844px phone - the link card by 300px - and
+              // the scroll view they sat in put 허락합니다 below the fold, on
+              // the one screen where a senior is asked to agree to
+              // something. Scrolling is what this app's readers fail at
+              // most; a card drawn a little smaller is still read.
+              child: LayoutBuilder(
+                builder: (context, constraints) => Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: SizedBox(
+                      width: constraints.maxWidth,
+                      child: linkWaiting
+                          ? const LinkConsentPrompt()
+                          : const CareConsentPrompt(),
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -543,7 +543,7 @@ class InMemoryPairingRepository implements PairingRepository {
       mode: PairMode.guardianInvitesSenior,
       digits: 6,
       profileId: profile.id,
-      lifetime: const Duration(days: 14),
+      lifetime: const Duration(days: 7),
     );
   }
 

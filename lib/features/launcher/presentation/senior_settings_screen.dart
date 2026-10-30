@@ -37,6 +37,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
   static const homeAppCoach = Key('senior-settings-home-app-coach');
   static const supportRow = Key('senior-settings-support');
   static const manualRow = Key('senior-settings-manual');
+  static const screenModeRow = Key('senior-settings-screen-mode');
 
   /// Opens the phone's home-app chooser, and says what to do by hand when the
   /// phone will not open it.
@@ -352,6 +353,19 @@ class SeniorSettingsScreen extends ConsumerWidget {
               wall: AppColors.seniorButtonGreenWall,
               onTap: () => context.push(Routes.fontSize),
             ),
+            _Row(
+              key: SeniorSettingsScreen.screenModeRow,
+              label: '화면 바꾸기',
+              detail: '쉬운 화면, 자세한 화면 중에 고르세요',
+              icon: Icons.dashboard_customize_rounded,
+              face: AppColors.seniorUtility,
+              light: AppColors.seniorUtilityLight,
+              deep: AppColors.seniorUtilityDeep,
+              wall: AppColors.seniorUtilityWall,
+              // The sand cannot hold white, the same as 소리 and 인터넷.
+              ink: AppColors.seniorInk,
+              onTap: () => context.push(Routes.screenMode),
+            ),
             if (offerHomeApp)
               _Row(
                 key: SeniorSettingsScreen.homeAppRow,
@@ -467,8 +481,11 @@ class _Row extends StatelessWidget {
         // worth reading.
         child: Opacity(
           opacity: enabled ? 1 : 0.6,
+          // 73, down from 84, for the eighth row (화면 바꾸기): at 84 the list
+          // ran 84px below the fold at every size, since the row does not
+          // grow with the type. The gap stays 10 because the wall is 9.
           child: SizedBox(
-            height: 84,
+            height: 73,
             child: ClayPad(
               light: light,
               face: face,

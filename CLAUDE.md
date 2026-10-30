@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 801 tests, all passing
+flutter test             # currently 811 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -792,6 +792,16 @@ being consented to at 20px bold, the two buttons 72px tall.
 첫 화면 card, which is why they kept the fault after that one was fixed — the
 check was written around the card that happened to be in front of me.
 
+**They were scrolling at 제일 크게 anyway, and that check could not see it.**
+It asks whether the tiles behind the card kept their height - which they do,
+since the card covers them - and never whether the card itself fits. Measured
+with the app's faces on 2026-10-30, the link consent card ran 300px past a
+844px phone at 제일 크게, so 허락합니다 sat below the fold of the
+`SingleChildScrollView` the layer put it in. The layer shrinks the card to
+fit instead now (`FittedBox(scaleDown)` at the screen's width):
+`link_consent_test` asserts no scroll view, 허락합니다 on screen, 1:1 at the
+three smaller sizes and no smaller than 0.75 at 제일 크게, where it is 0.80.
+
 ## Adding a button asks what kind it is
 
 Both ways in — 앱 설정하기 on the senior's phone and 홈 화면 on the guardian's —
@@ -806,7 +816,7 @@ picked is the thing about to appear on the home screen, and on the guardian's
 half that is the one place the senior's clay belongs — it is a depiction of
 their mother's phone, not chrome for this one.
 
-## 설정 is one screen of seven rows, and the groups are gone
+## 설정 is one screen of eight rows, and the groups are gone
 
 Six identical Material cards in the warm brown ink that came out of the
 palette, which made this look like a different app from the home it opens
@@ -819,7 +829,19 @@ here than tidiness: height. **The rows must fit one screen at every text
 size**, because scrolling is the gesture this app's readers fail at most, and
 `settings_fits_test.dart` asserts a scroll extent of exactly zero at all four
 sizes. The rows came down from 92px to 84 in the same change, and putting the
-92 back fails that test by 46px at 제일 크게 - measured.
+92 back fails that test by 46px at 제일 크게 - measured. They are **73** since
+화면 바꾸기 became the eighth row on 2026-10-30: at 84 the list ran exactly
+84px below the fold at every size, because the row does not grow with the
+type. The gap stays 10, since the clay wall under each row is 9.
+
+**화면 바꾸기 reopens the onboarding choice**, the same two cards, because
+onboarding promised 나중에 언제든 바꿀 수 있어요 and nothing in the app could:
+`chooseScreenMode` had one caller. From 바꾸기 it is `ScreenModeChoiceScreen(
+changing: true)` at `Routes.screenMode` - no home-app question afterwards
+(onboarding is the one place for it, and 바꾸기 has its own row), a
+`GoHomeBar` to leave without choosing, and `버튼은 그대로 있어요` under the
+title, which is true because `chooseScreenMode` keeps an arrangement that
+already exists.
 
 **Every row says 누르세요.** 앱 설정하기 alone does not tell a senior that the
 thing in front of them is pressable, and the ones who open this screen are
@@ -1185,8 +1207,8 @@ Three things worth knowing before changing any of it:
 
 Every invite carries both a token (the referrer) and a code (for when the
 referrer did not survive). Expiries differ on purpose: 10 minutes for the
-4-digit code, 24 hours for recovery, 7 days for a family invite, 14 days for an
-install invite.
+4-digit code, 24 hours for recovery, 7 days for a family invite, 7 days for an
+install invite (14 until `20261030030000_trial_from_consent.sql`).
 
 Moving the primary guardian is answered on the senior's own phone —
 `PrimaryGuardianPrompt`, on both home screens. Not the requester, not the
@@ -1671,9 +1693,17 @@ exists for.
 
 Three decisions in the SQL are easy to get wrong:
 
-- **The trial runs from the first link, not from the guardian's sign-up.** A
+- **The trial runs from the first 허락, not from the guardian's sign-up.** A
   child who installs in March and connects their mother in June gets the week
-  in June.
+  in June. It read `min(created_at)` until 2026-10-30, and since link consent
+  every link is written 'pending' at the request - so the clock ran while the
+  parent had not been asked, and on the install-number path the week could
+  be gone before anybody saw it. `approved_at` is stamped by a trigger the
+  first time a link becomes 'active' and never moved, so a cut and
+  reconnected link does not get a second week
+  (`20261030030000_trial_from_consent.sql`). The link consent card says the
+  week in as many words - 첫 1주일 폰 상태 보기 - because it is the only
+  consent the senior gives before the week starts.
 - **Withheld readings come back as nulls, not as a missing row.** 말할 수 없음
   and 이 폰은 한 번도 켜진 적이 없음 need different sentences, and one of them
   is a sales line. Rounding the first into the second would have the dashboard
@@ -3214,7 +3244,7 @@ request holds the guardian's one seat (`assert_can_add_senior` counts
   all it ever was (no device, no other link, no message). An active link is
   `leave_senior`'s, which has money in it. On the page it is a text button,
   for the reason 로그아웃 is.
-- **An install number that ran out stranded them.** Fourteen days, nobody
+- **An install number that ran out stranded them.** Fourteen days (seven since 2026-10-30), nobody
   installed, and the page fell through to 여쭤보는 화면이 떠 있어요 about a
   parent with no app and so no screen. `pending_guardian_links` returns
   `has_phone` now, and with no phone and no live number the page says

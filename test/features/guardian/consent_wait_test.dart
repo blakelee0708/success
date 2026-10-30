@@ -163,14 +163,14 @@ void main() {
   testWidgets('a number that ran out says so, and makes a new one', (
     tester,
   ) async {
-    // 14 days and nobody installed. This used to fall through to
+    // A week and nobody installed. This used to fall through to
     // 여쭤보는 화면이 떠 있어요 - about a parent with no app, so no screen -
     // and the waiting request held the one seat 1대1 allows.
     var clock = DateTime(2026, 10, 1);
     final h = await _pumpDashboard(tester, withInvite: true, now: () => clock);
     expect(find.text(h.pairing.issued.single.code), findsOneWidget);
 
-    clock = clock.add(const Duration(days: 15));
+    clock = clock.add(const Duration(days: 8));
     await tester.pump(const Duration(seconds: 6));
     await tester.pumpAndSettle();
 

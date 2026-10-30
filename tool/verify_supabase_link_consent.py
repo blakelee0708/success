@@ -283,6 +283,13 @@ try:
     pid4 = invite["senior_profile_id"]
     remember({"id": pid4})
 
+    # 7 days since 20261030030000, down from 14.
+    rows = sql("select extract(epoch from expires_at - created_at) / 86400 "
+               "as days from public.pair_links "
+               f"where token = '{invite['token']}'")
+    check("an install number lives seven days",
+          rows and round(float(rows[0]["days"])) == 7, rows)
+
     st, out = call("/rest/v1/rpc/withdraw_link_request", token=guardian("x"),
                    body={"p_senior_profile_id": pid4})
     check("somebody else cannot take the request back",
