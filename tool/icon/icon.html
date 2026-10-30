@@ -18,8 +18,16 @@
 <script src="tube.js"></script>
 <script>
 // B — 테라코타 한 색, 흰 바탕. One colour, chosen 2026-10-28 out of six.
+//
+// **No 잘 since 2026-10-30, and a bigger lens (A1)**, on the owner's call.
+// The ring's radius is 20% up on `common` and the handle keeps its length,
+// so its end moves out by the same amount along the diagonal.
+const lensR = 293;
 const chosen = {
   ...common, id: 'i',
+  R: lensR,
+  hx: common.cx + lensR * Math.SQRT1_2 + 261.5,
+  hy: common.cy + lensR * Math.SQRT1_2 + 261.5,
   bgLit: '#FFFFFF', bg: '#F1F2F4',
   lit: '#FF8E66', base: '#E0481C', deep: '#93280D',
   grip: '#E0481C', gripLit: '#FF8E66', gripDeep: '#93280D',
@@ -40,9 +48,6 @@ document.getElementById('art').innerHTML = `
       ${lens(chosen)}
       ${ring(chosen)}
     </g>
-    <text x="${chosen.cx}" y="${chosen.cy + 4}" font-size="${chosen.glyph}"
-          fill="${chosen.ink}" text-anchor="middle"
-          dominant-baseline="central">잘</text>
   </g>`;
 </script>
 </body>

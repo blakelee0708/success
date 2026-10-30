@@ -45,17 +45,27 @@ const page = async (browser, size) => {
 
 // The visible extent of the art, ignoring the cast shadow - a soft shade that
 // fades to nothing has no business deciding how big the magnifier is drawn.
+//
+// **Fitted to a circle, not a box, and to what a phone shows.** A phone draws
+// only the middle 72dp of the 108dp layer, and its round mask is a circle of
+// 36dp radius - 341px of this 1024 canvas. The first version fitted the art's
+// bounding box into the centre 66%, which looked right in a preview that
+// showed the whole layer and was cut on a phone: the box's corners are past
+// the circle, and a diagonal magnifier reaches into exactly those corners.
+// The art is centred on its own enclosing circle instead - the line from the
+// far edge of the ring to the end of the handle - and that circle is scaled
+// to sit just inside the round mask.
 const fit = (o) => {
-  const k = 0.7071;
+  const k = Math.SQRT1_2;
   const t = o.W * 0.92 / 2; // the handle's round cap
-  const x0 = o.cx - o.R - o.W / 2;
-  const y0 = o.cy - o.R - o.W / 2;
-  const x1 = o.hx + t;
-  const y1 = o.hy + t;
-  const span = Math.max(x1 - x0, y1 - y0);
-  const safe = 1024 * 0.66;
-  const s = safe / span;
-  return { s, mx: (x0 + x1) / 2, my: (y0 + y1) / 2, span, k };
+  const ax = o.cx - (o.R + o.W / 2) * k;
+  const ay = o.cy - (o.R + o.W / 2) * k;
+  const bx = o.hx + t * k;
+  const by = o.hy + t * k;
+  const span = Math.hypot(bx - ax, by - ay);
+  const reach = 330; // px from the centre, against the round mask's 341
+  const s = reach / (span / 2);
+  return { s, mx: (ax + bx) / 2, my: (ay + by) / 2, span, k };
 };
 
 (async () => {

@@ -2709,6 +2709,20 @@ handle is the same colour as the ring and nearly merges into it, so **the 잘
 is what tells this icon from a circle** at the size a home screen actually
 draws.
 
+**The 잘 came out on 2026-10-30, and the lens went up 20%**, on the owner's
+call (option A1, chosen over a shorter handle and a thinner rim). The ring's
+radius is 293 against `common`'s 244 and the handle keeps its length; both
+live in `icon.html`, so the gallery's drawings are untouched.
+
+**The preview had been showing the wrong thing.** It drew the whole 108dp
+layer under each mask, and a phone shows only the middle 72dp - so the
+magnifier looked small in a field of white while on a phone it filled the
+icon and lost the edge of its ring and the tip of its handle. `preview.html`
+draws each layer at 150% now, and `fit` centres the art on its own
+enclosing circle and scales that to 330px against the round mask's 341,
+rather than fitting a bounding box whose corners the diagonal art reaches
+into.
+
 Four files come out of `node tool/icon/build_app_icon.js`:
 `assets/icon/foreground.png` and `background.png` (the two layers Android
 composes itself), `icon.png` (flattened, for pre-adaptive phones and the Play
