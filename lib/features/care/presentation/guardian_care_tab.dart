@@ -65,7 +65,7 @@ class GuardianCareTab extends ConsumerWidget {
         if (profile == null)
           const _Card(
             child: Text(
-              '부모님을 먼저 연결해 주세요. 안심 케어는 부모님 한 분씩 신청합니다.',
+              '부모님을 먼저 연결해 주세요. 연결하신 뒤 안심 케어를 신청하실 수 있어요.',
               style: TextStyle(fontSize: 15, height: 1.5),
             ),
           )

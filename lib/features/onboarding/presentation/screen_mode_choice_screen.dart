@@ -163,7 +163,7 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
               Expanded(
                 child: _ModeCard(
                   title: '정말 쉬운 화면',
-                  subtitle: '큰 버튼 4개만.\n가장 간단해요',
+                  subtitle: '큰 앱 버튼 4개.\n가장 간단해요',
                   preview: const ScreenModePreview(
                     key: ScreenModeChoiceKeys.easyPreview,
                     tiles: 4,
@@ -182,7 +182,7 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
               Expanded(
                 child: _ModeCard(
                   title: '자세한 화면',
-                  subtitle: '앱 6개에 설정까지.\n조금 더 쓸 수 있어요',
+                  subtitle: '앱 6개에 바꾸기 버튼까지.\n조금 더 쓸 수 있어요',
                   preview: ScreenModePreview(
                     key: ScreenModeChoiceKeys.detailedPreview,
                     tiles: 6,
@@ -190,7 +190,7 @@ class ScreenModeChoiceScreen extends ConsumerWidget {
                     // can be one. 가족, 소리 and 인터넷 have places of their
                     // own and are not in the grid at all.
                     categories: addableCategories,
-                    hasTabBar: true,
+                    hasTabBar: false,
                   ),
                   onTap: () => _choose(context, ref, ScreenMode.detailed),
                 ),

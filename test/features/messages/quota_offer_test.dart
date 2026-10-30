@@ -76,6 +76,21 @@ Future<void> _pumpMessages(WidgetTester tester, Harness h) async {
 }
 
 void main() {
+  test('a spent photo allowance says photos, not messages', () async {
+    // The text allowance is untouched, so 메시지를 다 쓰셨어요 would be false.
+    final h = await _family(photos: 5);
+    await expectLater(
+      h.messages.send(h.profileId, imagePath: '${h.profileId}/6.jpg'),
+      throwsA(
+        isA<MessageQuotaExceeded>().having(
+          (e) => e.message,
+          'message',
+          imageQuotaSpent,
+        ),
+      ),
+    );
+  });
+
   testWidgets('with room left it counts both numbers', (tester) async {
     final h = await _family();
     await _pumpMessages(tester, h);

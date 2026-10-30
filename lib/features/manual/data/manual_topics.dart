@@ -121,7 +121,6 @@ class ManualTopic {
   final ManualTone tone;
 }
 
-const _red = AppColors.seniorSos;
 const _amber = AppColors.seniorFamily;
 const _sand = AppColors.seniorUtility;
 const _brown = AppColors.seniorMore;
@@ -134,13 +133,23 @@ final manualTopics = <ManualTopic>[
     title: '첫 화면으로 돌아가기',
     // The one thing seniors get stuck on more than anything else: they go
     // somewhere and cannot get out. It is first for that reason.
-    lines: const ['어느 화면에서든', '맨 아래 빨간 버튼을', '누르시면 됩니다.', '', '홈 버튼을 눌러도 됩니다.'],
+    lines: const [
+      '어느 화면에서든',
+      '맨 아래 첫 화면으로 가기를',
+      '누르시면 됩니다.',
+      '',
+      '홈 버튼을 눌러도 됩니다.',
+    ],
     drawing: const ManualFrame(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          ManualPill(label: '바꾸기', face: _brown, height: 30),
+          ManualPill(
+            label: '앱 설정하기',
+            face: AppColors.seniorButtonPurple,
+            height: 30,
+          ),
           SizedBox(height: 6),
           ManualPill(label: '글씨 크기 조절하기', face: _green, height: 30),
           SizedBox(height: 14),
@@ -161,7 +170,7 @@ final manualTopics = <ManualTopic>[
     tone: ManualTone.green,
     title: '글씨 크게 하기',
     lines: const [
-      '설정에서',
+      '바꾸기 화면에서',
       '글씨 크기 조절하기를',
       '누르세요.',
       '',
@@ -189,7 +198,7 @@ final manualTopics = <ManualTopic>[
     tone: ManualTone.purple,
     title: '버튼 이름과 색 바꾸기',
     lines: const [
-      '설정에서',
+      '바꾸기 화면에서',
       '앱 설정하기를 누르세요.',
       '',
       '버튼마다 이름과 색깔이',
@@ -217,7 +226,7 @@ final manualTopics = <ManualTopic>[
     // something the drawing already shows.
     lines: const [
       '버튼마다 지우기가 있어요.',
-      '맨 아래는 버튼 추가하기.',
+      '목록 끝에 버튼 추가하기.',
       '',
       '버튼은 네 개까지만',
       '줄일 수 있어요.',
@@ -308,7 +317,7 @@ final manualTopics = <ManualTopic>[
     // The one route that needs nobody. Every other way out of 설정 assumes a
     // child at the other end.
     lines: const [
-      '설정에서',
+      '바꾸기 화면에서',
       '문의하기를 누르세요.',
       '',
       '번호가 나옵니다.',
@@ -330,7 +339,12 @@ final manualTopics = <ManualTopic>[
           SizedBox(height: 12),
           Center(child: ManualArrow()),
           SizedBox(height: 8),
-          ManualPill(label: '482 913', face: _red, height: 42),
+          ManualPill(
+            label: '482 913',
+            face: _sand,
+            ink: AppColors.seniorInk,
+            height: 42,
+          ),
         ],
       ),
     ),

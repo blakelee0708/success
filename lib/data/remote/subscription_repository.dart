@@ -137,7 +137,10 @@ class SupabaseSubscriptionRepository implements SubscriptionRepository {
       return '지금은 부모님 한 분만 연결할 수 있어요.';
     }
     if (message.contains('one guardian per senior')) {
-      return '부모님 한 분에 자녀 한 명만 연결할 수 있어요.';
+      return '이 부모님께는 이미 다른 자녀가 연결되어 있어요.';
+    }
+    if (message.contains('nothing to cancel')) {
+      return '해지할 것이 없어요.';
     }
     if (message.contains('only the senior device')) {
       return '부모님 폰에서만 답할 수 있어요.';
@@ -287,7 +290,9 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
         CareAlert(
           id: 'alert-$_seq',
           type: approve ? 'care_consent_granted' : 'care_consent_refused',
-          title: approve ? '안심 케어를 다시 허락하셨어요' : '안심 케어를 원하지 않으셨어요',
+          title:
+              '${_named(seniorProfileId)}'
+              '${approve ? '안심 케어를 다시 허락하셨어요' : '안심 케어를 원하지 않으셨어요'}',
           body: approve
               ? '남은 기간 동안 다시 보실 수 있어요.'
               : '이미 사용하신 기간이라 환불은 없습니다. 무료 기능은 그대로 쓰실 수 있어요.',
@@ -320,13 +325,21 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
       CareAlert(
         id: 'alert-$_seq',
         type: approve ? 'care_consent_granted' : 'care_consent_refused',
-        title: approve ? '안심 케어를 허락하셨어요' : '안심 케어를 원하지 않으셨어요',
+        title:
+            '${_named(seniorProfileId)}'
+            '${approve ? '안심 케어를 허락하셨어요' : '안심 케어를 원하지 않으셨어요'}',
         body: approve
             ? '이제 부모님이 어떻게 지내시는지 보실 수 있어요.'
             : '결제는 환불 처리되었습니다. 무료 기능은 그대로 쓰실 수 있어요.',
       ),
     );
     return store.fetchProfile(seniorProfileId);
+  }
+
+  /// The server opens each consent alert with `display_name || '님이 '`.
+  String _named(String seniorProfileId) {
+    final name = store.profiles[seniorProfileId]?.displayName ?? '';
+    return name.isEmpty ? '' : '$name님이 ';
   }
 
   @override

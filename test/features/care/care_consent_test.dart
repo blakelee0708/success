@@ -146,9 +146,10 @@ void main() {
   testWidgets('the senior is not asked about what happens anyway', (
     tester,
   ) async {
-    // The battery and ringer reading rides on the free check-in. It said
-    // 배터리와 소리, 인터넷 상태, which told the senior that 아니요 would stop
-    // something 아니요 does not stop — and named 인터넷, which is never read.
+    // It once said 배터리와 소리, 인터넷 상태, and 인터넷 is never read. The
+    // battery and the ringer are on the card again since 2026-10-28, when
+    // they became paid: 아니요 now does stop the family seeing them, so
+    // leaving 소리 off was the card naming less than it switches on.
     final h = await _family();
     await h.subs.startCare(h.profileId);
     await _pumpSeniorHome(tester, h);
@@ -161,10 +162,6 @@ void main() {
     final card = find.byType(CareConsentPrompt);
     expect(
       find.descendant(of: card, matching: find.textContaining('인터넷')),
-      findsNothing,
-    );
-    expect(
-      find.descendant(of: card, matching: find.textContaining('배터리와 소리')),
       findsNothing,
     );
   });

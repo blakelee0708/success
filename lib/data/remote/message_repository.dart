@@ -75,6 +75,11 @@ class MessageQuotaExceeded implements Exception {
   String toString() => message;
 }
 
+/// What a refusal says, one sentence per allowance. The two are counted in
+/// separate columns, so a spent photo allowance leaves messages still to send.
+const textQuotaSpent = '이번 달 무료 메시지를 다 쓰셨어요. 안심 케어를 시작하시면 제한 없이 보낼 수 있어요.';
+const imageQuotaSpent = '이번 달 무료 사진을 다 쓰셨어요. 안심 케어를 시작하시면 제한 없이 보낼 수 있어요.';
+
 class SupabaseMessageRepository implements MessageRepository {
   SupabaseMessageRepository(this._client);
 
@@ -174,10 +179,13 @@ class SupabaseMessageRepository implements MessageRepository {
       }
       return message;
     } on sb.PostgrestException catch (e) {
+      // `image quota reached` contains `quota reached`, so it is asked first:
+      // a photo refused for photos must not say the messages ran out.
+      if (e.message.contains('image quota reached')) {
+        throw const MessageQuotaExceeded(imageQuotaSpent);
+      }
       if (e.message.contains('quota reached')) {
-        throw const MessageQuotaExceeded(
-          '이번 달 무료 메시지를 다 쓰셨어요. 안심 케어를 시작하시면 제한 없이 보낼 수 있어요.',
-        );
+        throw const MessageQuotaExceeded(textQuotaSpent);
       }
       if (e.message.contains('not allowed to manage')) {
         throw const SeniorLinkException('이 부모님께 메시지를 보낼 권한이 없어요.');
@@ -273,8 +281,8 @@ class InMemoryMessageRepository implements MessageRepository {
           ? current.canSendImage
           : current.canSendText;
       if (!allowed) {
-        throw const MessageQuotaExceeded(
-          '이번 달 무료 메시지를 다 쓰셨어요. 안심 케어를 시작하시면 제한 없이 보낼 수 있어요.',
+        throw MessageQuotaExceeded(
+          imagePath != null ? imageQuotaSpent : textQuotaSpent,
         );
       }
     }

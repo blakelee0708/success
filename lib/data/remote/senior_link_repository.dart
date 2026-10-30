@@ -502,7 +502,7 @@ class InMemorySeniorLinkRepository implements SeniorLinkRepository {
       ?pendingAskedBy[profileId],
     }.where((id) => id != guardianId);
     if (others.isNotEmpty) {
-      throw const SeniorLinkException('부모님 한 분에 자녀 한 명만 연결할 수 있어요.');
+      throw const SeniorLinkException('이 부모님께는 이미 다른 자녀가 연결되어 있어요.');
     }
   }
 

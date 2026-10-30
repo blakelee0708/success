@@ -58,7 +58,7 @@ class GuardianLauncherTab extends ConsumerWidget {
         key: GuardianLauncherKeys.empty,
         title: '아직 연결된 부모님이 없어요',
         detail:
-            '가족 탭에서 부모님을 추가하고 연결 번호를 알려 드리면,\n'
+            '홈 탭에서 부모님을 연결하시면,\n'
             '여기에서 홈 화면을 정리해 드릴 수 있어요.',
       );
     }
@@ -296,7 +296,7 @@ class _Editor extends ConsumerWidget {
                 const SizedBox(height: 10),
                 const Text(
                   '부모님 폰에서는 언제든 바꾸실 수 있어요. '
-                  '설정 → 앱 설정하기에서 하시면 됩니다.',
+                  '바꾸기(쉬운 화면은 더 보기) → 앱 설정하기에서 하시면 됩니다.',
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.55,
@@ -305,7 +305,7 @@ class _Editor extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  '안심 케어를 시작하시면 자녀분 폰에서도 제한 없이 정리하실 수 있어요.',
+                  '안심 케어를 시작하시면 이 폰에서도 제한 없이 정리하실 수 있어요.',
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.55,

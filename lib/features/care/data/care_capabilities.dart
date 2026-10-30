@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../guardian/application/home_edit_allowance.dart';
 
 /// How far along a 안심 케어 capability actually is.
 ///
@@ -106,7 +107,7 @@ const careCapabilities = <CareCapability>[
     icon: Icons.favorite_rounded,
     tint: AppColors.guardianTintBlue,
     tintInk: AppColors.guardianTintBlueInk,
-    seniorLine: '폰을 쓰신 때와 배터리',
+    seniorLine: '폰을 쓰신 때, 배터리와 소리',
   ),
   CareCapability(
     key: 'battery_low',
@@ -187,7 +188,7 @@ const careCapabilities = <CareCapability>[
     key: 'home_edits',
     stage: CareReadiness.live,
     title: '홈 화면 정리 무제한',
-    detail: '무료는 2번까지. 부모님 폰에서는 언제나 무제한입니다',
+    detail: '무료는 $guardianHomeEditsFree번까지. 부모님 폰에서는 언제나 무제한입니다',
     icon: Icons.grid_view_rounded,
     tint: AppColors.guardianTintGreen,
     tintInk: AppColors.guardianTintGreenInk,

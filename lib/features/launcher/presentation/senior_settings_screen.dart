@@ -261,7 +261,7 @@ class SeniorSettingsScreen extends ConsumerWidget {
         content: const Text(
           '이 휴대폰에서는 여기서 바로 바꿀 수 없어요.\n'
           '휴대폰 설정 → 애플리케이션 → 기본 앱 선택 → 홈 화면 앱\n'
-          '에서 원래 쓰시던 앱을 골라 주세요.',
+          '에서 전에 쓰시던 앱을 골라 주세요.',
           style: TextStyle(
             fontSize: 19,
             height: 1.6,

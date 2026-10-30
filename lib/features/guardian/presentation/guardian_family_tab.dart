@@ -514,7 +514,7 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
               ? '새 폰에서 가족 연결을 누르고 번호 보여주기를 누르시면 4자리 번호가 나옵니다. '
                     '그 번호를 넣으시면 대화와 홈 화면, 글씨 크기가 그대로 옮겨집니다.'
               : _byCode
-              ? '부모님 폰의 가족 연결 화면에 4자리 번호가 나옵니다. '
+              ? '부모님 폰에서 가족 연결을 누르고 번호 보여주기를 누르시면 4자리 번호가 나옵니다. '
                     '그 번호를 불러 주시면 여기에 넣어 주세요. '
                     '번호로는 전화번호를 알 수 없어서, 이름과 번호는 여기서 받습니다.'
               : (ref.watch(appConfigProvider).value?.storeListed ?? false)
@@ -945,7 +945,7 @@ class _NoticesState extends ConsumerState<GuardianNotices> {
             // would be worse than silence. What it can say is what to do,
             // which is ask her.
             const Text(
-              '다시 연결하시려면 부모님께 번호를 여쭤보고 아래에서 넣어 주세요.',
+              '다시 연결하시려면 부모님께 번호를 여쭤보고 아래 「불러주신 번호 넣기」에서 넣어 주세요.',
               style: TextStyle(
                 fontSize: 14,
                 height: 1.55,

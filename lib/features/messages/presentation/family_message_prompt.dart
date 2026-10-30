@@ -67,7 +67,7 @@ class FamilyMessagePrompt extends ConsumerWidget {
           child: Text(
             message.body?.trim().isNotEmpty == true
                 ? message.body!.trim()
-                : '사진을 보내셨어요',
+                : '사진을 보냈어요',
             // Three lines of the message, then the conversation. The card is
             // an invitation to read it, not the place it is read.
             textAlign: TextAlign.center,

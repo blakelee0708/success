@@ -222,6 +222,9 @@ extension AppCategoryStyle on AppCategory {
   /// name the phone already shows for it.
   String get pickerLabel => switch (this) {
     AppCategory.installed => '폰에 있는 앱',
+    // Its name prefills as 가족, and 가족 is also the slot button - so once
+    // that one is taken off, the sheet offered two tiles both called 가족.
+    AppCategory.contact => '사람',
     _ => defaultLabel,
   };
 
