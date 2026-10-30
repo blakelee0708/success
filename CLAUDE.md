@@ -1342,7 +1342,7 @@ button does nothing*. The failure did not look like a failure. It is plain
 submit can reload anything, and whatever the server says is printed rather
 than replaced with a friendlier line.
 
-It also carries a visible `v2` in the footer. Two rounds were lost to a
+It also carries a visible version in the footer (`v4` as of 2026-10-30). Two rounds were lost to a
 phone holding a cached copy while the server was already correct — nothing
 on screen could tell the two apart, so each fix looked like no fix. A
 version marker is the cheapest way to tell *stale* from *broken*.
@@ -1380,8 +1380,9 @@ Three parts:
   work to do: Supabase redirects there with a session in the URL fragment
   and the form spends it on one `updateUser({password})`. The fragment is
   **stripped from the address bar as soon as it is read** — it carries a live
-  access token, and a screenshot of that URL is the account. The page signs
-  the session out once the password is changed.
+  access token, and a screenshot of that URL is the account. The page does
+  not sign the session out afterwards; it holds the token in a variable and
+  nothing else.
 
 The publishable key is in that page's source on purpose: it is the same key
 every APK ships with, it names the project and nothing else, and RLS is what
@@ -2543,7 +2544,7 @@ schema, not recalled.** Two readings in it are easy to get wrong:
   the one app the senior picked is named on the server, so it is listed.
 
 **Moving the database to Korea does not empty 국외 이전; it removes one line
-from it.** Resend (mail), FCM (the ring's push token) and Google Play are all
+from it.** Resend (mail), FCM (the guardian's push token, and each notification's title and text) and Google Play are all
 still outside. The brief that asked for this said the problem disappeared
 with the move, and for Supabase it does.
 

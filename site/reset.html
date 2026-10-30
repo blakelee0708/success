@@ -93,7 +93,7 @@
     </div>
 
     <div class="note" id="note"></div>
-    <div class="wordmark">잘보이네 <span style="font-weight:400;color:#8B95A1">v3</span></div>
+    <div class="wordmark">잘보이네 <span style="font-weight:400;color:#8B95A1">v4</span></div>
   </main>
 
 <script>
@@ -134,7 +134,7 @@ if (!token) {
   form.style.display = 'none'
   say(
     linkError
-      ? '이 링크는 더 이상 쓸 수 없어요. 앱에서 비밀번호 찾기를 다시 눌러 주세요.'
+      ? '이 링크는 더 이상 쓸 수 없어요. 앱에서 「비밀번호를 잊으셨나요?」를 다시 눌러 주세요.'
       : '앱에서 「비밀번호를 잊으셨나요?」를 누르시면 메일이 갑니다.',
     'bad'
   )
@@ -170,14 +170,14 @@ go.addEventListener('click', function () {
         // Whatever the server said. A friendly stand-in here would hide the
         // one thing that explains a failure nobody can otherwise see.
         say(r.body.msg || r.body.error_description || r.body.message ||
-            '바꾸지 못했어요. 앱에서 비밀번호 찾기를 다시 눌러 주세요.', 'bad')
+            '바꾸지 못했어요. 앱에서 「비밀번호를 잊으셨나요?」를 다시 눌러 주세요.', 'bad')
         return
       }
       card.className = 'card done'
       card.innerHTML =
         '<h1>비밀번호를 바꿨어요</h1>' +
         '<p class="lede">잘보이네 앱으로 돌아가<br>새 비밀번호로 로그인해 주세요.</p>' +
-        '<div class="wordmark">잘보이네 <span style="font-weight:400;color:#8B95A1">v3</span></div>'
+        '<div class="wordmark">잘보이네 <span style="font-weight:400;color:#8B95A1">v4</span></div>'
     })
     .catch(function () {
       go.disabled = false
