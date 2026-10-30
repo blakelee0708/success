@@ -3224,9 +3224,10 @@ request holds the guardian's one seat (`assert_can_add_senior` counts
   `link_declined` notice - 연결되지 않았어요, no reason, the same rule as
   끊기 - and `GuardianNotices` draws it with the line it already had.
 
-`20261030000000_waiting_requests.sql`. `tool/verify_supabase_link_consent.py`
-walks the notice, `has_phone` both ways, and the withdrawal on both kinds of
-profile.
+`20261030000000_waiting_requests.sql`, applied live on the owner's 반영
+(2026-10-30). `tool/verify_supabase_link_consent.py` walks the notice,
+`has_phone` both ways, and the withdrawal on both kinds of profile - 30
+checks, all passing against it.
 
 ## 출시 전에는 문자 한 통
 
@@ -3236,7 +3237,9 @@ link opens a page that does not exist. So until launch the guardian sends
 설치하고 - and the parent's app is installed by hand.
 
 It is a **server setting**, `app_config.store_listed`
-(`20261030010000_app_config.sql`), not a build constant: a launcher is the
+(`20261030010000_app_config.sql`, applied live, `false`), not a build
+constant. Anybody can read the row and no client can write it - checked with
+the publishable key, which got a 401 on the update: a launcher is the
 app Play will not update, and launch day should turn the link on with no
 update anywhere. An unreadable config reads as not listed, because a dead
 store link is worse than a text that assumes the app is installed.
