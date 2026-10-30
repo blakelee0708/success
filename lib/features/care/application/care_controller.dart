@@ -114,7 +114,7 @@ String? careLeavingLine(CareStage? stage, {required bool reconnect}) {
       : '사용한 적이 있으면 남은 기간은 쓰실 수 없게 돼요';
   return switch (stage) {
     CareStage.waitingOnSenior => '안심 케어 신청도 취소되고, 결제한 금액은 모두 돌려드립니다.',
-    CareStage.active => '안심 케어도 함께 해지됩니다.\n$careRefundRule\n$after',
+    CareStage.active => '안심 케어도 함께 해지됩니다.\n$careRefundRuleOnLeaving\n$after',
     // Cancelled while used, so the money was settled then.
     CareStage.cancelling ||
     CareStage.askedAgain ||

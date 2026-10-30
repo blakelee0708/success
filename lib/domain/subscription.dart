@@ -49,9 +49,21 @@ enum RefundKind {
 /// of the cancel never counts. **No amount is said**, because Google computes
 /// it and a number written here could disagree with what arrives.
 const careRefundRule =
-    '결제하신 지 7일 이내에 사용하지 않으셨다면 전액 환불됩니다.\n'
-    '사용하지 않으셨지만 7일이 지났다면 남은 기간만큼 환불됩니다.\n'
+    '$_careRefundBasis\n'
     '사용한 이력이 있으면 환불은 불가하며, 남은 기간까지 그대로 쓰실 수 있어요.';
+
+/// The same rule on 연결 끊기 and 계정 삭제, whose third line stops at the
+/// refund. **남은 기간까지 그대로 쓰실 수 있어요 is false there**: a cut
+/// link reads nothing until it is reconnected, and a deleted account never
+/// does - so on the delete dialog it sat right above 남은 기간은 쓰실 수 없게
+/// 돼요, one screen saying both.
+const careRefundRuleOnLeaving =
+    '$_careRefundBasis\n'
+    '사용한 이력이 있으면 환불은 불가합니다.';
+
+const _careRefundBasis =
+    '결제하신 지 7일 이내에 사용하지 않으셨다면 전액 환불됩니다.\n'
+    '사용하지 않으셨지만 7일이 지났다면 남은 기간만큼 환불됩니다.';
 
 class Subscription {
   const Subscription({

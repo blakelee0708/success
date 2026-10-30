@@ -247,7 +247,9 @@ void main() {
     await tester.ensureVisible(find.byKey(GuardianFamilyKeys.leave));
     await tester.tap(find.byKey(GuardianFamilyKeys.leave));
     await tester.pumpAndSettle();
-    expect(find.textContaining(careRefundRule), findsOneWidget);
+    expect(find.textContaining(careRefundRuleOnLeaving), findsOneWidget);
+    // A cut link reads nothing until it is reconnected.
+    expect(find.textContaining('남은 기간까지 그대로 쓰실 수 있어요'), findsNothing);
     expect(
       find.textContaining('남은 기간 안에 다시 연결한 뒤, 부모님이 다시 허락하시면'),
       findsOneWidget,
@@ -263,9 +265,11 @@ void main() {
     await tester.tap(find.byKey(GuardianFamilyKeys.deleteAccount));
     await tester.pumpAndSettle();
     expect(find.byKey(GuardianFamilyKeys.deleteConfirm), findsOneWidget);
-    expect(find.textContaining(careRefundRule), findsOneWidget);
+    expect(find.textContaining(careRefundRuleOnLeaving), findsOneWidget);
     // There is no reconnecting after a delete, so it is not offered.
     expect(find.textContaining('남은 기간은 쓰실 수 없게 돼요'), findsOneWidget);
+    // and nothing above it says the opposite.
+    expect(find.textContaining('남은 기간까지 그대로 쓰실 수 있어요'), findsNothing);
     expect(find.textContaining('다시 연결한 뒤'), findsNothing);
   });
 
