@@ -106,6 +106,17 @@ def device():
     return sess["access_token"], "install-" + uuid.uuid4().hex[:10]
 
 
+def sql(statement):
+    req = urllib.request.Request(
+        f"https://api.supabase.com/v1/projects/{REF}/database/query",
+        data=json.dumps({"query": statement}).encode(),
+        headers={"Authorization": f"Bearer {MGMT}",
+                 "Content-Type": "application/json", "User-Agent": UA},
+        method="POST")
+    with urllib.request.urlopen(req) as r:
+        return json.load(r)
+
+
 def remember(profile):
     if isinstance(profile, dict) and profile.get("id"):
         created_profiles.append(profile["id"])
@@ -237,6 +248,16 @@ try:
     check("the refused child has no parent",
           st != 200 or not mine, (st, mine))
 
+    # A refusal used to be silent: the waiting page just became the
+    # connect form, which reads as the app failing.
+    st, notices = call("/rest/v1/guardian_notices?select=type,senior_name,body",
+                       token=g2, method="GET")
+    check("the refused child is told, in one line with no reason",
+          st == 200 and len(notices or []) == 1
+          and notices[0]["type"] == "link_declined"
+          and notices[0]["senior_name"] == "아버지"
+          and notices[0]["body"] == "연결되지 않았어요.", (st, notices))
+
     # --- the install-SMS path ----------------------------------------------
     g3 = guardian("g3")
     call("/rest/v1/rpc/ensure_guardian_account", token=g3,
@@ -247,6 +268,68 @@ try:
     remember(made)
     check("creating a parent from the dashboard waits too",
           links_of(made["id"])[0]["status"] == "pending", links_of(made["id"]))
+
+    # --- 부모님 폰이 있는지 ----------------------------------------------------
+    st, waiting = call("/rest/v1/rpc/pending_guardian_links", token=g3, body={})
+    check("a parent nobody installed for has no phone",
+          st == 200 and len(waiting or []) == 1
+          and waiting[0]["has_phone"] is False, (st, waiting))
+
+    # --- 연결 요청 취소: an install number nobody used ----------------------
+    g4 = guardian("g4")
+    st, invite = call("/rest/v1/rpc/create_senior_invite", token=g4,
+                      body={"p_display_name": "엄마"})
+    assert st == 200, (st, invite)
+    pid4 = invite["senior_profile_id"]
+    remember({"id": pid4})
+
+    st, out = call("/rest/v1/rpc/withdraw_link_request", token=guardian("x"),
+                   body={"p_senior_profile_id": pid4})
+    check("somebody else cannot take the request back",
+          st in (200, 204) and len(links_of(pid4)) == 1, (st, links_of(pid4)))
+
+    st, out = call("/rest/v1/rpc/withdraw_link_request", token=g4,
+                   body={"p_senior_profile_id": pid4})
+    check("the guardian can take their own request back",
+          st in (200, 204), (st, out))
+    rows = sql("select count(*) as n from public.senior_profiles "
+               f"where id = '{pid4}'")
+    check("and a parent that was only ever that request goes with it",
+          rows[0]["n"] == 0, rows)
+    rows = sql("select count(*) as n from public.pair_links "
+               f"where token = '{invite['token']}' and expires_at > now()")
+    check("and the number cannot be spent afterwards", rows[0]["n"] == 0, rows)
+    st, again = call("/rest/v1/rpc/create_senior_invite", token=g4,
+                     body={"p_display_name": "엄마"})
+    check("which frees the one seat 1대1 allows", st == 200, (st, again))
+    if st == 200:
+        remember({"id": again["senior_profile_id"]})
+
+    # --- 연결 요청 취소: a number the parent's own phone showed --------------
+    phone5, install5 = device()
+    st, link5 = call("/rest/v1/rpc/start_senior_pairing", token=phone5,
+                     body={"p_install_id": install5, "p_platform": "android"})
+    assert st == 200, (st, link5)
+    pid5 = link5["senior_profile_id"]
+    remember({"id": pid5})
+    g5 = guardian("g5")
+    st, _ = call("/rest/v1/rpc/claim_senior_pairing_code", token=g5,
+                 body={"p_code": link5["code"], "p_display_name": "할머니"})
+    assert st == 200, (st, _)
+    st, waiting = call("/rest/v1/rpc/pending_guardian_links", token=g5, body={})
+    check("a parent who showed a number has a phone",
+          st == 200 and waiting and waiting[0]["has_phone"] is True,
+          (st, waiting))
+    st, out = call("/rest/v1/rpc/withdraw_link_request", token=g5,
+                   body={"p_senior_profile_id": pid5})
+    assert st in (200, 204), (st, out)
+    st, card = call("/rest/v1/rpc/pending_guardian_link", token=phone5, body={})
+    check("taking it back takes the question off the parent's screen",
+          st == 200 and not card, (st, card))
+    rows = sql("select count(*) as n from public.senior_profiles "
+               f"where id = '{pid5}'")
+    check("and leaves a profile the parent's own phone made", rows[0]["n"] == 1,
+          rows)
 
 finally:
     for pid in created_profiles:

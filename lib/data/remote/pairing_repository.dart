@@ -114,6 +114,13 @@ abstract interface class PairingRepository {
   /// guardian may leave, and may not remove a sibling.
   Future<void> leaveSenior(String seniorProfileId);
 
+  /// 연결 요청 취소: this guardian's own request the parent has not answered.
+  ///
+  /// Takes the install numbers it issued with it, so nobody can spend one
+  /// later, and the profile when that request was all it ever was - no phone,
+  /// no message. An active link is [leaveSenior]'s.
+  Future<void> withdrawLinkRequest(String seniorProfileId);
+
   /// 부모님이 폰을 바꾸셨을 때, answered on the **child's** phone.
   ///
   /// The senior does what they always do and presses 번호 보여주기, which on
@@ -318,6 +325,13 @@ class SupabasePairingRepository implements PairingRepository {
   @override
   Future<void> leaveSenior(String seniorProfileId) async {
     await _rpc('leave_senior', {'p_senior_profile_id': seniorProfileId});
+  }
+
+  @override
+  Future<void> withdrawLinkRequest(String seniorProfileId) async {
+    await _rpc('withdraw_link_request', {
+      'p_senior_profile_id': seniorProfileId,
+    });
   }
 
   @override
@@ -635,6 +649,17 @@ class InMemoryPairingRepository implements PairingRepository {
         store.pendingAskedBy[profileId] ?? store.guardianAccountId,
         'primary',
       );
+    } else {
+      // As the server does: one line, no reason, to the one who asked.
+      store.notices.add(
+        GuardianNotice(
+          id: 'notice-${store.notices.length + 1}',
+          type: 'link_declined',
+          seniorName: store.profiles[profileId]?.displayName,
+          body: '연결되지 않았어요.',
+          createdAt: now(),
+        ),
+      );
     }
     store.pendingAskedBy.remove(profileId);
     return true;
@@ -657,6 +682,7 @@ class InMemoryPairingRepository implements PairingRepository {
       PendingSeniorLink(
         seniorProfileId: entry.key,
         seniorName: store.profiles[entry.key]?.displayName,
+        hasPhone: store.activeDeviceByProfile.containsKey(entry.key),
       ),
   ];
 
@@ -687,6 +713,21 @@ class InMemoryPairingRepository implements PairingRepository {
   @override
   Future<void> leaveSenior(String seniorProfileId) async {
     store.unlink(seniorProfileId, actingGuardianId);
+  }
+
+  @override
+  Future<void> withdrawLinkRequest(String seniorProfileId) async {
+    if (store.pendingAskedBy[seniorProfileId] != actingGuardianId) return;
+    store.pendingLinks.remove(seniorProfileId);
+    store.pendingAskedBy.remove(seniorProfileId);
+    for (final link in issued) {
+      if (link.seniorProfileId == seniorProfileId) _spent.add(link.id);
+    }
+    // Only ever this request: no phone and nobody else on it.
+    if (!store.activeDeviceByProfile.containsKey(seniorProfileId) &&
+        (store.rolesByProfile[seniorProfileId] ?? const {}).isEmpty) {
+      store.profiles.remove(seniorProfileId);
+    }
   }
 
   @override

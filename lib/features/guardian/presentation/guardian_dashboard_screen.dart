@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/clock.dart';
+import '../../../core/supabase/supabase_providers.dart';
 import '../../../core/format/korean_clock.dart';
 import '../../../core/app_version.dart';
 import '../../../core/theme/app_colors.dart';
@@ -256,7 +257,8 @@ class _HomeTab extends ConsumerWidget {
       // do it again.
       final waiting = ref.watch(pendingSeniorLinksProvider).value ?? const [];
       if (waiting.isNotEmpty) {
-        final who = waiting.first.seniorName;
+        final request = waiting.first;
+        final who = request.seniorName;
         final named = who == null || who.isEmpty ? '부모님' : '$who님';
         // **An unused install invite means the parent has not installed
         // yet**, so nothing is on their screen to answer - and saying 화면이
@@ -270,8 +272,38 @@ class _HomeTab extends ConsumerWidget {
         final phone = issued?.link.id == invite?.id
             ? issued?.phoneNumber
             : null;
+        // **The number ran out and nobody installed.** No phone has ever
+        // attached and the server holds no live number. This used to fall
+        // through to 여쭤보는 화면이 떠 있어요, and under 1대1 the waiting
+        // request held the guardian's one seat, so they could not start again
+        // either - the only way out was 계정 삭제. Decided only once the read
+        // has answered, so a page opened before it does not flash this.
+        final expired =
+            !request.hasPhone &&
+            open.hasValue &&
+            open.value == null &&
+            issued == null;
+        final title = expired
+            ? '설치 번호가 만료됐어요'
+            : invite == null
+            ? '부모님 동의를 기다리고 있어요'
+            : '부모님 폰에 앱을 설치해 주세요';
+        final heading = expired
+            ? '$named 폰에 아직 앱이 설치되지 않았어요'
+            : invite == null
+            ? '$named 폰에 여쭤봤어요'
+            : '${who == null || who.isEmpty ? '부모님' : who}께 '
+                  '${(ref.watch(appConfigProvider).value?.storeListed ?? false) ? '문자 두 개를' : '연결 번호 문자를'} 보내 주세요';
+        final detail = expired
+            ? '보내신 번호는 14일이 지나 더 이상 쓸 수 없어요. '
+                  '새 번호를 만들어 다시 보내 주세요.'
+            : invite == null
+            ? '부모님 폰에 연결해도 되는지 여쭤보는 화면이 떠 있어요. '
+                  '허락하시면 바로 이어집니다.'
+            : '설치하고 번호를 넣으시면, 부모님 폰에 연결해도 되는지 '
+                  '여쭤보는 화면이 떠요. 허락하시면 바로 이어집니다.';
         return _TabScaffold(
-          title: invite == null ? '부모님 동의를 기다리고 있어요' : '부모님 폰에 앱을 설치해 주세요',
+          title: title,
           children: [
             _ConsentWatcher(
               child: _Card(
@@ -280,9 +312,7 @@ class _HomeTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      invite == null
-                          ? '$named 폰에 여쭤봤어요'
-                          : '${who == null || who.isEmpty ? '부모님' : who}께 문자 두 개를 보내 주세요',
+                      heading,
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -292,21 +322,22 @@ class _HomeTab extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      invite == null
-                          ? '부모님 폰에 연결해도 되는지 여쭤보는 화면이 떠 있어요. '
-                                '허락하시면 바로 이어집니다.'
-                          : '설치하고 번호를 넣으시면, 부모님 폰에 연결해도 되는지 '
-                                '여쭤보는 화면이 떠요. 허락하시면 바로 이어집니다.',
+                      detail,
                       style: const TextStyle(
                         fontSize: 14.5,
                         height: 1.55,
                         color: AppColors.guardianInkSoft,
                       ),
                     ),
-                    if (invite != null) ...[
+                    if (invite != null && !expired) ...[
                       const SizedBox(height: 16),
                       GuardianInviteSender(link: invite, phoneNumber: phone),
                     ],
+                    _WaitingActions(
+                      seniorProfileId: request.seniorProfileId,
+                      seniorName: who,
+                      expired: expired,
+                    ),
                   ],
                 ),
               ),
@@ -633,7 +664,134 @@ class GuardianHomeKeys {
   static const ring = Key('guardian-home-ring');
   static const appOutOfDate = Key('guardian-home-app-out-of-date');
   static const waitingForConsent = Key('guardian-home-waiting-consent');
+  static const reissueInvite = Key('guardian-home-reissue-invite');
+  static const withdrawRequest = Key('guardian-home-withdraw-request');
+  static const withdrawConfirm = Key('guardian-home-withdraw-confirm');
   static const promise = Key('guardian-home-promise');
+}
+
+/// 번호 다시 만들기 and 연결 요청 취소, under the waiting card.
+///
+/// **The way out of a request the parent has not answered.** Under 1대1 the
+/// request holds the guardian's one seat, so before these a wrong name, a
+/// change of mind or an install number that ran out could only be undone by
+/// 계정 삭제.
+///
+/// 취소 is a text button rather than a filled one, for the reason 로그아웃 is:
+/// nobody opens the app in order to do it. 번호 다시 만들기 is filled because
+/// on an expired request it is the only thing left to do.
+class _WaitingActions extends ConsumerStatefulWidget {
+  const _WaitingActions({
+    required this.seniorProfileId,
+    required this.seniorName,
+    required this.expired,
+  });
+
+  final String seniorProfileId;
+  final String? seniorName;
+  final bool expired;
+
+  @override
+  ConsumerState<_WaitingActions> createState() => _WaitingActionsState();
+}
+
+class _WaitingActionsState extends ConsumerState<_WaitingActions> {
+  bool _busy = false;
+
+  Future<void> _run(Future<void> Function() action) async {
+    setState(() => _busy = true);
+    try {
+      await action();
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('처리하지 못했어요. 잠시 후 다시 시도해 주세요.')),
+        );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _withdraw() async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: GuardianHomeKeys.withdrawConfirm,
+        title: const Text('연결 요청을 취소할까요?'),
+        content: const Text(
+          // What happens to the parent's side first: the number they may be
+          // holding, and the question that may be on their screen.
+          '보내신 번호는 더 이상 쓸 수 없게 되고, 부모님 폰에 떠 있던 질문도 사라져요.\n'
+          '언제든 처음부터 다시 연결하실 수 있어요.',
+          style: TextStyle(fontSize: 14.5, height: 1.55),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('아니요, 기다릴게요'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('요청 취소하기'),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
+    await _run(
+      () => ref
+          .read(guardianPairingControllerProvider.notifier)
+          .withdrawRequest(widget.seniorProfileId),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = widget.seniorName;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.expired) ...[
+          const SizedBox(height: 16),
+          GuardianPrimaryButton(
+            key: GuardianHomeKeys.reissueInvite,
+            label: '번호 다시 만들기',
+            icon: Icons.refresh_rounded,
+            onPressed: _busy
+                ? null
+                : () => _run(() async {
+                    await ref
+                        .read(guardianPairingControllerProvider.notifier)
+                        .reissueInvite(
+                          seniorProfileId: widget.seniorProfileId,
+                          displayName: name == null || name.isEmpty
+                              ? '부모님'
+                              : name,
+                        );
+                  }),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            key: GuardianHomeKeys.withdrawRequest,
+            onPressed: _busy ? null : _withdraw,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.guardianInkSoft,
+              padding: EdgeInsets.zero,
+            ),
+            child: const Text(
+              '연결 요청 취소하기',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// One thing connecting a parent gives the guardian, on the empty page.

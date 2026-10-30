@@ -128,8 +128,16 @@ class GuardianPairingController extends Notifier<void> {
       );
 
   /// Text two: where to type the number, and the number.
-  Future<void> sendInviteCode(PairLink link, {String? phoneNumber}) =>
-      _openMessagingApp(phoneNumber: phoneNumber, body: link.codeMessage());
+  ///
+  /// [afterInstall] false is the one text sent before the app is on Play.
+  Future<void> sendInviteCode(
+    PairLink link, {
+    String? phoneNumber,
+    bool afterInstall = true,
+  }) => _openMessagingApp(
+    phoneNumber: phoneNumber,
+    body: link.codeMessage(afterInstall: afterInstall),
+  );
 
   /// 경로 B. The number the parent read out, plus the two things it could not
   /// carry.
@@ -174,11 +182,36 @@ class GuardianPairingController extends Notifier<void> {
   /// 가족 연결, and a notice would be the app explaining somebody's child to
   /// them.
   ///
-  /// The remaining month is refunded, which is what separates this from
-  /// 해지하기 - that one keeps the days already paid for.
+  /// What comes back of 안심 케어 is decided by use, exactly as for 해지 -
+  /// see `care_refund_due`.
   Future<void> leaveSenior(String seniorProfileId) async {
     await ref.read(pairingRepositoryProvider).leaveSenior(seniorProfileId);
     _connected();
+  }
+
+  /// 연결 요청 취소, from the waiting page.
+  ///
+  /// Under 1대1 a waiting request holds the guardian's one seat, so before
+  /// this existed a wrong name or a change of mind could only be undone by
+  /// 계정 삭제.
+  Future<void> withdrawRequest(String seniorProfileId) async {
+    await ref
+        .read(pairingRepositoryProvider)
+        .withdrawLinkRequest(seniorProfileId);
+    ref.read(lastInviteProvider.notifier).set(null);
+    ref.invalidate(waitingInviteProvider);
+    _connected();
+  }
+
+  /// 번호 다시 만들기: an install number that ran out before anybody
+  /// installed. The old request goes and a new one is made under the same
+  /// name, so the guardian is handed a fresh number rather than a form.
+  Future<PairLink> reissueInvite({
+    required String seniorProfileId,
+    required String displayName,
+  }) async {
+    await withdrawRequest(seniorProfileId);
+    return inviteSenior(displayName: displayName);
   }
 
   /// 어머니 폰을 바꿨어요, answered here because the child is who knows.

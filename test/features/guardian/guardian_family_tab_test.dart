@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/core/supabase/supabase_providers.dart';
+import 'package:app/data/remote/app_config_repository.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/pairing_repository.dart';
 import 'package:app/data/remote/senior_link_repository.dart';
@@ -20,6 +21,7 @@ Future<Harness> _pumpFamilyTab(
   WidgetTester tester, {
   bool withParent = false,
   bool pendingConsent = false,
+  bool storeListed = false,
 }) async {
   final auth = InMemoryGuardianAuthRepository()
     ..seedSignedIn(const GuardianSession(userId: 'u1', email: 'g@example.com'));
@@ -44,6 +46,9 @@ Future<Harness> _pumpFamilyTab(
     tester,
     overrides: [
       guardianAuthRepositoryProvider.overrideWithValue(auth),
+      appConfigRepositoryProvider.overrideWithValue(
+        InMemoryAppConfigRepository(AppConfig(storeListed: storeListed)),
+      ),
       seniorLinkRepositoryProvider.overrideWithValue(store),
       pairingRepositoryProvider.overrideWithValue(pairing),
     ],
@@ -87,10 +92,7 @@ void main() {
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('아래 두 문자를 차례로 보내 주세요. 문자 앱이 열리면 보내기는 직접 눌러 주세요.'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('보내기는 직접 눌러 주세요'), findsOneWidget);
     expect(find.textContaining('문자를 보냈'), findsNothing);
     expect(find.textContaining('발송'), findsNothing);
     expect(h.pairing.issued.last.code, isNotEmpty);
@@ -118,7 +120,11 @@ void main() {
     // at once with one text carrying both the link and the number, so the
     // guardian never saw the number here - and the parent could not find it
     // in the third line of a message under a two-line link.
-    final h = await _pumpFamilyTab(tester, pendingConsent: true);
+    final h = await _pumpFamilyTab(
+      tester,
+      pendingConsent: true,
+      storeListed: true,
+    );
 
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
@@ -131,6 +137,24 @@ void main() {
     // The button that made it gives way, so a second press cannot make a
     // second parent.
     expect(find.byKey(GuardianFamilyKeys.invite), findsNothing);
+  });
+
+  testWidgets('before the app is on Play there is one text, the number', (
+    tester,
+  ) async {
+    // The store link would open a page that does not exist yet. The
+    // parent's app is installed by hand until launch day turns it on.
+    final h = await _pumpFamilyTab(tester, pendingConsent: true);
+
+    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
+    await tester.tap(find.byKey(GuardianFamilyKeys.invite));
+    await tester.pumpAndSettle();
+
+    expect(find.text(h.pairing.issued.last.code), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.sendInstallLink), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.sendInviteCode), findsOneWidget);
+    expect(find.text('연결 번호 보내기'), findsOneWidget);
+    expect(find.textContaining('두 문자'), findsNothing);
   });
 
   testWidgets('a parent with no name is refused before anything is created', (

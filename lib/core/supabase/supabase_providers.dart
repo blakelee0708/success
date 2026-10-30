@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../data/remote/app_config_repository.dart';
 import '../../data/remote/guardian_auth_repository.dart';
 import '../../data/remote/home_apps_repository.dart';
 import '../../data/remote/message_repository.dart';
@@ -102,3 +103,15 @@ final homeAppsRepositoryProvider = Provider<HomeAppsRepository>((ref) {
   if (client == null) return InMemoryHomeAppsRepository();
   return SupabaseHomeAppsRepository(client);
 });
+
+final appConfigRepositoryProvider = Provider<AppConfigRepository>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return InMemoryAppConfigRepository();
+  return SupabaseAppConfigRepository(client);
+});
+
+/// Read once per run. A setting that changes once, on launch day, does not
+/// need a poll.
+final appConfigProvider = FutureProvider<AppConfig>(
+  (ref) => ref.watch(appConfigRepositoryProvider).read(),
+);

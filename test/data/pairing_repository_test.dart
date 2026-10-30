@@ -171,6 +171,20 @@ void main() {
       expect(body, isNot(contains('referrer')));
     });
 
+    test('before the app is on Play, the text sent alone skips 설치하고', () async {
+      // The parent's app was installed by hand, and a store link would open
+      // a page that does not exist yet - so there is one text, and it may
+      // not tell anybody to install first.
+      final h = _fresh();
+      final link = await h.pairing.createSeniorInvite(displayName: '아버지');
+
+      final body = link.codeMessage(afterInstall: false);
+
+      expect(body, startsWith('잘보이네 앱을 여신 뒤'));
+      expect(body, isNot(contains('설치')));
+      expect(body.split('\n').last, link.code);
+    });
+
     test('a parent still waiting counts against the one-to-one lock', () async {
       // `assert_can_add_senior` counts 'pending' links. The twin counted
       // only linked ones, so a second invite passed here and the server
@@ -194,7 +208,10 @@ void main() {
 
       expect(await h.pairing.openSeniorInvite(profileId), link);
 
-      await h.pairing.redeemSeniorInvite(installId: 'install-1', code: link.code);
+      await h.pairing.redeemSeniorInvite(
+        installId: 'install-1',
+        code: link.code,
+      );
 
       expect(await h.pairing.openSeniorInvite(profileId), isNull);
     });

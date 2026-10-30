@@ -37,10 +37,22 @@ class PendingGuardianLink {
 
 /// The other side of the same wait, on the guardian's phone.
 class PendingSeniorLink {
-  const PendingSeniorLink({required this.seniorProfileId, this.seniorName});
+  const PendingSeniorLink({
+    required this.seniorProfileId,
+    this.seniorName,
+    this.hasPhone = true,
+  });
 
   final String seniorProfileId;
   final String? seniorName;
+
+  /// Whether any handset has attached to this parent yet.
+  ///
+  /// False is a 설치 문자 nobody installed from. With its number run out
+  /// (14 days), the waiting page used to say 부모님 폰에 여쭤보는 화면이 떠
+  /// 있어요 about a parent who had no screen to show anything on. Missing
+  /// from the row reads as true, which is the old behaviour.
+  final bool hasPhone;
 
   static PendingSeniorLink? fromRow(Map<String, Object?> row) {
     final id = row['senior_profile_id'];
@@ -48,6 +60,7 @@ class PendingSeniorLink {
     return PendingSeniorLink(
       seniorProfileId: id,
       seniorName: (row['senior_name'] as String?)?.trim(),
+      hasPhone: row['has_phone'] as bool? ?? true,
     );
   }
 }

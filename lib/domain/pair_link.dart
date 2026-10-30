@@ -47,10 +47,12 @@ class PairLink {
 
   /// The Play listing, with the token as the install referrer.
   ///
-  /// This is what makes 경로 A automatic: Play hands the referrer to the app on
-  /// first launch, and it carries the token that says which family this is.
-  /// It only survives an install that actually went through the store, which
-  /// is exactly why [code] travels alongside it.
+  /// The token rides along for the day 경로 A becomes automatic: Play hands
+  /// the referrer to the app on first launch, and it says which family this
+  /// is. **Nothing reads it yet** - that half is a post-launch update, and
+  /// until then the parent types [code]. It would only ever survive an
+  /// install that went through the store, which is why [code] travels with
+  /// it either way.
   String installUrl(String applicationId) =>
       'https://play.google.com/store/apps/details'
       '?id=$applicationId&referrer=$token';
@@ -80,8 +82,12 @@ class PairLink {
   /// 가족 연결 button and the question over the field - so they can be
   /// matched by eye rather than understood. The number comes last and by
   /// itself because that is the line somebody reads out down the phone.
-  String codeMessage() =>
-      '설치하고 앱을 여신 뒤 「가족 연결」을 누르세요.\n'
+  ///
+  /// [afterInstall] false is the text sent alone, before the app is on
+  /// Play: the parent's app was installed by hand, so there is no 설치하고
+  /// to do first.
+  String codeMessage({bool afterInstall = true}) =>
+      '${afterInstall ? '설치하고 앱을' : '잘보이네 앱을'} 여신 뒤 「가족 연결」을 누르세요.\n'
       '「자녀분이 먼저 번호를 알려 주셨나요?」 아래 칸에 '
       '이 번호를 넣고 「연결하기」를 눌러 주세요.\n\n'
       '$code';

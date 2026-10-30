@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 783 tests, all passing
+flutter test             # currently 790 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -1172,9 +1172,12 @@ Three things worth knowing before changing any of it:
   phone *showing* a 4-digit code that the guardian types. A code cannot carry a
   phone number, which is exactly why the guardian supplies the number and the
   name at that moment.
-- **The parent's phone can create its own profile.** 경로 A rides on the Play
-  install referrer, which only survives a store install, so 경로 B is the
-  required fallback and has to work with no guardian present. `start_senior_pairing`
+- **The parent's phone can create its own profile.** 경로 A was planned to
+  ride on the Play install referrer, which only survives a store install, so
+  경로 B is the required fallback and has to work with no guardian present.
+  **Nothing reads the referrer yet** (2026-10-30): the parent types the
+  number on both paths, and automatic linking is a post-launch update - see
+  `## 출시 전에는 문자 한 통`. `start_senior_pairing`
   is that path; removing it removes the fallback.
 - **"연결됨" means a guardian is attached, not that a profile exists.** Showing a
   code creates the profile. Keying the senior's screen off the profile told
@@ -3189,6 +3192,63 @@ the third line of the rule on 해지 only (`careRefundRule`); the two leaving
 dialogs carry `careRefundRuleOnLeaving`, which stops at 환불은 불가합니다. A
 cut link reads nothing until it is reconnected, and on the delete dialog the
 full line sat directly above 남은 기간은 쓰실 수 없게 돼요.
+
+## 기다리는 요청은 거둘 수 있고, 거절은 말해 준다
+
+2026-10-30. Four faults on the guardian's waiting page, found by walking
+every situation a guardian and a parent can be in. Under 1대1 a waiting
+request holds the guardian's one seat (`assert_can_add_senior` counts
+'pending'), so every one of them was a dead end whose only exit was 계정
+삭제.
+
+- **폰 바꾸기 moved whoever's phone showed the number.** The 1대1 cleanup
+  dropped the 어머니 폰을 바꾸신 게 맞나요 question, on the grounds that there
+  is only one parent it can mean - true of the profile, false of the phone.
+  `move_senior_to_new_phone` takes any empty profile, so a father's or a
+  neighbour's handset moved onto this parent and took hers off. The question
+  is back, naming the parent: `{name}님 폰을 새 폰으로 바꿀까요?`.
+- **No way to take a request back.** `withdraw_link_request` is the
+  guardian's own pending link and nothing else; it expires the install
+  numbers that request issued and deletes the profile when that request was
+  all it ever was (no device, no other link, no message). An active link is
+  `leave_senior`'s, which has money in it. On the page it is a text button,
+  for the reason 로그아웃 is.
+- **An install number that ran out stranded them.** Fourteen days, nobody
+  installed, and the page fell through to 여쭤보는 화면이 떠 있어요 about a
+  parent with no app and so no screen. `pending_guardian_links` returns
+  `has_phone` now, and with no phone and no live number the page says
+  설치 번호가 만료됐어요 and offers **번호 다시 만들기**, which withdraws and
+  issues a new number under the same name.
+- **A 거절 was silent.** The waiting page simply became 부모님 연결하기,
+  which reads as the app failing. `answer_guardian_link` now leaves a
+  `link_declined` notice - 연결되지 않았어요, no reason, the same rule as
+  끊기 - and `GuardianNotices` draws it with the line it already had.
+
+`20261030000000_waiting_requests.sql`. `tool/verify_supabase_link_consent.py`
+walks the notice, `has_phone` both ways, and the withdrawal on both kinds of
+profile.
+
+## 출시 전에는 문자 한 통
+
+The install text carries the Play link, and before the listing exists that
+link opens a page that does not exist. So until launch the guardian sends
+**one** text - the number, starting 잘보이네 앱을 여신 뒤 rather than
+설치하고 - and the parent's app is installed by hand.
+
+It is a **server setting**, `app_config.store_listed`
+(`20261030010000_app_config.sql`), not a build constant: a launcher is the
+app Play will not update, and launch day should turn the link on with no
+update anywhere. An unreadable config reads as not listed, because a dead
+store link is worse than a text that assumes the app is installed.
+`app_config.latest_build` is beside it for the guardian's own 새 버전이
+있어요, which is not drawn yet.
+
+**Automatic linking from the link is a post-launch update, and that is
+enough.** It only ever matters at first install, and a first install always
+gets the newest build from Play - so the launcher-update problem does not
+reach it. The link already carries `referrer=<token>`; what is missing is
+only the parent's side reading it, plus the permission the Install Referrer
+library merges in, which `privacy_policy_test` will catch.
 
 ## 1대1만 연결한다, and it is a lock rather than a rewrite
 

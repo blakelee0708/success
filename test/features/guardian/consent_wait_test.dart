@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/core/supabase/supabase_providers.dart';
+import 'package:app/data/remote/app_config_repository.dart';
 import 'package:app/data/remote/guardian_auth_repository.dart';
 import 'package:app/data/remote/pairing_repository.dart';
 import 'package:app/data/remote/senior_link_repository.dart';
@@ -25,6 +26,8 @@ _pumpDashboard(
   WidgetTester tester, {
   bool withPendingParent = false,
   bool withInvite = false,
+  DateTime Function()? now,
+  bool storeListed = false,
 }) async {
   final auth = InMemoryGuardianAuthRepository()
     ..seedSignedIn(const GuardianSession(userId: 'u1', email: 'g@example.com'));
@@ -32,7 +35,7 @@ _pumpDashboard(
 
   final links = InMemorySeniorLinkRepository()..pendingLinkConsent = true;
   await links.ensureGuardianAccount(displayName: '영희');
-  final pairing = InMemoryPairingRepository(links);
+  final pairing = InMemoryPairingRepository(links, now: now ?? DateTime.now);
   if (withPendingParent) {
     await links.createSeniorProfile(displayName: '엄마');
   }
@@ -46,6 +49,9 @@ _pumpDashboard(
     tester,
     overrides: [
       guardianAuthRepositoryProvider.overrideWithValue(auth),
+      appConfigRepositoryProvider.overrideWithValue(
+        InMemoryAppConfigRepository(AppConfig(storeListed: storeListed)),
+      ),
       seniorLinkRepositoryProvider.overrideWithValue(links),
       pairingRepositoryProvider.overrideWithValue(pairing),
     ],
@@ -116,7 +122,7 @@ void main() {
     // waiting link, which moves 홈 onto this page - and this page had no
     // number on it, so the guardian came back from the messaging app to
     // nothing they could read out.
-    final h = await _pumpDashboard(tester);
+    final h = await _pumpDashboard(tester, storeListed: true);
 
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '엄마');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
@@ -152,6 +158,96 @@ void main() {
     expect(find.byKey(GuardianHomeKeys.waitingForConsent), findsOneWidget);
     expect(find.text(code), findsNothing);
     expect(find.textContaining('엄마님 폰에 여쭤봤어요'), findsOneWidget);
+  });
+
+  testWidgets('a number that ran out says so, and makes a new one', (
+    tester,
+  ) async {
+    // 14 days and nobody installed. This used to fall through to
+    // 여쭤보는 화면이 떠 있어요 - about a parent with no app, so no screen -
+    // and the waiting request held the one seat 1대1 allows.
+    var clock = DateTime(2026, 10, 1);
+    final h = await _pumpDashboard(tester, withInvite: true, now: () => clock);
+    expect(find.text(h.pairing.issued.single.code), findsOneWidget);
+
+    clock = clock.add(const Duration(days: 15));
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+
+    expect(find.text('설치 번호가 만료됐어요'), findsOneWidget);
+    expect(find.textContaining('화면이 떠 있어요'), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.sendInviteCode), findsNothing);
+
+    await tester.tap(find.byKey(GuardianHomeKeys.reissueInvite));
+    await tester.pumpAndSettle();
+
+    expect(h.pairing.issued, hasLength(2));
+    expect(find.text(h.pairing.issued.last.code), findsOneWidget);
+    expect(find.text('설치 번호가 만료됐어요'), findsNothing);
+    expect(h.links.pendingLinks, hasLength(1));
+  });
+
+  testWidgets('a waiting request can be taken back', (tester) async {
+    // A wrong name or a change of mind: before this, 계정 삭제 was the only
+    // way out, because the request held the guardian's one seat.
+    final h = await _pumpDashboard(tester, withInvite: true);
+    final profileId = h.pairing.issued.single.seniorProfileId!;
+
+    await tester.tap(find.byKey(GuardianHomeKeys.withdrawRequest));
+    await tester.pumpAndSettle();
+    expect(find.byKey(GuardianHomeKeys.withdrawConfirm), findsOneWidget);
+    await tester.tap(find.text('요청 취소하기'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(GuardianHomeKeys.waitingForConsent), findsNothing);
+    expect(find.byKey(GuardianHomeKeys.noParent), findsOneWidget);
+    expect(h.links.pendingLinks, isEmpty);
+    // The number cannot be spent later, and the profile that was only ever
+    // this request is gone with it.
+    expect(await h.pairing.openSeniorInvite(profileId), isNull);
+    expect(h.links.profiles.containsKey(profileId), isFalse);
+  });
+
+  testWidgets('아니요, 기다릴게요 keeps the request', (tester) async {
+    final h = await _pumpDashboard(tester, withInvite: true);
+
+    await tester.tap(find.byKey(GuardianHomeKeys.withdrawRequest));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('아니요, 기다릴게요'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(GuardianHomeKeys.waitingForConsent), findsOneWidget);
+    expect(h.links.pendingLinks, hasLength(1));
+  });
+
+  testWidgets('a parent saying no is said, not silent', (tester) async {
+    // The waiting page used to turn into 부모님 연결하기 with nothing on it
+    // saying why, which reads as the app failing - and the first thing a
+    // guardian does about that is try again.
+    final h = await _pumpDashboard(tester);
+    final started = await h.pairing.startSeniorPairing(
+      installId: 'senior-phone',
+    );
+    await tester.tap(find.text('불러주신 번호 넣기'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(GuardianFamilyKeys.codeField),
+      started.code,
+    );
+    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '엄마');
+    await tester.tap(find.byKey(GuardianFamilyKeys.enterCode));
+    await tester.pumpAndSettle();
+    expect(find.byKey(GuardianHomeKeys.waitingForConsent), findsOneWidget);
+
+    await h.pairing.answerGuardianLink(
+      h.links.pendingLinks.values.single,
+      approve: false,
+    );
+    await tester.pump(const Duration(seconds: 16));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(GuardianHomeKeys.noParent), findsOneWidget);
+    expect(find.textContaining('엄마님 · 연결되지 않았어요.'), findsOneWidget);
   });
 
   testWidgets('waiting still has 로그아웃 and 계정 삭제', (tester) async {

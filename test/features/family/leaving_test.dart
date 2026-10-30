@@ -483,13 +483,12 @@ void main() {
   // ===========================================================
   // 부모님이 폰을 바꾸셨을 때
   // ===========================================================
-  testWidgets('the new phone\'s number moves the parent, in one step', (
+  testWidgets('the new phone\'s number moves the parent, once asked', (
     tester,
   ) async {
     // The parent does what they always do and presses 번호 보여주기 on the
     // new handset, which makes a second, empty profile. With a parent
-    // already here the card asks for nothing else - 무조건 자녀 하나, 부모
-    // 하나, so the number can only be that parent's new phone.
+    // already here the card asks for no name - 무조건 자녀 하나, 부모 하나.
     final h = await _family();
     await _pumpGuardianHome(tester, h);
 
@@ -505,12 +504,41 @@ void main() {
     await tester.tap(find.byKey(GuardianFamilyKeys.enterCode));
     await tester.pumpAndSettle();
 
+    // **It still asks, by name.** One parent is not one phone: a number
+    // shown on a father's or a neighbour's handset would otherwise move
+    // that handset onto this parent and take theirs off.
+    expect(find.byKey(GuardianFamilyKeys.phoneChangeConfirm), findsOneWidget);
+    expect(find.text('어머니님 폰을 새 폰으로 바꿀까요?'), findsOneWidget);
+    await tester.tap(find.text('네, 새 폰이에요'));
+    await tester.pumpAndSettle();
+
     expect(h.store.linkedProfileIds, [h.profileId]);
     // And the new handset is the one the profile answers for.
     expect(
       h.store.activeDeviceByProfile[h.profileId]?.installId,
       'new-senior-phone',
     );
+  });
+
+  testWidgets('아니요 on the phone-change question moves nothing', (tester) async {
+    final h = await _family();
+    await _pumpGuardianHome(tester, h);
+    final before = h.store.activeDeviceByProfile[h.profileId]?.installId;
+
+    final other = await h.pairing.startSeniorPairing(
+      installId: 'fathers-phone',
+    );
+    await tester.ensureVisible(find.byKey(GuardianFamilyKeys.codeField));
+    await tester.enterText(
+      find.byKey(GuardianFamilyKeys.codeField),
+      other.code,
+    );
+    await tester.tap(find.byKey(GuardianFamilyKeys.enterCode));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('아니요'));
+    await tester.pumpAndSettle();
+
+    expect(h.store.activeDeviceByProfile[h.profileId]?.installId, before);
   });
 
   // ===========================================================

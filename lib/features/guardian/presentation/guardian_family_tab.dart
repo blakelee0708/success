@@ -47,6 +47,7 @@ class GuardianFamilyKeys {
   static const leaveConfirm = Key('guardian-family-leave-confirm');
   static const deleteAccount = Key('guardian-family-delete-account');
   static const deleteConfirm = Key('guardian-family-delete-confirm');
+  static const phoneChangeConfirm = Key('guardian-family-phone-change-confirm');
   static const privacy = Key('guardian-family-privacy');
   static const notice = Key('guardian-family-notice');
 }
@@ -379,11 +380,43 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
     // second, empty profile. This card only exists once a parent is
     // connected, so the number is that new phone's and it moves onto the
     // parent this guardian already has.
+    //
+    // **Asked first, naming the parent.** The server takes any empty
+    // profile, so a number shown on somebody else's phone - a father's, a
+    // neighbour's - would move *that* handset onto this parent and take the
+    // old one off. The 1대1 cleanup dropped the question for a while, on the
+    // grounds that there is only one parent it can mean; that was true of
+    // the profile and false of the phone.
     String? moveOnto;
     if (widget.phoneChange) {
       final existing = ref.read(linkedSeniorProfilesProvider).value ?? const [];
       if (existing.isEmpty) return;
-      moveOnto = existing.first.id;
+      final parent = existing.first;
+      final sure = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: GuardianFamilyKeys.phoneChangeConfirm,
+          title: Text('${parent.displayName}님 폰을 새 폰으로 바꿀까요?'),
+          content: Text(
+            '방금 넣으신 번호가 ${parent.displayName}님의 새 폰에 나온 번호일 때만 '
+            '바꿔 주세요.\n'
+            '대화와 홈 화면, 글씨 크기가 새 폰으로 옮겨지고, 예전 폰은 연결이 풀립니다.',
+            style: const TextStyle(fontSize: 14.5, height: 1.55),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('아니요'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('네, 새 폰이에요'),
+            ),
+          ],
+        ),
+      );
+      if (sure != true) return;
+      moveOnto = parent.id;
     }
     if (!mounted) return;
 
@@ -484,7 +517,10 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
               ? '부모님 폰의 가족 연결 화면에 4자리 번호가 나옵니다. '
                     '그 번호를 불러 주시면 여기에 넣어 주세요. '
                     '번호로는 전화번호를 알 수 없어서, 이름과 번호는 여기서 받습니다.'
-              : '번호를 만들면 보낼 문자 두 개를 준비해 드려요.\n'
+              : (ref.watch(appConfigProvider).value?.storeListed ?? false)
+              ? '번호를 만들면 보낼 문자 두 개를 준비해 드려요.\n'
+                    '보내기는 문자 앱에서 직접 눌러 주세요.'
+              : '번호를 만들면 보낼 문자를 준비해 드려요.\n'
                     '보내기는 문자 앱에서 직접 눌러 주세요.',
           style: const TextStyle(
             fontSize: 14,
@@ -616,6 +652,12 @@ class GuardianInviteSender extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(guardianPairingControllerProvider.notifier);
+    // **Before the app is on Play there is one text, not two.** The store
+    // link opens a page that does not exist yet, and a parent who taps it
+    // and lands on 찾을 수 없음 is worse off than one never sent it. Their
+    // app is installed by hand until then. A server setting, so launch day
+    // turns the link on without an update.
+    final listed = ref.watch(appConfigProvider).value?.storeListed ?? false;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -635,32 +677,41 @@ class GuardianInviteSender extends ConsumerWidget {
         const SizedBox(height: 16),
         // Never "문자를 보냈어요": the app hands each text to the messaging
         // app and cannot see what happens after that.
-        const Text(
-          '아래 두 문자를 차례로 보내 주세요. '
-          '문자 앱이 열리면 보내기는 직접 눌러 주세요.',
-          style: TextStyle(
+        Text(
+          listed
+              ? '아래 두 문자를 차례로 보내 주세요. '
+                    '문자 앱이 열리면 보내기는 직접 눌러 주세요.'
+              : '아래 문자를 보내 주세요. '
+                    '문자 앱이 열리면 보내기는 직접 눌러 주세요.',
+          style: const TextStyle(
             fontSize: 14,
             height: 1.5,
             color: AppColors.guardianInk,
           ),
         ),
         const SizedBox(height: 12),
-        GuardianPrimaryButton(
-          key: GuardianFamilyKeys.sendInstallLink,
-          onPressed: () => unawaited(
-            controller.sendInstallLink(link, phoneNumber: phoneNumber),
+        if (listed) ...[
+          GuardianPrimaryButton(
+            key: GuardianFamilyKeys.sendInstallLink,
+            onPressed: () => unawaited(
+              controller.sendInstallLink(link, phoneNumber: phoneNumber),
+            ),
+            icon: Icons.download_rounded,
+            label: '① 설치 링크 보내기',
           ),
-          icon: Icons.download_rounded,
-          label: '① 설치 링크 보내기',
-        ),
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
+        ],
         GuardianPrimaryButton(
           key: GuardianFamilyKeys.sendInviteCode,
           onPressed: () => unawaited(
-            controller.sendInviteCode(link, phoneNumber: phoneNumber),
+            controller.sendInviteCode(
+              link,
+              phoneNumber: phoneNumber,
+              afterInstall: listed,
+            ),
           ),
           icon: Icons.pin_rounded,
-          label: '② 연결 번호 보내기',
+          label: listed ? '② 연결 번호 보내기' : '연결 번호 보내기',
         ),
       ],
     );
