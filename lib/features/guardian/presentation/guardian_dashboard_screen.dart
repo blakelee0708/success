@@ -23,6 +23,7 @@ import '../../care/presentation/guardian_care_tab.dart';
 import '../../messages/application/unread_notice.dart';
 import '../../messages/application/message_controller.dart';
 import '../../messages/presentation/guardian_message_tab.dart';
+import '../../notices/presentation/guardian_service_notices.dart';
 import 'guardian_family_tab.dart';
 import 'guardian_name_screen.dart';
 import 'guardian_launcher_tab.dart';
@@ -305,6 +306,7 @@ class _HomeTab extends ConsumerWidget {
         return _TabScaffold(
           title: title,
           children: [
+            const GuardianServiceNotices(),
             _ConsentWatcher(
               child: _Card(
                 key: GuardianHomeKeys.waitingForConsent,
@@ -368,6 +370,7 @@ class _HomeTab extends ConsumerWidget {
       return const _TabScaffold(
         title: '부모님 연결하기',
         children: [
+          GuardianServiceNotices(),
           GuardianNotices(),
           _Card(
             key: GuardianHomeKeys.noParent,
@@ -459,6 +462,7 @@ class _HomeTab extends ConsumerWidget {
       // claiming the parent never set theirs up.
       lede: locked ? '안심 케어를 시작하시면 부모님 폰 상태를 알려 드려요.' : presence.lede,
       children: [
+        const GuardianServiceNotices(),
         GuardianHeroCard(
           key: GuardianHomeKeys.hero,
           subject: phone == null

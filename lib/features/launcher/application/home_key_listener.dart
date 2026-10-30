@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
+import '../../../core/supabase/supabase_providers.dart';
+import '../../notices/application/notice_providers.dart';
 import '../../family/application/senior_pairing_controller.dart';
 import '../../guardian/application/guardian_pairing_controller.dart';
 import '../../guardian/application/guardian_session_controller.dart';
@@ -163,6 +165,11 @@ class _HomeKeyListenerState extends ConsumerState<HomeKeyListener>
     ref.read(seniorSettingsControllerProvider.notifier).refresh();
     _refreshFamily();
     _refreshGuardian();
+    // 공지 and the guardian's 새 버전, on resume only. They change once in a
+    // while and on the company's schedule, so the fifteen-second tick would
+    // be a read every time for nothing.
+    ref.invalidate(runningNoticesProvider);
+    ref.invalidate(appConfigProvider);
     // The commoner half of 안부 신호 by far. A launcher may go weeks without
     // being restarted, so start-up alone would report once and then go quiet
     // while the parent used the phone every day.

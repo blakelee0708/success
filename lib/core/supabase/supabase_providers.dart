@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../data/remote/announcement_repository.dart';
 import '../../data/remote/app_config_repository.dart';
 import '../../data/remote/guardian_auth_repository.dart';
 import '../../data/remote/home_apps_repository.dart';
@@ -115,3 +116,9 @@ final appConfigRepositoryProvider = Provider<AppConfigRepository>((ref) {
 final appConfigProvider = FutureProvider<AppConfig>(
   (ref) => ref.watch(appConfigRepositoryProvider).read(),
 );
+
+final announcementRepositoryProvider = Provider<AnnouncementRepository>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return InMemoryAnnouncementRepository();
+  return SupabaseAnnouncementRepository(client);
+});

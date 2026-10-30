@@ -1,3 +1,5 @@
+import '../../../notices/application/notice_providers.dart';
+import '../../../notices/presentation/senior_service_notice.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -56,7 +58,14 @@ class SeniorNoticeLayer extends ConsumerWidget {
     final linkWaiting = ref.watch(pendingGuardianLinkProvider).value != null;
     final careWaiting = ref.watch(careConsentPendingProvider).value != null;
     final unread = messages ? ref.watch(unreadFromFamilyProvider) : null;
-    if (!linkWaiting && !careWaiting && unread == null) {
+    // **Last of everything.** A 공지 is the company talking, and the family
+    // and the two questions come first: it waits behind an unread message
+    // rather than covering it. Off on 가족 연결 for the same reason the
+    // message is.
+    final notice = messages && unread == null
+        ? ref.watch(seniorNoticeProvider)
+        : null;
+    if (!linkWaiting && !careWaiting && unread == null && notice == null) {
       return const SizedBox.shrink();
     }
 
@@ -110,7 +119,9 @@ class SeniorNoticeLayer extends ConsumerWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-                    child: FamilyMessagePrompt(message: unread!),
+                    child: unread != null
+                        ? FamilyMessagePrompt(message: unread)
+                        : SeniorServiceNotice(notice: notice!),
                   ),
                 ),
               ),

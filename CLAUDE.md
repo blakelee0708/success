@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 790 tests, all passing
+flutter test             # currently 801 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -3244,7 +3244,7 @@ app Play will not update, and launch day should turn the link on with no
 update anywhere. An unreadable config reads as not listed, because a dead
 store link is worse than a text that assumes the app is installed.
 `app_config.latest_build` is beside it for the guardian's own 새 버전이
-있어요, which is not drawn yet.
+나왔어요 - see `## 공지`.
 
 **Automatic linking from the link is a post-launch update, and that is
 enough.** It only ever matters at first install, and a first install always
@@ -3252,6 +3252,40 @@ gets the newest build from Play - so the launcher-update problem does not
 reach it. The link already carries `referrer=<token>`; what is missing is
 only the parent's side reading it, plus the permission the Install Referrer
 library merges in, which `privacy_policy_test` will catch.
+
+## 공지, which had to be in the first build
+
+2026-10-30, from the owner's mockup, approved as drawn. **A launcher is the
+app Play will not update**, so a notice built into a later version can never
+reach the phones still on this one - and those are exactly the phones a
+notice is for. So the reading is in this build and the words are on the
+server: `announcements` (`20261030020000_announcements.sql`), readable by
+anybody while it runs, writable by no client.
+
+- **The parent's card** is `SeniorServiceNotice`, in `SeniorNoticeLayer`'s
+  card over the scrim, and it comes **last**: after both consent questions
+  and after an unread family message. It says 잘보이네에서 알려 드려요 before
+  the body, because a senior has to know this is not their family before
+  they read it. One button, 확인했어요, and it is final. The body is cut at
+  five lines - it is written on a server by somebody who may not count, on a
+  card that may not scroll - and the test tries a long one at all four text
+  sizes.
+- **The guardian's** is `GuardianServiceNotices`, at the top of 홈 in all
+  three of its states, drawn only when there is something in it. It also
+  carries **새 버전이 나왔어요** when `app_config.latest_build` is above this
+  build; 업데이트하기 opens the store, and 나중에 holds for that build only,
+  so the next one asks again.
+- **Closing is kept on the phone and never sent anywhere.** Whether somebody
+  read a service notice is nothing the company needs, and a parent's phone is
+  the last place to start collecting it.
+- **`below_build`** shows a notice only to older builds, so 업데이트해
+  주세요 reaches the phones that have not and nobody else.
+- **Service notices only.** Advertising needs 수신 동의 under 정보통신망법
+  before it may be pushed, and the app asks for none.
+
+Both are re-read on resume, not on the fifteen-second tick: they change on
+the company's schedule. `tool/verify_supabase_notices.py` checks the running
+window, the anonymous reads and the refused writes.
 
 ## 1대1만 연결한다, and it is a lock rather than a rewrite
 
