@@ -16,6 +16,7 @@ import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/guardian_account.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
+import 'package:app/domain/senior_profile.dart';
 import 'package:app/domain/subscription.dart';
 import 'package:app/features/family/application/senior_pairing_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -103,6 +104,7 @@ Future<InMemoryGuardianAuthRepository> _pumpGuardianHome(
   WidgetTester tester,
   Harness h, {
   bool care = false,
+  bool used = false,
 }) async {
   final auth = InMemoryGuardianAuthRepository()
     ..seedSignedIn(const GuardianSession(userId: 'u1'));
@@ -110,6 +112,7 @@ Future<InMemoryGuardianAuthRepository> _pumpGuardianHome(
   if (care) {
     await h.subs.startCare(h.profileId);
     await h.subs.resolveCareConsent(h.profileId, true);
+    if (used) h.subs.used.add(h.subs.subscriptions.last.id);
   }
   await pumpApp(
     tester,
@@ -230,18 +233,40 @@ void main() {
     await tester.tap(find.byKey(GuardianFamilyKeys.leave));
     await tester.pumpAndSettle();
     expect(find.textContaining('돌려드립니다'), findsNothing);
+    expect(find.textContaining('환불'), findsNothing);
   });
 
-  testWidgets('with 안심 케어 on, leaving says the money comes back', (
+  testWidgets('with 안심 케어 on, leaving says the refund rule, not a promise', (
     tester,
   ) async {
+    // Who cut does not decide the money - use does. A child who asked their
+    // mother to press 끊기 would otherwise be paid back for a month they used.
     final h = await _family();
     await _pumpGuardianHome(tester, h, care: true);
 
     await tester.ensureVisible(find.byKey(GuardianFamilyKeys.leave));
     await tester.tap(find.byKey(GuardianFamilyKeys.leave));
     await tester.pumpAndSettle();
-    expect(find.textContaining('돌려드립니다'), findsOneWidget);
+    expect(find.textContaining(careRefundRule), findsOneWidget);
+    expect(
+      find.textContaining('남은 기간 안에 다시 연결한 뒤, 부모님이 다시 허락하시면'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('남은 기간에 해당하는 금액을 돌려드립니다'), findsNothing);
+  });
+
+  testWidgets('deleting the account says the refund rule too', (tester) async {
+    final h = await _family();
+    await _pumpGuardianHome(tester, h, care: true);
+
+    await tester.ensureVisible(find.byKey(GuardianFamilyKeys.deleteAccount));
+    await tester.tap(find.byKey(GuardianFamilyKeys.deleteAccount));
+    await tester.pumpAndSettle();
+    expect(find.byKey(GuardianFamilyKeys.deleteConfirm), findsOneWidget);
+    expect(find.textContaining(careRefundRule), findsOneWidget);
+    // There is no reconnecting after a delete, so it is not offered.
+    expect(find.textContaining('남은 기간은 쓰실 수 없게 돼요'), findsOneWidget);
+    expect(find.textContaining('다시 연결한 뒤'), findsNothing);
   });
 
   testWidgets('leaving takes the parent off this phone', (tester) async {
@@ -270,9 +295,7 @@ void main() {
 
     await tester.ensureVisible(find.byKey(GuardianFamilyKeys.deleteAccount));
     final out = tester.getRect(find.byKey(GuardianFamilyKeys.signOut));
-    final delete = tester.getRect(
-      find.byKey(GuardianFamilyKeys.deleteAccount),
-    );
+    final delete = tester.getRect(find.byKey(GuardianFamilyKeys.deleteAccount));
     expect(delete.top, greaterThan(out.top));
   });
 
@@ -437,7 +460,10 @@ void main() {
 
     await tester.tap(find.text('불러주신 번호 넣기'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(GuardianFamilyKeys.codeField), shown.code);
+    await tester.enterText(
+      find.byKey(GuardianFamilyKeys.codeField),
+      shown.code,
+    );
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '엄마');
     await tester.enterText(
       find.byKey(GuardianFamilyKeys.myPhoneOnConnect),
@@ -519,19 +545,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(GuardianCareKeys.cancelConfirm), findsOneWidget);
-    expect(find.textContaining('남은 기간까지는 지금처럼 쓰실 수 있어요'), findsOneWidget);
+    // The rule, in the owner's words, on the ordinary 해지 too - not only
+    // where money is certain to move.
+    expect(find.textContaining(careRefundRule), findsOneWidget);
+    expect(find.textContaining('다음 결제는 없습니다'), findsOneWidget);
     expect(find.textContaining('어머니님 폰은 그대로입니다'), findsOneWidget);
     expect(find.textContaining('언제든 다시 신청하실 수 있어요'), findsOneWidget);
   });
 
-  testWidgets('after 해지 the tab says the days are still there', (
-    tester,
-  ) async {
+  testWidgets('after 해지 the tab says the days are still there', (tester) async {
     // **A cancelled row used to fall through to 허락을 기다리고 있어요**,
     // which told a guardian their parent had not answered about a
     // subscription that parent agreed to months ago.
     final h = await _family();
-    await _pumpGuardianHome(tester, h, care: true);
+    await _pumpGuardianHome(tester, h, care: true, used: true);
     await _openCareTab(tester);
 
     await tester.ensureVisible(find.byKey(GuardianCareKeys.cancel));
@@ -543,6 +570,84 @@ void main() {
     expect(find.byKey(GuardianCareKeys.cancelling), findsOneWidget);
     expect(find.byKey(GuardianCareKeys.waiting), findsNothing);
     expect(find.text('남은 기간까지 쓰실 수 있어요'), findsOneWidget);
+    // A used month gives nothing back, so nothing is said about money.
+    expect(find.byKey(GuardianCareKeys.refunded), findsNothing);
+  });
+
+  testWidgets('an unused month inside seven days comes back in full', (
+    tester,
+  ) async {
+    final h = await _family();
+    await _pumpGuardianHome(tester, h, care: true);
+    await _openCareTab(tester);
+
+    await tester.ensureVisible(find.byKey(GuardianCareKeys.cancel));
+    await tester.tap(find.byKey(GuardianCareKeys.cancel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('해지하기'));
+    await tester.pump();
+
+    expect(find.byKey(GuardianCareKeys.refunded), findsOneWidget);
+    expect(find.text('전액 환불됩니다.'), findsOneWidget);
+    expect(h.subs.subscriptions.single.refundKind, RefundKind.full);
+    await tester.pumpAndSettle();
+    // Refunded is off at once, so the tab is back to the offer.
+    expect(find.byKey(GuardianCareKeys.cancelling), findsNothing);
+  });
+
+  testWidgets('an unused month after seven days comes back by its days', (
+    tester,
+  ) async {
+    final h = await _family();
+    await _pumpGuardianHome(tester, h, care: true);
+    final paid = h.subs.subscriptions.single.id;
+    h.subs.paidAt[paid] = DateTime.now().subtract(const Duration(days: 10));
+    await _openCareTab(tester);
+
+    await tester.ensureVisible(find.byKey(GuardianCareKeys.cancel));
+    await tester.tap(find.byKey(GuardianCareKeys.cancel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('해지하기'));
+    await tester.pump();
+
+    expect(find.text('사용하지 않으셔서 남은 기간만큼 환불됩니다.'), findsOneWidget);
+    expect(h.subs.subscriptions.single.refundKind, RefundKind.remaining);
+  });
+
+  testWidgets('a used month reconnected waits on the parent again', (
+    tester,
+  ) async {
+    // Reconnecting is the parent agreeing to the link, not to being looked
+    // at, so the tab must not say 남은 기간까지 쓰실 수 있어요 until they say
+    // so - and there is no new payment for 해지하기 to act on.
+    final h = await _family();
+    await _pumpGuardianHome(tester, h, care: true, used: true);
+    await h.subs.cancelCare(h.profileId);
+    h.store.setConsent(h.profileId, PaidConsentStatus.pending);
+    await _pumpGuardianHome(tester, h);
+    await _openCareTab(tester);
+
+    expect(find.byKey(GuardianCareKeys.askedAgain), findsOneWidget);
+    expect(find.byKey(GuardianCareKeys.cancelling), findsNothing);
+    expect(find.byKey(GuardianCareKeys.cancel), findsNothing);
+  });
+
+  testWidgets('a second 거절 says there is no refund', (tester) async {
+    final h = await _family();
+    await _pumpGuardianHome(tester, h, care: true, used: true);
+    await h.subs.cancelCare(h.profileId);
+    h.store.setConsent(h.profileId, PaidConsentStatus.pending);
+    h.store.seniorInstallId =
+        h.store.activeDeviceByProfile[h.profileId]!.installId;
+    await h.subs.resolveCareConsent(h.profileId, false);
+    await _pumpGuardianHome(tester, h);
+    await _openCareTab(tester);
+
+    expect(find.byKey(GuardianCareKeys.declinedAgain), findsOneWidget);
+    // Once on the notice and once in the alert the server wrote.
+    expect(find.textContaining('환불은 없습니다'), findsWidgets);
+    expect(find.textContaining('환불 처리되었습니다'), findsNothing);
+    expect(h.subs.subscriptions.single.status, SubscriptionStatus.canceled);
   });
 
   // ===========================================================

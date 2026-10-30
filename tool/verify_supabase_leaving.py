@@ -181,6 +181,18 @@ def buy_and_agree(guardian_token, phone_token, profile_id):
     assert st == 200, (st, _)
 
 
+def used_yesterday(profile_id):
+    """Makes the paid month one that was used: a guardian read the paid
+    readings yesterday. `started_at` moves back too, because a use day
+    before the payment's own date does not count."""
+    sql("update public.subscriptions set started_at = now() - interval '2 days' "
+        "where senior_profile_id = '%s' and status = 'active'" % profile_id)
+    sql("insert into public.care_use_days (subscription_id, used_on) "
+        "select id, public.seoul_today() - 1 from public.subscriptions "
+        "where senior_profile_id = '%s' and status = 'active' "
+        "on conflict do nothing" % profile_id)
+
+
 def care_on(profile_id):
     rows = sql("select public.care_is_active('%s') as on" % profile_id)
     return rows[0]["on"]
@@ -228,11 +240,11 @@ try:
 
     # --- and the money came back -------------------------------------------
     check("안심 케어 goes off with the last link", not care_on(profile_id))
-    subs = sql("select status, refunded_at from public.subscriptions "
+    subs = sql("select status, refunded_at, refund_kind from public.subscriptions "
                "where senior_profile_id = '%s' and plan = 'care'" % profile_id)
-    check("the subscription is refunded, not merely cancelled",
-          len(subs) == 1 and subs[0]["status"] == "refunded"
-          and subs[0]["refunded_at"] is not None, subs)
+    check("a month never used is refunded in full inside the first week, "
+          "whoever cut", len(subs) == 1 and subs[0]["status"] == "refunded"
+          and subs[0]["refund_kind"] == "full", subs)
 
     # --- the notice, which `alerts` could not carry ------------------------
     st, notices = call("/rest/v1/guardian_notices?select=type,senior_name,body",
@@ -300,25 +312,98 @@ try:
                    body={"p_senior_profile_id": profile2})
     check("a guardian may leave on their own", st in (200, 204), (st, out))
     check("and their 안심 케어 stops with them", not care_on(profile2))
-    subs = sql("select status from public.subscriptions "
+    subs = sql("select status, refund_kind from public.subscriptions "
                "where senior_profile_id = '%s' and plan = 'care'" % profile2)
-    check("the remaining month is refunded, because they cannot use it",
-          len(subs) == 1 and subs[0]["status"] == "refunded", subs)
+    check("an unused month is refunded when the child leaves too",
+          len(subs) == 1 and subs[0]["status"] == "refunded"
+          and subs[0]["refund_kind"] == "full", subs)
 
     st, cards = call("/rest/v1/rpc/pending_guardian_link", token=phone2, body={})
     check("the parent is not asked anything about it",
           st == 200 and not cards, (st, cards))
 
-    # 해지하기 is the other door, and the difference is the refund.
+    # **Who cut does not decide the money, use does.** 그럼 부모님께
+    # 끊으라고 하겠지 - so a used month cut by the parent refunds exactly as
+    # much as one the child cancelled: nothing, and its days stand.
+    phone5, install5, profile5, e1 = family("외할머니")
+    e1_id = account_id(e1)
+    buy_and_agree(e1, phone5, profile5)
+    used_yesterday(profile5)
+    st, out = call("/rest/v1/rpc/remove_guardian_link", token=phone5,
+                   body={"p_guardian_account_id": e1_id})
+    assert st in (200, 204), (st, out)
+    subs = sql("select status, refunded_at from public.subscriptions "
+               "where senior_profile_id = '%s' and plan = 'care'" % profile5)
+    check("a used month the parent cut refunds nothing",
+          len(subs) == 1 and subs[0]["status"] == "canceled"
+          and subs[0]["refunded_at"] is None, subs)
+    check("and is off while there is no link", not care_on(profile5))
+    st, pair5 = call("/rest/v1/rpc/start_senior_pairing", token=phone5,
+                     body={"p_install_id": install5, "p_platform": "android"})
+    assert st == 200, (st, pair5)
+    st, _ = call("/rest/v1/rpc/claim_senior_pairing_code", token=e1,
+                 body={"p_code": pair5["code"], "p_display_name": "외할머니"})
+    assert st == 200, (st, _)
+    approve(phone5)
+    rows = sql("select paid_consent_status as c from public.senior_profiles "
+               "where id = '%s'" % profile5)
+    check("reconnecting asks the parent about 안심 케어 again",
+          rows[0]["c"] == "pending", rows)
+    check("and nothing is on until they answer", not care_on(profile5))
+    st, out = call("/rest/v1/rpc/start_care_subscription", token=e1,
+                   body={"p_senior_profile_id": profile5})
+    check("buying again while they are being asked is refused", st >= 400,
+          (st, out))
+    st, _ = call("/rest/v1/rpc/resolve_care_consent", token=phone5,
+                 body={"p_senior_profile_id": profile5, "p_approve": True})
+    check("their 허락 brings the remaining days back",
+          st == 200 and care_on(profile5), (st, _))
+    subs = sql("select count(*) as n from public.subscriptions "
+               "where senior_profile_id = '%s' and plan = 'care'" % profile5)
+    check("on the same subscription, not a new one", subs[0]["n"] == 1, subs)
+
+    # The same, answered 거절. Refunding here would reopen the hole one step
+    # longer: 끊었다가 다시 연결하고 거절해 줘.
+    phone6, install6, profile6, f1 = family("큰어머니")
+    f1_id = account_id(f1)
+    buy_and_agree(f1, phone6, profile6)
+    used_yesterday(profile6)
+    st, out = call("/rest/v1/rpc/remove_guardian_link", token=phone6,
+                   body={"p_guardian_account_id": f1_id})
+    assert st in (200, 204), (st, out)
+    st, pair6 = call("/rest/v1/rpc/start_senior_pairing", token=phone6,
+                     body={"p_install_id": install6, "p_platform": "android"})
+    assert st == 200, (st, pair6)
+    st, _ = call("/rest/v1/rpc/claim_senior_pairing_code", token=f1,
+                 body={"p_code": pair6["code"], "p_display_name": "큰어머니"})
+    assert st == 200, (st, _)
+    approve(phone6)
+    st, _ = call("/rest/v1/rpc/resolve_care_consent", token=phone6,
+                 body={"p_senior_profile_id": profile6, "p_approve": False})
+    check("the parent may say no the second time", st == 200, (st, _))
+    subs = sql("select status, refunded_at from public.subscriptions "
+               "where senior_profile_id = '%s' and plan = 'care'" % profile6)
+    check("and a used month still refunds nothing",
+          len(subs) == 1 and subs[0]["status"] == "canceled"
+          and subs[0]["refunded_at"] is None, subs)
+    check("and stays off", not care_on(profile6))
+    st, alerts6 = call("/rest/v1/alerts?select=body&type=eq.care_consent_refused",
+                       token=f1, method="GET")
+    check("the guardian is told there is no refund, not that there was one",
+          st == 200 and alerts6 and "환불은 없습니다" in alerts6[0]["body"],
+          (st, alerts6))
+
+    # 해지하기 on a used month keeps the days already paid for.
     phone3, _i3, profile3, c1 = family("할머니")
     buy_and_agree(c1, phone3, profile3)
+    used_yesterday(profile3)
     st, out = call("/rest/v1/rpc/cancel_care_subscription", token=c1,
                    body={"p_senior_profile_id": profile3})
     check("해지하기 keeps the days already paid for",
           st == 200 and care_on(profile3), (st, out))
     subs = sql("select status, refunded_at from public.subscriptions "
                "where senior_profile_id = '%s' and plan = 'care'" % profile3)
-    check("and refunds nothing, which is what separates it from 연결 끊기",
+    check("and refunds nothing, because the month was used",
           len(subs) == 1 and subs[0]["status"] == "canceled"
           and subs[0]["refunded_at"] is None, subs)
 

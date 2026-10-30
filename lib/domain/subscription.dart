@@ -24,6 +24,35 @@ enum SubscriptionStatus {
   final String wire;
 }
 
+/// How much a refunded row gives back.
+///
+/// Decided by the server from whether the month was **used** - not from who
+/// ended it, because a parent pressing 끊기 at their child's request looks
+/// exactly like one pressing it on their own. See [careRefundRule].
+enum RefundKind {
+  /// 결제 7일 안에 쓰지 않았거나, 부모님이 허락하지 않으셨다.
+  full('full'),
+
+  /// 7일이 지났지만 쓰지 않았다. Google computes the amount.
+  remaining('remaining');
+
+  const RefundKind(this.wire);
+
+  final String wire;
+}
+
+/// 환불 기준, said wherever 안심 케어 can end - 해지, 연결 끊기, 계정 삭제.
+///
+/// Worded by the owner, 2026-10-30, and the same three lines on all three
+/// dialogs. The rule itself is the server's (`care_refund_due`): a day counts
+/// as used when the guardian's phone was shown the paid readings, and the day
+/// of the cancel never counts. **No amount is said**, because Google computes
+/// it and a number written here could disagree with what arrives.
+const careRefundRule =
+    '결제하신 지 7일 이내에 사용하지 않으셨다면 전액 환불됩니다.\n'
+    '사용하지 않으셨지만 7일이 지났다면 남은 기간만큼 환불됩니다.\n'
+    '사용한 이력이 있으면 환불은 불가하며, 남은 기간까지 그대로 쓰실 수 있어요.';
+
 class Subscription {
   const Subscription({
     required this.id,
@@ -31,6 +60,7 @@ class Subscription {
     required this.status,
     this.seniorProfileId,
     this.refundedAt,
+    this.refundKind,
     this.currentPeriodEnd,
   });
 
@@ -42,6 +72,9 @@ class Subscription {
   final String? seniorProfileId;
 
   final DateTime? refundedAt;
+
+  /// Null unless refunded.
+  final RefundKind? refundKind;
 
   /// When the paid month runs out.
   ///
@@ -90,6 +123,7 @@ class Subscription {
         final String value => DateTime.tryParse(value),
         _ => null,
       },
+      refundKind: _byWire(RefundKind.values, row['refund_kind'], (e) => e.wire),
       currentPeriodEnd: switch (row['current_period_end']) {
         final String value => DateTime.tryParse(value)?.toLocal(),
         _ => null,
@@ -105,6 +139,7 @@ class Subscription {
       other.status == status &&
       other.seniorProfileId == seniorProfileId &&
       other.refundedAt == refundedAt &&
+      other.refundKind == refundKind &&
       other.currentPeriodEnd == currentPeriodEnd;
 
   @override
@@ -114,6 +149,7 @@ class Subscription {
     status,
     seniorProfileId,
     refundedAt,
+    refundKind,
     currentPeriodEnd,
   );
 }

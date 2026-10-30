@@ -25,6 +25,9 @@ class GuardianCareKeys {
   static const alerts = Key('care-alerts');
   static const cancel = Key('care-cancel');
   static const cancelConfirm = Key('care-cancel-confirm');
+  static const refunded = Key('care-refunded');
+  static const askedAgain = Key('care-asked-again');
+  static const declinedAgain = Key('care-declined-again');
   static const cancelling = Key('care-cancelling');
   static const contact = Key('care-contact');
 }
@@ -134,6 +137,26 @@ class _CareState extends ConsumerWidget {
               '다음 결제는 없습니다. 남은 기간까지는 지금처럼 쓰실 수 있어요.\n'
                   '부모님 폰은 그대로입니다.',
           },
+        ),
+        // A used month, cut and reconnected inside it. The parent agreed to
+        // the link; 안심 케어 is put to them as its own question.
+        CareStage.askedAgain => _Notice(
+          noticeKey: GuardianCareKeys.askedAgain,
+          title: '$seniorName님께 안심 케어를 다시 여쭤보고 있어요',
+          detail:
+              '다시 연결되어 부모님 폰에 동의 화면이 떴습니다.\n'
+              '허락하시면 남은 기간 동안 다시 보실 수 있어요.',
+        ),
+        // **No refund on a second 거절**, and it says so: the month was used,
+        // and refunding here would make 끊었다가 다시 연결하고 거절해 줘 a way
+        // to get the remaining days back.
+        CareStage.declinedAgain => _Notice(
+          noticeKey: GuardianCareKeys.declinedAgain,
+          title: '$seniorName님이 원하지 않으셨어요',
+          detail:
+              '이미 사용하신 기간이라 환불은 없습니다. 무료 기능은 그대로 쓰실 수 있어요.\n'
+              '부모님과 이야기해 보신 뒤에 다시 신청하실 수 있습니다.',
+          child: _Buy(seniorName: seniorName, label: '다시 신청하기'),
         ),
       },
       AsyncError() => const Text('안심 케어 상태를 읽지 못했어요.'),
@@ -518,12 +541,15 @@ class _Bottom extends ConsumerWidget {
         // 연결 끊기 both follow. A guardian who reads 해지 as 연결 끊기 will
         // not press it, and one who presses it expecting that is worse off.
         //
-        // **Two different outcomes.** A running month is kept to its end; one
-        // the parent never agreed to has delivered nothing, so the server
-        // refunds it and withdraws the question from their phone.
+        // **The refund is decided by use, and the dialog says the rule
+        // rather than an amount.** Which line applies is the server's to
+        // know - it counts the days the readings were shown - and Google
+        // computes the money. One the parent never agreed to has delivered
+        // nothing, so it is always refunded in full and the question is
+        // withdrawn from their phone.
         content: Text(
-          '${started ? '남은 기간까지는 지금처럼 쓰실 수 있어요. 다음 결제만 없습니다.' : '아직 부모님이 허락하지 않으셔서 쓰신 기간이 없어요. 결제한 금액은 돌려드립니다.'}\n'
           '$seniorName님 폰은 그대로입니다. 연결도, 홈 화면도, 메시지도 그대로예요.\n'
+          '${started ? '다음 결제는 없습니다.\n$careRefundRule' : '아직 부모님이 허락하지 않으셔서 쓰신 기간이 없어요. 결제한 금액은 모두 돌려드립니다.'}\n'
           '언제든 다시 신청하실 수 있어요.',
           style: const TextStyle(fontSize: 14.5, height: 1.55),
         ),
@@ -541,7 +567,23 @@ class _Bottom extends ConsumerWidget {
     );
     if (go != true) return;
     try {
-      await ref.read(careControllerProvider.notifier).cancelCare();
+      final ended = await ref
+          .read(careControllerProvider.notifier)
+          .cancelCare();
+      // A used month says nothing here: the tab turns into 남은 기간까지
+      // 쓰실 수 있어요, which is the whole answer. A refunded one turns back
+      // into the buy card, which says nothing about money at all.
+      final said = switch (ended?.refundKind) {
+        RefundKind.full => '전액 환불됩니다.',
+        RefundKind.remaining => '사용하지 않으셔서 남은 기간만큼 환불됩니다.',
+        null => null,
+      };
+      if (said == null || !context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(key: GuardianCareKeys.refunded, content: Text(said)),
+        );
     } on SeniorLinkException catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)

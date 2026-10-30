@@ -929,16 +929,13 @@ class _LeaveState extends ConsumerState<_Leave> {
   Future<void> _confirm() async {
     // Said only when it is true, and read before the dialog opens so the
     // sentence about the refund cannot appear for somebody with nothing to
-    // refund.
-    //
-    // Every stage the server refunds on leaving: a running month, a
-    // cancelled one with days left, and one still waiting on the parent.
-    final careOn = switch (ref.read(careStateProvider).value?.stage) {
-      CareStage.active ||
-      CareStage.cancelling ||
-      CareStage.waitingOnSenior => true,
-      _ => false,
-    };
+    // refund. **Whose finger is on 끊기 does not change the money** - use
+    // does, the same rule 해지 follows - so the line is the rule, not a
+    // promise.
+    final careLine = careLeavingLine(
+      ref.read(careStateProvider).value?.stage,
+      reconnect: true,
+    );
     final go = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -950,7 +947,7 @@ class _LeaveState extends ConsumerState<_Leave> {
           // mother's phone will never press it.
           '${widget.seniorName}님 폰은 그대로입니다. 버튼도 글씨 크기도 바뀌지 않아요.\n'
           '주고받은 메시지는 남지만 이 폰에서는 보이지 않게 됩니다.\n'
-          '${careOn ? '안심 케어도 함께 해지되고, 남은 기간에 해당하는 금액을 돌려드립니다.\n' : ''}'
+          '${careLine == null ? '' : '$careLine\n'}'
           '나중에 다시 연결하실 수 있어요.',
           style: const TextStyle(fontSize: 14.5, height: 1.55),
         ),
@@ -1186,19 +1183,24 @@ class _DeleteAccountState extends ConsumerState<_DeleteAccount> {
   bool _busy = false;
 
   Future<void> _confirm() async {
+    final careLine = careLeavingLine(
+      ref.read(careStateProvider).value?.stage,
+      reconnect: false,
+    );
     final go = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: GuardianFamilyKeys.deleteConfirm,
         title: const Text('계정을 지울까요?'),
-        content: const Text(
+        content: Text(
           // **되돌릴 수 없는 유일한 버튼**, so it is the only one in the app
           // whose dialog says so outright. Everything else that leaves is
           // reversible and says that instead.
           '이 계정과 연결, 신청 내역이 모두 지워집니다. 되돌릴 수 없어요.\n'
           '부모님 폰은 그대로 쓰실 수 있어요. 버튼도 글씨 크기도 그대로입니다.\n'
-          '보내신 메시지는 부모님 폰에 남습니다. 부모님이 받으신 것이기도 하니까요.',
-          style: TextStyle(fontSize: 14.5, height: 1.55),
+          '보내신 메시지는 부모님 폰에 남습니다. 부모님이 받으신 것이기도 하니까요.'
+          '${careLine == null ? '' : '\n$careLine'}',
+          style: const TextStyle(fontSize: 14.5, height: 1.55),
         ),
         actions: [
           TextButton(

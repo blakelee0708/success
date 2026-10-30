@@ -145,6 +145,97 @@ void main() {
     });
   });
 
+  group('환불은 쓴 날로 정한다', () {
+    // The server's `care_refund_due`, which the twin mirrors so the screens
+    // can be built against it. Who ended it does not enter into it.
+    Future<Harness> paid() async {
+      final h = await _family();
+      await h.subs.startCare(h.profileId);
+      await h.subs.resolveCareConsent(h.profileId, true);
+      return h;
+    }
+
+    test('unused, inside seven days of the payment: all of it', () async {
+      final h = await paid();
+      final ended = await h.subs.cancelCare(h.profileId);
+      expect(ended.status, SubscriptionStatus.refunded);
+      expect(ended.refundKind, RefundKind.full);
+    });
+
+    test('unused, after seven days: the remaining days', () async {
+      final h = await paid();
+      final id = h.subs.subscriptions.single.id;
+      h.subs.paidAt[id] = DateTime.now().subtract(const Duration(days: 8));
+      final ended = await h.subs.cancelCare(h.profileId);
+      expect(ended.status, SubscriptionStatus.refunded);
+      expect(ended.refundKind, RefundKind.remaining);
+    });
+
+    test('used: nothing back, and the month runs to its end', () async {
+      final h = await paid();
+      h.subs.used.add(h.subs.subscriptions.single.id);
+      final ended = await h.subs.cancelCare(h.profileId);
+      expect(ended.status, SubscriptionStatus.canceled);
+      expect(ended.refundKind, isNull);
+      expect(ended.refundedAt, isNull);
+    });
+
+    test('never answered by the parent: all of it, however late', () async {
+      final h = await _family();
+      await h.subs.startCare(h.profileId);
+      final id = h.subs.subscriptions.single.id;
+      h.subs.paidAt[id] = DateTime.now().subtract(const Duration(days: 20));
+      final ended = await h.subs.cancelCare(h.profileId);
+      expect(ended.refundKind, RefundKind.full);
+    });
+
+    test('a refusal is a full refund', () async {
+      final h = await _family();
+      await h.subs.startCare(h.profileId);
+      await h.subs.resolveCareConsent(h.profileId, false);
+      expect(h.subs.subscriptions.single.refundKind, RefundKind.full);
+    });
+
+    test('asked again after a reconnect: 허락 brings the month back', () async {
+      final h = await paid();
+      h.subs.used.add(h.subs.subscriptions.single.id);
+      await h.subs.cancelCare(h.profileId);
+      h.store.setConsent(h.profileId, PaidConsentStatus.pending);
+      await h.subs.resolveCareConsent(h.profileId, true);
+      expect(await h.subs.careIsActive(h.profileId), isTrue);
+      expect(
+        h.store.profiles[h.profileId]!.paidConsentStatus,
+        PaidConsentStatus.granted,
+      );
+    });
+
+    test('asked again after a reconnect: 거절 refunds nothing', () async {
+      final h = await paid();
+      h.subs.used.add(h.subs.subscriptions.single.id);
+      await h.subs.cancelCare(h.profileId);
+      h.store.setConsent(h.profileId, PaidConsentStatus.pending);
+      await h.subs.resolveCareConsent(h.profileId, false);
+      final row = h.subs.subscriptions.single;
+      expect(row.status, SubscriptionStatus.canceled);
+      expect(row.refundKind, isNull);
+      expect(h.subs.alerts[h.profileId]!.first.body, contains('환불은 없습니다'));
+    });
+
+    test('the row carries the kind the server wrote', () {
+      final row = {
+        'id': 's1',
+        'plan': 'care',
+        'status': 'refunded',
+        'refund_kind': 'remaining',
+      };
+      expect(Subscription.fromRow(row)!.refundKind, RefundKind.remaining);
+      expect(
+        Subscription.fromRow({...row, 'refund_kind': null})!.refundKind,
+        isNull,
+      );
+    });
+  });
+
   group('the gate', () {
     test('consent without a subscription is not active', () {
       const profile = SeniorProfile(

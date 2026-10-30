@@ -19,9 +19,13 @@ abstract interface class SubscriptionRepository {
   /// anything on.
   Future<Subscription> startCare(String seniorProfileId);
 
-  /// 해지하기, which is **not** 연결 끊기 and differs in exactly one way:
-  /// the days already paid for are kept, so nothing is refunded. The link,
-  /// the messages and the parent's phone are untouched.
+  /// 해지하기. The link, the messages and the parent's phone are untouched.
+  ///
+  /// What comes back says how it ended, and the server decides it from use
+  /// (`care_refund_due`): a used month is `canceled` and runs to its end, an
+  /// unused one is refunded - in full inside seven days of the payment, by
+  /// the remaining days after them. Never answered by the parent is always
+  /// a full refund.
   Future<Subscription> cancelCare(String seniorProfileId);
 
   /// Steps 3 and 4, and only from the senior's own phone. A refusal refunds.
@@ -179,6 +183,13 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
   /// What the twin calls now, for the month an approval starts.
   DateTime Function() now = DateTime.now;
 
+  /// When each subscription was paid for, which starts the seven days.
+  final Map<String, DateTime> paidAt = {};
+
+  /// Subscriptions the guardian used on a day before today. The server
+  /// counts days; the twin only needs the answer, so a test says it.
+  final Set<String> used = {};
+
   int _seq = 0;
 
   @override
@@ -215,21 +226,31 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
     );
     if (index < 0) throw const SeniorLinkException('해지할 것이 없어요.');
     final live = subscriptions[index];
-    // An unanswered question is withdrawn rather than left on the parent's
-    // home screen pointing at a family that has changed its mind; one that
-    // was answered keeps its remaining days.
-    final refunding = live.isWaitingOnSenior;
+    // The server's `care_refund_due`. An unanswered question is withdrawn
+    // rather than left on the parent's home screen; a used month keeps its
+    // remaining days and gives nothing back.
+    final paid = paidAt[live.id] ?? now();
+    final RefundKind? refund = live.isWaitingOnSenior
+        ? RefundKind.full
+        : used.contains(live.id)
+        ? null
+        : now().difference(paid) < const Duration(days: 7)
+        ? RefundKind.full
+        : RefundKind.remaining;
     subscriptions[index] = Subscription(
       id: live.id,
       plan: live.plan,
-      status: refunding
-          ? SubscriptionStatus.refunded
-          : SubscriptionStatus.canceled,
+      status: refund == null
+          ? SubscriptionStatus.canceled
+          : SubscriptionStatus.refunded,
       seniorProfileId: seniorProfileId,
-      refundedAt: refunding ? DateTime(2026, 10, 29) : null,
+      refundedAt: refund == null ? null : now(),
+      refundKind: refund,
       currentPeriodEnd: live.currentPeriodEnd,
     );
-    if (refunding) store.setConsent(seniorProfileId, PaidConsentStatus.none);
+    if (live.isWaitingOnSenior) {
+      store.setConsent(seniorProfileId, PaidConsentStatus.none);
+    }
     return subscriptions[index];
   }
 
@@ -245,7 +266,35 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
     final index = subscriptions.indexWhere(
       (s) => s.seniorProfileId == seniorProfileId && s.isWaitingOnSenior,
     );
-    if (index < 0) throw const SeniorLinkException('답할 요청이 없어요.');
+    if (index < 0) {
+      // The second question: a used month, cut and reconnected inside it.
+      // The month keeps its row either way, and a 거절 refunds nothing.
+      final askedAgain =
+          store.profiles[seniorProfileId]?.paidConsentStatus ==
+              PaidConsentStatus.pending &&
+          subscriptions.any(
+            (s) =>
+                s.seniorProfileId == seniorProfileId && s.stillRunningAt(now()),
+          );
+      if (!askedAgain) throw const SeniorLinkException('답할 요청이 없어요.');
+      store.setConsent(
+        seniorProfileId,
+        approve ? PaidConsentStatus.granted : PaidConsentStatus.refused,
+      );
+      _seq++;
+      (alerts[seniorProfileId] ??= []).insert(
+        0,
+        CareAlert(
+          id: 'alert-$_seq',
+          type: approve ? 'care_consent_granted' : 'care_consent_refused',
+          title: approve ? '안심 케어를 다시 허락하셨어요' : '안심 케어를 원하지 않으셨어요',
+          body: approve
+              ? '남은 기간 동안 다시 보실 수 있어요.'
+              : '이미 사용하신 기간이라 환불은 없습니다. 무료 기능은 그대로 쓰실 수 있어요.',
+        ),
+      );
+      return store.fetchProfile(seniorProfileId);
+    }
 
     final pending = subscriptions[index];
     subscriptions[index] = Subscription(
@@ -254,6 +303,7 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
       status: approve ? SubscriptionStatus.active : SubscriptionStatus.refunded,
       seniorProfileId: seniorProfileId,
       refundedAt: approve ? null : DateTime(2026, 7, 31),
+      refundKind: approve ? null : RefundKind.full,
       // The server starts the month on approval (`one_month_after`). Left
       // null here, a cancelled row read as running forever on the screen
       // while the server had already stopped it.
@@ -284,10 +334,13 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
     final profile = store.profiles[seniorProfileId];
     if (profile == null) return false;
     return subscriptions.any(
+          // The server's `care_is_active`: a cancelled month is on until
+          // it runs out.
           (s) =>
               s.seniorProfileId == seniorProfileId &&
               s.plan == SubscriptionPlan.care &&
-              s.status == SubscriptionStatus.active,
+              (s.status == SubscriptionStatus.active ||
+                  s.stillRunningAt(now())),
         ) &&
         profile.paidConsentStatus == PaidConsentStatus.granted;
   }
@@ -309,6 +362,7 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
       seniorProfileId: seniorProfileId,
     );
     subscriptions.add(subscription);
+    paidAt[subscription.id] = now();
     return subscription;
   }
 }

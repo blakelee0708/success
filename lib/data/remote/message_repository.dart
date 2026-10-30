@@ -145,9 +145,7 @@ class SupabaseMessageRepository implements MessageRepository {
           .eq('senior_profile_id', seniorProfileId)
           .order('created_at', ascending: false)
           .limit(200);
-      return [
-        for (final row in rows.reversed) ?FamilyMessage.fromRow(row),
-      ];
+      return [for (final row in rows.reversed) ?FamilyMessage.fromRow(row)];
     } on sb.PostgrestException catch (e) {
       throw SeniorLinkException(e.message);
     }

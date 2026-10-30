@@ -8,9 +8,13 @@ should have to be undone:
 - the month is the **next month's same day and same hour**, in Seoul, not 30
   days, and 1월 31일 lands on 2월 28일;
 - it runs from the senior's 허락합니다, capped three hours after the payment;
-- **cancelling switches nothing off** until that month runs out, which is
+- **cancelling a used month switches nothing off** until it runs out, which is
   what Play does and what `site/terms.html` promises;
-- buying again inside that month is 해지 취소, one row, not two.
+- buying again inside that month is 해지 취소, one row, not two;
+- **환불은 쓴 날로 정한다**: a guardian's read of the paid readings leaves
+  that Seoul day behind, the cancel day itself never counts, and an unused
+  month refunds in full inside seven days of the payment and by the
+  remaining days after them.
 
 Run with:
     SSL_CERT_FILE=/root/.ccr/ca-bundle.crt \
@@ -168,6 +172,35 @@ def period_end(pid):
     return rows
 
 
+def used_yesterday(pid):
+    """Makes the paid month one that was used.
+
+    `started_at` is moved back first: a use day before the payment's own
+    date does not count, so a day of use on a row bought a minute ago has
+    to be today - and today is the cancel day, which never counts.
+    """
+    sql("update public.subscriptions set started_at = now() - interval '2 days' "
+        f"where senior_profile_id = '{pid}' and status = 'active'")
+    sql("insert into public.care_use_days (subscription_id, used_on) "
+        "select id, public.seoul_today() - 1 from public.subscriptions "
+        f"where senior_profile_id = '{pid}' and status = 'active' "
+        "on conflict do nothing")
+
+
+def refund_due(pid):
+    rows = sql("select public.care_refund_due(id) as due from public.subscriptions "
+               f"where senior_profile_id = '{pid}' and plan = 'care' "
+               "and status in ('active', 'pending_senior_consent')")
+    return rows[0]["due"] if rows else "no live row"
+
+
+def use_days(pid):
+    rows = sql("select count(*) as n from public.care_use_days u "
+               "join public.subscriptions s on s.id = u.subscription_id "
+               f"where s.senior_profile_id = '{pid}'")
+    return rows[0]["n"]
+
+
 def active(token, pid):
     st, out = call("/rest/v1/rpc/care_is_active", token=token,
                    body={"p_senior_profile_id": pid})
@@ -241,7 +274,19 @@ try:
                "and plan = 'care'")
     check("만료일은 한 달 뒤다", rows[0]["far"] and rows[0]["near"], rows)
 
-    # --- 해지해도 이번 달은 그대로 ------------------------------------------
+    # --- 쓴 날을 남긴다 ------------------------------------------------------
+    readings(phone, pid)
+    check("어르신 폰이 읽은 것은 쓴 날이 아니다", use_days(pid) == 0, use_days(pid))
+    readings(g1, pid)
+    check("자녀 폰이 읽으면 그날이 남는다", use_days(pid) == 1, use_days(pid))
+    readings(g1, pid)
+    check("같은 날은 한 번만 남는다", use_days(pid) == 1, use_days(pid))
+    check("해지하러 들어온 오늘은 세지 않는다", refund_due(pid) == "full",
+          refund_due(pid))
+    used_yesterday(pid)
+    check("어제 읽었으면 쓴 달이다", refund_due(pid) is None, refund_due(pid))
+
+    # --- 쓴 달은 해지해도 이번 달은 그대로 ----------------------------------
     st, canceled = call("/rest/v1/rpc/cancel_care_subscription", token=g1,
                         body={"p_senior_profile_id": pid})
     check("해지할 수 있다", st == 200 and canceled["status"] == "canceled",
@@ -255,6 +300,7 @@ try:
     st, again = call("/rest/v1/rpc/cancel_care_subscription", token=g1,
                      body={"p_senior_profile_id": pid})
     check("두 번 해지할 수는 없다", st >= 400, (st, again))
+    check("환불 종류도 비어 있다", canceled.get("refund_kind") is None, canceled)
 
     # --- 기간 안에 다시 사면 해지 취소 --------------------------------------
     st, resumed = call("/rest/v1/rpc/start_care_subscription", token=g1,
@@ -283,6 +329,7 @@ try:
                          body={"p_senior_profile_id": pid})
     check("답을 기다리는 중에도 해지할 수 있다",
           st == 200 and withdrawn["status"] == "refunded", (st, withdrawn))
+    check("그것은 전액이다", withdrawn.get("refund_kind") == "full", withdrawn)
     rows = sql("select paid_consent_status from public.senior_profiles "
                f"where id = '{pid}'")
     check("어르신 화면의 질문도 거둬들인다",
@@ -307,6 +354,66 @@ try:
     st, denied = call("/rest/v1/rpc/cancel_care_subscription", token=None,
                       body={"p_senior_profile_id": pid})
     check("세션 없는 호출은 거부된다", st >= 400, (st, denied))
+
+    # --- 쓰지 않은 달 -------------------------------------------------------
+    # The pending row bought above, answered, and never read on any day
+    # before today.
+    st, _ = call("/rest/v1/rpc/resolve_care_consent", token=phone,
+                 body={"p_senior_profile_id": pid, "p_approve": True})
+    assert st == 200, (st, _)
+    readings(g1, pid)
+    st, unused = call("/rest/v1/rpc/cancel_care_subscription", token=g1,
+                      body={"p_senior_profile_id": pid})
+    check("7일 안에 쓰지 않고 해지하면 환불된다",
+          st == 200 and unused["status"] == "refunded", (st, unused))
+    check("전액으로", unused.get("refund_kind") == "full", unused)
+    check("돌려받은 달은 바로 꺼진다", active(g1, pid) is False, active(g1, pid))
+
+    st, _ = call("/rest/v1/rpc/start_care_subscription", token=g1,
+                 body={"p_senior_profile_id": pid})
+    assert st == 200, (st, _)
+    st, _ = call("/rest/v1/rpc/resolve_care_consent", token=phone,
+                 body={"p_senior_profile_id": pid, "p_approve": True})
+    assert st == 200, (st, _)
+    sql("update public.subscriptions set started_at = now() - interval '10 days' "
+        f"where senior_profile_id = '{pid}' and status = 'active'")
+    st, late = call("/rest/v1/rpc/cancel_care_subscription", token=g1,
+                    body={"p_senior_profile_id": pid})
+    check("7일이 지나 쓰지 않고 해지하면 환불된다",
+          st == 200 and late["status"] == "refunded", (st, late))
+    check("남은 기간만큼", late.get("refund_kind") == "remaining", late)
+
+    st, _ = call("/rest/v1/rpc/start_care_subscription", token=g1,
+                 body={"p_senior_profile_id": pid})
+    assert st == 200, (st, _)
+    st, _ = call("/rest/v1/rpc/resolve_care_consent", token=phone,
+                 body={"p_senior_profile_id": pid, "p_approve": True})
+    assert st == 200, (st, _)
+    used_yesterday(pid)
+    st, kept = call("/rest/v1/rpc/cancel_care_subscription", token=g1,
+                    body={"p_senior_profile_id": pid})
+    check("7일 안이라도 썼으면 환불은 없다",
+          st == 200 and kept["status"] == "canceled"
+          and kept.get("refunded_at") is None, (st, kept))
+
+    # --- 어르신이 거절하시면 전액 -------------------------------------------
+    sql("update public.subscriptions set current_period_end = now() "
+        f"- interval '1 minute' where senior_profile_id = '{pid}'")
+    st, _ = call("/rest/v1/rpc/start_care_subscription", token=g1,
+                 body={"p_senior_profile_id": pid})
+    assert st == 200, (st, _)
+    st, _ = call("/rest/v1/rpc/resolve_care_consent", token=phone,
+                 body={"p_senior_profile_id": pid, "p_approve": False})
+    assert st == 200, (st, _)
+    rows = sql("select refund_kind from public.subscriptions "
+               f"where senior_profile_id = '{pid}' and plan = 'care' "
+               "order by created_at desc limit 1")
+    check("거절은 언제나 전액이다", rows[0]["refund_kind"] == "full", rows)
+
+    st, denied = call("/rest/v1/care_use_days?select=used_on", token=g1,
+                      method="GET")
+    check("쓴 날 기록은 자녀가 읽거나 고칠 수 없다",
+          st >= 400 or not denied, (st, denied))
 
 finally:
     for pid_ in created_profiles:

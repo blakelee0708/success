@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 771 tests, all passing
+flutter test             # currently 783 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -2926,8 +2926,9 @@ buttons, colours, text size and contact numbers are untouched, because leaving
 is stopping somebody looking, not putting a phone back how it was.
 
 And one more, which is the rule the whole product rests on: **the senior is
-never the one charged.** If the senior cuts the link and their child can no
-longer use what they paid for, the money goes back.
+never the one charged.** The refunds this section first described - 끊기면
+남은 기간 환불 - were replaced on 2026-10-30 by a rule about **use**, not
+about who left; see `## 환불은 쓴 날로 정한다`.
 
 ### 어르신이 끊는다
 
@@ -2941,18 +2942,16 @@ scoped through the **active device**, the same check `answer_guardian_link`
 makes - a guardian who could remove a sibling would be deciding for their
 parent, and this is the one decision that is hers.
 
-**The child who is cut gets back what is left of their 안심 케어**, because
-they can no longer use it. Under 1대1 they are always the only child.
+What the cut child gets back is decided by use, the same as every other
+ending - see `## 환불은 쓴 날로 정한다`. It used to be the remaining days,
+always.
 
 ### 자녀가 끊는다, and the two doors are not the same door
 
-| | 남은 기간 | 환불 |
-|---|---|---|
-| 해지하기 | 그대로 쓴다 | 없음 |
-| 연결 끊기 | 쓸 수 없다 | 남은 기간만큼 |
-
-That is the whole distinction, and `settle_care_after_leaving` takes a
-`p_refund` for it. 해지 is on 안심 케어 at the bottom; 연결 끊기 is in 연결
+This used to be a table - 해지 keeps the days and refunds nothing, 연결 끊기
+loses them and refunds them - and it is **gone**: the money no longer depends
+on which door was used. `settle_care_after_leaving` still takes a `p_refund`
+and no longer reads it. 해지 is on 안심 케어 at the bottom; 연결 끊기 is in 연결
 관리. **The parent is not told when a child leaves** - nothing changes on their
 phone beyond the 가족 button going back to 가족 연결, and a notice would be the
 app explaining somebody's child to them.
@@ -3123,6 +3122,66 @@ lost before what is, and that the app stops showing a family that has gone.
 which need the Play 심사 제출 예정일. The deletion URL has to go in the Play
 Console's own field. And no money moves until Play Billing exists, so the
 refund table is a rule the server already follows with nothing to refund.
+
+## 환불은 쓴 날로 정한다
+
+Settled with the owner on 2026-10-30, and it replaced a rule that was wrong
+in a way one sentence showed: 끊기면 남은 기간을 돌려준다 meant **그럼
+부모님께 끊으라고 하겠지.** A mother pressing 끊기 at her son's request
+looks exactly like one pressing it on her own, from either phone. What the
+server can see is whether the month was used.
+
+| | 결제 후 7일 이내 | 7일 지남 |
+|---|---|---|
+| 사용하지 않음 | 전액, 바로 꺼짐 | 남은 기간만큼, 바로 꺼짐 |
+| 사용함 | 없음, 기간 끝까지 | 없음, 기간 끝까지 |
+
+**One table for every ending** - 해지, 부모님의 끊기, 자녀의 끊기, 계정 삭제.
+Two rows sit outside it and are always a full refund: the parent's first
+거절, and anything ended while the parent had not answered, because nothing
+was ever switched on.
+
+**사용 is a Seoul day on which the guardian's phone was shown the paid
+readings** (`care_use_days`, written by `senior_readings` and nothing else).
+The dashboard opens on them, so it is the same as the app being opened
+while 안심 케어 was on. Three things are deliberately not counted:
+
+- **the day of the cancel itself**, because opening the app to press 해지
+  lands on the readings, and somebody who came only to leave has used
+  nothing;
+- the free first week, which shows the same readings before anything was
+  paid;
+- anything the parent's phone does - its own readings, battery alerts, read
+  marks - because none of it is the child using what they bought.
+
+`started_at` is the payment, and Play Billing's renewals will move it, so
+the seven days run again every month and last month's use does not count.
+
+**A used month cut and reconnected inside its period asks the parent
+again**, and a second 거절 refunds **nothing**. Reconnecting is consent to
+the link, not to being looked at, so 안심 케어 is its own question
+(`ask_care_again_on_reconnect`, a trigger rather than a line in
+`answer_guardian_link`). Refunding the second 거절 was proposed first and
+withdrawn: it reopened the same hole one step longer - 끊었다가 다시
+연결하고 거절해 줘. 허락 brings the remaining days back on the same row.
+
+**No amount is ever shown**, and that was the owner's call: the three lines
+in `careRefundRule` are on all three dialogs, in their wording, and Google
+computes the money. `refund_kind` (`full` / `remaining`) is what the day
+Billing arrives will hand to `subscriptionsv2.revoke`, and the feature is to
+go off **only after Google says the refund succeeded** - the other order
+takes the feature away from somebody whose money did not come back. Until
+Billing exists the row is written directly and nothing moves.
+
+**A refund asked of Google directly is Google's.** Inside about 48 hours of
+a payment Google may refund without asking us and without knowing whether
+the month was used, and nothing can stop it; after that it sends the user to
+the developer. Both arrive as a Real Time Developer Notification, which the
+server will have to receive or the feature stays on after the money went
+back. Neither is built: both need Billing.
+
+`tool/verify_supabase_care_cancel.py` and `verify_supabase_leaving.py` walk
+it against the live project.
 
 ## 1대1만 연결한다, and it is a lock rather than a rewrite
 
