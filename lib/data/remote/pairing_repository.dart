@@ -409,9 +409,6 @@ class SupabasePairingRepository implements PairingRepository {
     if (message.contains('ambiguous code')) {
       return '같은 번호가 둘 있어요. 새 번호를 받아 주세요.';
     }
-    if (message.contains('already the primary guardian')) {
-      return '이미 대표 보호자예요.';
-    }
     if (message.contains('only the senior device')) {
       return '부모님 폰에서만 답할 수 있어요.';
     }

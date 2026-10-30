@@ -322,7 +322,7 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
         type: approve ? 'care_consent_granted' : 'care_consent_refused',
         title: approve ? '안심 케어를 허락하셨어요' : '안심 케어를 원하지 않으셨어요',
         body: approve
-            ? '이제 기기 상태와 위치 확인을 켤 수 있어요.'
+            ? '이제 부모님이 어떻게 지내시는지 보실 수 있어요.'
             : '결제는 환불 처리되었습니다. 무료 기능은 그대로 쓰실 수 있어요.',
       ),
     );
