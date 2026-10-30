@@ -25,6 +25,18 @@ final careConsentPendingProvider = FutureProvider<SeniorProfile?>((ref) async {
   }
 });
 
+/// Whether the waiting question is the second one, after a reconnect.
+///
+/// The two cards differ in what 아니요 does. The first refunds the payment;
+/// the second refunds nothing, because the month was already used, and the
+/// card said 자녀분 결제는 취소됩니다 on both - which a parent could press
+/// 아니요 believing.
+final careAskedAgainProvider = FutureProvider<bool>((ref) async {
+  final profile = await ref.watch(careConsentPendingProvider.future);
+  if (profile == null) return false;
+  return ref.read(subscriptionRepositoryProvider).careAskedAgain(profile.id);
+});
+
 /// Step 2 of the paid flow, on the senior's own phone.
 ///
 /// `06_PERMISSION_AND_POLICY` orders it: 보호자 결제 → 피보호자 폰에 동의 화면 →
@@ -69,6 +81,7 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
           .read(subscriptionRepositoryProvider)
           .resolveCareConsent(profileId, approve);
       ref.invalidate(careConsentPendingProvider);
+      ref.invalidate(careAskedAgainProvider);
     } on Object {
       // The question stays on screen; they can answer again with signal.
     } finally {
@@ -79,6 +92,7 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(careConsentPendingProvider).value;
+    final askedAgain = ref.watch(careAskedAgainProvider).value ?? false;
     if (profile == null) return const SizedBox.shrink();
 
     return Padding(
@@ -93,9 +107,9 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                '자녀분이 안심 케어를\n신청하셨어요',
-                style: TextStyle(
+              Text(
+                askedAgain ? '다시 연결되어서\n여쭤봐요' : '자녀분이 안심 케어를\n신청하셨어요',
+                style: const TextStyle(
                   fontSize: 27,
                   height: 1.35,
                   fontWeight: FontWeight.w900,
@@ -145,11 +159,16 @@ class _CareConsentPromptState extends ConsumerState<CareConsentPrompt> {
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
-                '싫으시면 아니요를 누르세요.\n'
-                '지금 쓰시는 기능은 그대로 쓰시고,\n'
-                '자녀분 결제는 취소됩니다.',
-                style: TextStyle(
+              Text(
+                askedAgain
+                    ? '싫으시면 아니요를 누르세요.\n'
+                          '지금 쓰시는 기능은 그대로 쓰시고,\n'
+                          '자녀분은 남은 기간 동안\n'
+                          '폰 상태를 보지 못해요.'
+                    : '싫으시면 아니요를 누르세요.\n'
+                          '지금 쓰시는 기능은 그대로 쓰시고,\n'
+                          '자녀분 결제는 취소됩니다.',
+                style: const TextStyle(
                   fontSize: 19,
                   height: 1.6,
                   color: AppColors.seniorInkMuted,

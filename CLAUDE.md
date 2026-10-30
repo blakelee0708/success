@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 811 tests, all passing
+flutter test             # currently 813 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -1701,7 +1701,9 @@ Three decisions in the SQL are easy to get wrong:
   be gone before anybody saw it. `approved_at` is stamped by a trigger the
   first time a link becomes 'active' and never moved, so a cut and
   reconnected link does not get a second week
-  (`20261030030000_trial_from_consent.sql`). The link consent card says the
+  (`20261030030000_trial_from_consent.sql`, applied live on the owner's 반영
+  2026-10-30; `verify_supabase_pricing.py` 28 and
+  `verify_supabase_link_consent.py` 31 pass against it). The link consent card says the
   week in as many words - 첫 1주일 폰 상태 보기 - because it is the only
   consent the senior gives before the week starts.
 - **Withheld readings come back as nulls, not as a missing row.** 말할 수 없음
@@ -3198,6 +3200,13 @@ the link, not to being looked at, so 안심 케어 is its own question
 `answer_guardian_link`). Refunding the second 거절 was proposed first and
 withdrawn: it reopened the same hole one step longer - 끊었다가 다시
 연결하고 거절해 줘. 허락 brings the remaining days back on the same row.
+
+**The second question has its own card.** It used to be the first one word
+for word, ending 자녀분 결제는 취소됩니다 - which on the second question is
+false, and is exactly what a parent would press 아니요 believing. It is
+다시 연결되어서 여쭤봐요 / 자녀분은 남은 기간 동안 폰 상태를 보지 못해요
+now. `careAskedAgain` tells the two apart the way `resolve_care_consent`
+does: a first question has a care row still in `pending_senior_consent`.
 
 **No amount is ever shown**, and that was the owner's call: the three lines
 in `careRefundRule` are on all three dialogs, in their wording, and Google

@@ -15,6 +15,7 @@ import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/guardian_account.dart';
 import 'package:app/domain/launcher_app.dart';
 import 'package:app/domain/senior_settings.dart';
+import 'package:app/domain/senior_profile.dart';
 import 'package:app/features/care/data/care_capabilities.dart';
 import 'package:app/features/care/presentation/care_consent_prompt.dart';
 import 'package:app/features/care/presentation/guardian_care_tab.dart';
@@ -178,6 +179,50 @@ void main() {
     }
   });
 
+  testWidgets('the first question says a 아니요 cancels the payment', (
+    tester,
+  ) async {
+    final h = await _family();
+    await h.subs.startCare(h.profileId);
+    await _pumpSeniorHome(tester, h);
+
+    final card = find.byType(CareConsentPrompt);
+    expect(
+      find.descendant(of: card, matching: find.textContaining('결제는 취소됩니다')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('asked again after a reconnect, it does not promise a refund', (
+    tester,
+  ) async {
+    // A used month, cut and reconnected inside its period: the parent is
+    // asked again, and a 아니요 refunds nothing. The card said 자녀분 결제는
+    // 취소됩니다 here too, which a parent could press 아니요 believing.
+    final h = await _family();
+    await h.subs.startCare(h.profileId);
+    await h.subs.resolveCareConsent(h.profileId, true);
+    h.subs.used.add(h.subs.subscriptions.single.id);
+    await h.subs.cancelCare(h.profileId);
+    h.store.setConsent(h.profileId, PaidConsentStatus.pending);
+    await _pumpSeniorHome(tester, h);
+
+    final card = find.byType(CareConsentPrompt);
+    expect(card, findsOneWidget);
+    expect(
+      find.descendant(of: card, matching: find.textContaining('다시 연결되어서')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: card, matching: find.textContaining('결제')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: card, matching: find.textContaining('남은 기간 동안')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('refusing is offered as plainly as agreeing', (tester) async {
     final h = await _family();
     await h.subs.startCare(h.profileId);
@@ -235,23 +280,24 @@ void main() {
     expect(find.textContaining('환불'), findsWidgets);
   });
 
-  testWidgets('the 준비 중 notice is there when, and only when, it has something to warn about', (
-    tester,
-  ) async {
-    // A paid screen that looks ready is a promise, so anything sold and not
-    // built says so. The other half of that is new: with the list empty the
-    // notice must **not** be drawn. 소리 울리기 was the last `planned`
-    // capability and it is out of the product, so an unguarded banner would
-    // warn a guardian about nothing - which reads as the app being broken or
-    // as something withheld, on the screen that takes their money.
-    final h = await _family();
-    await _pumpCareTab(tester, h);
+  testWidgets(
+    'the 준비 중 notice is there when, and only when, it has something to warn about',
+    (tester) async {
+      // A paid screen that looks ready is a promise, so anything sold and not
+      // built says so. The other half of that is new: with the list empty the
+      // notice must **not** be drawn. 소리 울리기 was the last `planned`
+      // capability and it is out of the product, so an unguarded banner would
+      // warn a guardian about nothing - which reads as the app being broken or
+      // as something withheld, on the screen that takes their money.
+      final h = await _family();
+      await _pumpCareTab(tester, h);
 
-    expect(
-      find.textContaining('아직 준비 중입니다'),
-      plannedCareCapabilities.isEmpty ? findsNothing : findsOneWidget,
-    );
-  });
+      expect(
+        find.textContaining('아직 준비 중입니다'),
+        plannedCareCapabilities.isEmpty ? findsNothing : findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('a feature that works is not listed under 준비 중', (tester) async {
     // The 준비 중 block is honest only about what is below it. Anything built
@@ -282,8 +328,11 @@ void main() {
       }
     }
     for (final unbuilt in plannedCareCapabilities) {
-      expect(noticeRect, isNotNull,
-          reason: '${unbuilt.title} 가 준비 중 안내 없이 올라가 있습니다');
+      expect(
+        noticeRect,
+        isNotNull,
+        reason: '${unbuilt.title} 가 준비 중 안내 없이 올라가 있습니다',
+      );
       expect(
         tester.getRect(find.text(unbuilt.title)).top,
         greaterThan(noticeRect!.bottom),

@@ -37,6 +37,12 @@ abstract interface class SubscriptionRepository {
   /// True only when 안심 케어 is both paid for and consented to.
   Future<bool> careIsActive(String seniorProfileId);
 
+  /// Whether the 안심 케어 question on the parent's phone is the second one:
+  /// a used month cut and reconnected inside its period, where 아니요 refunds
+  /// nothing. The server's `resolve_care_consent` tells the two apart the
+  /// same way - a first question has a row still waiting on the parent.
+  Future<bool> careAskedAgain(String seniorProfileId);
+
   Future<List<CareAlert>> alertsFor(String seniorProfileId);
 }
 
@@ -87,6 +93,25 @@ class SupabaseSubscriptionRepository implements SubscriptionRepository {
       throw const SeniorLinkException('답을 저장하지 못했어요.');
     }
     return profile;
+  }
+
+  @override
+  Future<bool> careAskedAgain(String seniorProfileId) async {
+    // `subscriptions_read` lets the parent's own phone see its rows, for this
+    // reason. A failed read answers false: the first question's wording is
+    // the common case.
+    try {
+      final rows = await _client
+          .from('subscriptions')
+          .select('id')
+          .eq('senior_profile_id', seniorProfileId)
+          .eq('plan', 'care')
+          .eq('status', 'pending_senior_consent')
+          .limit(1);
+      return rows.isEmpty;
+    } on Object {
+      return false;
+    }
   }
 
   @override
@@ -341,6 +366,10 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
     final name = store.profiles[seniorProfileId]?.displayName ?? '';
     return name.isEmpty ? '' : '$name님이 ';
   }
+
+  @override
+  Future<bool> careAskedAgain(String seniorProfileId) async => !subscriptions
+      .any((s) => s.seniorProfileId == seniorProfileId && s.isWaitingOnSenior);
 
   @override
   Future<bool> careIsActive(String seniorProfileId) async {
