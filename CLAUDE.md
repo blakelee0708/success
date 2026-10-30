@@ -3284,8 +3284,9 @@ anybody while it runs, writable by no client.
   before it may be pushed, and the app asks for none.
 
 Both are re-read on resume, not on the fifteen-second tick: they change on
-the company's schedule. `tool/verify_supabase_notices.py` checks the running
-window, the anonymous reads and the refused writes.
+the company's schedule. The migration is applied live on the owner's 반영
+(2026-10-30), and `tool/verify_supabase_notices.py` passes all 7 checks
+against it: the running window, the anonymous reads and the refused writes.
 
 ## 1대1만 연결한다, and it is a lock rather than a rewrite
 
