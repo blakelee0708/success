@@ -3180,8 +3180,15 @@ the developer. Both arrive as a Real Time Developer Notification, which the
 server will have to receive or the feature stays on after the money went
 back. Neither is built: both need Billing.
 
-`tool/verify_supabase_care_cancel.py` and `verify_supabase_leaving.py` walk
-it against the live project.
+`20261029100000_refund_by_use.sql` is applied to the live project on the
+owner's 반영 (2026-10-30), and `tool/verify_supabase_care_cancel.py` (43)
+and `verify_supabase_leaving.py` (59) both pass against it.
+
+**끊기 and 계정 삭제 do not say 남은 기간까지 그대로 쓰실 수 있어요.** It is
+the third line of the rule on 해지 only (`careRefundRule`); the two leaving
+dialogs carry `careRefundRuleOnLeaving`, which stops at 환불은 불가합니다. A
+cut link reads nothing until it is reconnected, and on the delete dialog the
+full line sat directly above 남은 기간은 쓰실 수 없게 돼요.
 
 ## 1대1만 연결한다, and it is a lock rather than a rewrite
 
