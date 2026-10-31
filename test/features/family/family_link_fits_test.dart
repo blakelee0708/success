@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/core/supabase/supabase_providers.dart';
+import 'package:app/core/theme/app_colors.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/data/remote/home_apps_repository.dart';
 import 'package:app/data/remote/pairing_repository.dart';
@@ -147,6 +148,42 @@ void main() {
         expect(drawn, closeTo(1.0, 0.001), reason: size.name);
       }
     }
+  });
+
+  testWidgets('no small grey line, before or after 번호 보여주기', (tester) async {
+    // Grey 18-19px under the heading and over the field was read on a real
+    // phone as not there at all. Everything a senior reads here is the dark
+    // ink, at 18px or more.
+    Future<void> check(String where) async {
+      for (final text in tester.widgetList<Text>(
+        find.descendant(
+          of: find.byType(FamilyLinkScreen),
+          matching: find.byType(Text),
+        ),
+      )) {
+        final style = text.style;
+        if (style == null) continue;
+        expect(
+          style.color,
+          isNot(AppColors.seniorInkMuted),
+          reason: '$where: "${text.data}" is grey',
+        );
+        if (style.fontSize case final size?) {
+          expect(
+            size,
+            greaterThanOrEqualTo(18),
+            reason: '$where: "${text.data}" is ${size}px',
+          );
+        }
+      }
+    }
+
+    await _open(tester, size: FontSize.normal);
+    await check('before');
+    await tester.tap(find.byKey(FamilyLinkKeys.showCode));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await check('with the number');
   });
 
   testWidgets('자녀가 보는 것 waits until there is a family to see', (

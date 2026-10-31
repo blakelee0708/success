@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/family/presentation/family_link_screen.dart'
+    show enterCodeQuestion;
+
 import 'package:app/data/remote/pairing_repository.dart';
 import 'package:app/data/remote/senior_link_repository.dart';
 import 'package:app/domain/pair_link.dart';
@@ -165,7 +168,7 @@ void main() {
 
       // The words on the parent's own screens, so they can be matched by eye.
       expect(body, contains('「가족 연결」'));
-      expect(body, contains('「자녀분이 먼저 번호를 알려 주셨나요?」'));
+      expect(body, contains('「$enterCodeQuestion」'));
       // Last, and on a line of its own: that is the line read out.
       expect(body.split('\n').last, link.code);
       expect(body, isNot(contains('referrer')));

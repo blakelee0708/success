@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 828 tests, all passing
+flutter test             # currently 829 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -706,16 +706,31 @@ choices:
 - **번호 입력하기** cannot be done at all without a number already in hand. To
   a senior holding no number it is not an option, it is a dead end.
 
-So the first is a 140px red pad reading **번호 보여주기 / 여기를 누르세요**, and
-the second is a quieter question below a rule — `자녀분이 먼저 번호를 알려
-주셨나요?`, which only the few it applies to will answer. A test asserts the
-first is more than half again the height of the second.
+So the first is a red pad reading **번호 보여주기 / 여기를 누르세요** (112px
+since 2026-10-31), and the second sits below a rule under the question
+`자녀분이 번호를 주셨나요?`. A test asserts the pad is more than half again the
+height of 연결하기.
 
 **The screen fits one page, 첫 화면으로 가기 included** (2026-10-31). On a
 real Galaxy 연결하기 sat under the fold, so a senior who typed the number
-their child read out found nothing to press. The red pad is 110 rather than
+their child read out found nothing to press. The red pad is 112 rather than
 140, the field and 연결하기 share one 72px row, and 자녀가 보는 것 is drawn
-only once a child is attached - before that it has no subject. Nothing on the
+only once a child is attached - before that it has no subject.
+
+**It is centred and says almost nothing in sentences**, after the owner read
+a draft of instructions and called it unreadable. Two cream boxes under
+자녀와 연결하면 say why (자녀와 쉽게 문자를 주고받아요 / 자녀분이 쉽게
+버튼을 바꿔 드려요, the owner's words), one line says 어르신이 허락하셔야
+연결돼요, and the owner's instruction - press the box, type the number, press
+연결하기 - is said by ① on the field and ② on the button instead of three
+lines of text. **No grey and nothing under 18px**: the grey line under the
+heading and the grey question over the field were read on the phone as not
+there at all, and `family_link_fits_test` fails on either coming back. The
+field is yellow with a 3px ink edge, because an empty white box on a white
+ground is not seen as a box. The box labels are held at 18px at every size so
+the two boxes match; `자녀분이 쉽게 버튼을` is the widest line on the screen.
+`PairLink.codeMessage` quotes the question over the field, and
+`pairing_repository_test` holds it to `enterCodeQuestion`. Nothing on the
 unconnected screen scrolls: the top half (heading and pad, or the number once
 shown) sits in a `FittedBox(scaleDown)` inside a loose `Flexible`, so it gives
 way rather than pushing the field off the screen, and that is also what keeps

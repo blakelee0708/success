@@ -79,8 +79,9 @@ class PairLink {
   /// its last line.
   ///
   /// The two quoted phrases are the words on the parent's own screens - the
-  /// 가족 연결 button and the question over the field - so they can be
-  /// matched by eye rather than understood. The number comes last and by
+  /// 가족 연결 button and the question over the field (`enterCodeQuestion`,
+  /// which `pairing_repository_test` holds this to) - so they can be matched
+  /// by eye rather than understood. The number comes last and by
   /// itself because that is the line somebody reads out down the phone.
   ///
   /// [afterInstall] false is the text sent alone, before the app is on
@@ -88,7 +89,7 @@ class PairLink {
   /// to do first.
   String codeMessage({bool afterInstall = true}) =>
       '${afterInstall ? '설치하고 앱을' : '잘보이네 앱을'} 여신 뒤 「가족 연결」을 누르세요.\n'
-      '「자녀분이 먼저 번호를 알려 주셨나요?」 아래 칸에 '
+      '「자녀분이 번호를 주셨나요?」 아래 노란 칸에 '
       '이 번호를 넣고 「연결하기」를 눌러 주세요.\n\n'
       '$code';
 

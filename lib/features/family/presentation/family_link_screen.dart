@@ -136,7 +136,7 @@ class _FamilyLinkScreenState extends ConsumerState<FamilyLinkScreen> {
                   // size but 제일 크게, and it is also what keeps the field in
                   // view when the keyboard comes up and takes half the height.
                   : Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -153,19 +153,25 @@ class _FamilyLinkScreenState extends ConsumerState<FamilyLinkScreen> {
                                   child: SizedBox(
                                     key: FamilyLinkKeys.topContent,
                                     width: box.maxWidth,
-                                    child: const _ShowCode(),
+                                    child: const Column(
+                                      children: [
+                                        _WhyConnect(),
+                                        SizedBox(height: 22),
+                                        _ShowCode(),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 20),
                           const Divider(
                             height: 2,
                             thickness: 2,
                             color: AppColors.seniorHairline,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 18),
                           _EnterCode(
                             controller: _code,
                             busy: _busy,
@@ -318,31 +324,17 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          '자녀분에게\n이 번호를 불러 주세요',
-          style: TextStyle(
-            fontSize: 25,
-            height: 1.4,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.6,
-            color: AppColors.seniorInk,
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          '자녀분이 그 번호를 넣으면 연결됩니다.',
-          style: TextStyle(
-            fontSize: 18,
-            height: 1.5,
-            color: AppColors.seniorInkMuted,
-          ),
-        ),
-        const SizedBox(height: 20),
         switch (pairing) {
           AsyncData(value: final link?) => _Code(link: link),
           AsyncError() => const Text(
-            '번호를 받지 못했어요. 인터넷 연결을 확인해 주세요.',
-            style: TextStyle(fontSize: 18, height: 1.5),
+            '번호를 받지 못했어요.\n인터넷 연결을 확인해 주세요.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20,
+              height: 1.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.seniorInk,
+            ),
           ),
           AsyncLoading() => const Center(child: CircularProgressIndicator()),
           // The one thing on this screen a senior can do on their own, so it
@@ -350,53 +342,66 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
           // the amber 가족 wears elsewhere: that amber sits at hue 36°, one
           // degree off the 카카오톡 tile, and its 95% value is the highest in
           // the palette — it reads as washed out beside everything else.
-          _ => SizedBox(
-            key: FamilyLinkKeys.showCode,
-            // 110, down from 140, so 연결하기 fits under it on one screen. Still
-            // more than half again the height of 연결하기 (72), which is what
-            // keeps it reading as the answer rather than as one of two.
-            height: 110,
-            child: ClayPad(
-              light: AppColors.seniorButtonRedLight,
-              face: AppColors.seniorButtonRed,
-              deep: AppColors.seniorButtonRedDeep,
-              wall: AppColors.seniorButtonRedWall,
-              radius: 30,
-              onTap: () =>
-                  ref.read(seniorPairingControllerProvider.notifier).showCode(),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.phone_iphone, size: 30, color: Colors.white),
-                      SizedBox(height: 6),
-                      Text(
-                        '번호 보여주기',
-                        style: TextStyle(
-                          fontSize: 30,
-                          height: 1.1,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.8,
-                          color: Colors.white,
-                        ),
+          _ => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                key: FamilyLinkKeys.showCode,
+                // 112, down from 140, so everything down to 첫 화면으로 가기
+                // fits one screen. Still more than half again the height of
+                // 연결하기 (72), which is what keeps it reading as the answer
+                // rather than as one of two.
+                height: 112,
+                child: ClayPad(
+                  light: AppColors.seniorButtonRedLight,
+                  face: AppColors.seniorButtonRed,
+                  deep: AppColors.seniorButtonRedDeep,
+                  wall: AppColors.seniorButtonRedWall,
+                  radius: 30,
+                  onTap: () => ref
+                      .read(seniorPairingControllerProvider.notifier)
+                      .showCode(),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.phone_iphone,
+                            size: 30,
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            '번호 보여주기',
+                            style: TextStyle(
+                              fontSize: 30,
+                              height: 1.1,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.8,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            '여기를 누르세요',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 6),
-                      Text(
-                        '여기를 누르세요',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(height: 14),
+              const _OneLine('자녀분이 이 번호를 넣으면 연결돼요', fontSize: 20),
+            ],
           ),
         },
       ],
@@ -413,8 +418,10 @@ class _Code extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Scales down rather than clipping: four wide-tracked digits overflow a
-        // narrow phone at 아주 크게 otherwise.
+        // Where the red pad was, so the heading arrives with the number
+        // rather than sitting over a button nobody has pressed yet.
+        const _OneLine('자녀분에게 이 번호를 불러 주세요', fontSize: 22),
+        const SizedBox(height: 4),
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
@@ -422,49 +429,148 @@ class _Code extends StatelessWidget {
             key: FamilyLinkKeys.shownCode,
             style: const TextStyle(
               fontSize: 64,
+              height: 1.1,
               letterSpacing: 14,
               fontWeight: FontWeight.w800,
+              color: AppColors.seniorInk,
             ),
           ),
         ),
-        const SizedBox(height: 14),
-        // **A number alone reads as a dead end.** The phone is asking the
-        // server every three seconds whether the child has typed it, and
-        // nothing on screen said so - so the senior waited, decided it was
-        // broken, and pressed 가족 연결 again. The spinner is the whole
-        // message: something is happening and you do not have to do it.
-        Row(
-          key: FamilyLinkKeys.waiting,
+        const SizedBox(height: 2),
+        const _OneLine('이 번호는 10분 동안만 쓸 수 있어요', fontSize: 18),
+      ],
+    );
+  }
+}
+
+/// A line that stays one line. Left to wrap, Korean breaks between syllables
+/// and leaves the tail of a word alone underneath; this shrinks instead.
+class _OneLine extends StatelessWidget {
+  const _OneLine(this.text, {required this.fontSize});
+
+  final String text;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        text,
+        maxLines: 1,
+        softWrap: false,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: fontSize,
+          height: 1.4,
+          fontWeight: FontWeight.w700,
+          color: AppColors.seniorInk,
+        ),
+      ),
+    );
+  }
+}
+
+/// 자녀와 연결하면 - why anybody would press the red pad, said before it.
+///
+/// Two boxes with a picture each rather than a paragraph: the first draft was
+/// sentences, and a screen of sentences is the one thing this reader will not
+/// read. The words are the owner's (2026-10-31). What a child can change is
+/// the home buttons, which is what the second box says and all it says.
+class _WhyConnect extends StatelessWidget {
+  const _WhyConnect();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _OneLine('자녀와 연결하면', fontSize: 21),
+        SizedBox(height: 10),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _WhyBox(
+                  icon: Icons.chat_bubble_rounded,
+                  lines: ['자녀와 쉽게', '문자를 주고받아요'],
+                ),
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: _WhyBox(
+                  icon: Icons.grid_view_rounded,
+                  lines: ['자녀분이 쉽게 버튼을', '바꿔 드려요'],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 12),
+        // The consent card is what makes this true, and saying it here means
+        // the card is not a surprise when it arrives.
+        _OneLine('어르신이 허락하셔야 연결돼요', fontSize: 18),
+      ],
+    );
+  }
+}
+
+class _WhyBox extends StatelessWidget {
+  const _WhyBox({required this.icon, required this.lines});
+
+  final IconData icon;
+  final List<String> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.seniorWhyFace,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(color: AppColors.seniorWhyWall, offset: Offset(0, 5)),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 12, 4, 12),
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2.6),
-            ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Text(
-                '자녀분이 번호를 넣으면\n바로 연결돼요',
-                style: TextStyle(
-                  fontSize: 18,
-                  height: 1.4,
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.primary,
+            Icon(icon, size: 34, color: AppColors.seniorWhyIcon),
+            const SizedBox(height: 6),
+            // Both lines in one box so they shrink together - fitted one at a
+            // time, the longer line came out smaller than the line under it.
+            // And held at 18px at every text size, so the two boxes match:
+            // `자녀분이 쉽게 버튼을` is the widest line on the screen, and
+            // grown with the rest it would be drawn smaller than the box
+            // beside it.
+            MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.0,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  children: [
+                    for (final line in lines)
+                      Text(
+                        line,
+                        maxLines: 1,
+                        softWrap: false,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          height: 1.4,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.seniorInk,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        // Saying it expires is the difference between a number that stopped
-        // working and a phone that seems broken.
-        const Text(
-          '이 번호는 10분 동안만 쓸 수 있어요',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 17, height: 1.5),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -489,18 +595,12 @@ class _EnterCode extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Quieter than the half above on purpose. This one cannot be done at
-        // all without a number already in hand, so it is a question for the
-        // few it applies to rather than a second choice for everyone.
-        const Text(
-          '자녀분이 먼저 번호를 알려 주셨나요?',
-          style: TextStyle(
-            fontSize: 19,
-            height: 1.5,
-            fontWeight: FontWeight.w700,
-            color: AppColors.seniorInkMuted,
-          ),
-        ),
+        // Dark and centred now, like everything else on this screen. It was
+        // grey on purpose, to be quieter than the half above - and grey 19px
+        // was read on a real phone as not there at all. Being smaller than
+        // the red pad is quiet enough. `PairLink.codeMessage` quotes it, so
+        // the guardian's text and this line change together.
+        const _OneLine(enterCodeQuestion, fontSize: 22),
         const SizedBox(height: 12),
         // The field and 연결하기 share a row. Stacked, 연결하기 was the first
         // thing pushed under the fold; side by side it stays in view with the
@@ -511,50 +611,69 @@ class _EnterCode extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                flex: 13,
-                // The digits are 32px already, and the row is 72 at every
-                // size: past 1.3 four of them stop fitting the width.
+                flex: 12,
+                // The digits are 32px already and the row is fixed: past 1.3
+                // four of them stop fitting the width.
                 child: MediaQuery.withClampedTextScaling(
                   maxScaleFactor: 1.3,
-                  child: TextField(
-                    key: FamilyLinkKeys.code,
-                    controller: controller,
-                    enabled: !busy,
-                    // Fills the row's 72 exactly rather than sizing itself, so
-                    // the field and 연결하기 are the same height at every size.
-                    expands: true,
-                    maxLines: null,
-                    textAlignVertical: TextAlignVertical.center,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(6),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      TextField(
+                        key: FamilyLinkKeys.code,
+                        controller: controller,
+                        enabled: !busy,
+                        // Fills the row exactly rather than sizing itself, so
+                        // the field and 연결하기 are one height at every size.
+                        expands: true,
+                        maxLines: null,
+                        textAlignVertical: TextAlignVertical.center,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(6),
+                        ],
+                        style: const TextStyle(
+                          fontSize: 32,
+                          letterSpacing: 8,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.seniorInk,
+                        ),
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                          ),
+                          filled: true,
+                          fillColor: AppColors.seniorCodeField,
+                          border: _codeBorder(AppColors.seniorInk),
+                          enabledBorder: _codeBorder(AppColors.seniorInk),
+                          focusedBorder: _codeBorder(AppColors.seniorPrimary),
+                          disabledBorder: _codeBorder(AppColors.seniorInk),
+                        ),
+                      ),
+                      // ① 번호 넣기, until something is typed. The owner's
+                      // sentence - press the box, type the number, press
+                      // 연결하기 - is said by the two numbers instead: three
+                      // lines of instructions is what this reader skips.
+                      // Drawn over the field rather than as its hint, which
+                      // would scale with the digits and lose the badge.
+                      IgnorePointer(
+                        child: ListenableBuilder(
+                          listenable: controller,
+                          builder: (context, _) => controller.text.isEmpty
+                              ? const Center(
+                                  child: _Step(
+                                    number: 1,
+                                    label: '번호 넣기',
+                                    ink: AppColors.seniorInk,
+                                    badgeInk: AppColors.seniorCodeField,
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ),
                     ],
-                    style: const TextStyle(
-                      fontSize: 32,
-                      letterSpacing: 8,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    textAlign: TextAlign.center,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                      filled: true,
-                      fillColor: AppColors.seniorSlotFill,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: AppColors.seniorSlotBorder,
-                          width: 2.5,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: AppColors.seniorSlotBorder,
-                          width: 2.5,
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ),
@@ -570,20 +689,21 @@ class _EnterCode extends StatelessWidget {
                     wall: AppColors.seniorMoreWall,
                     radius: 26,
                     onTap: busy ? null : onSubmit,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          busy ? '연결하는 중이에요' : '연결하기',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.4,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+                    child: Center(
+                      child: busy
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              child: _OneLineOn(
+                                '연결하는 중이에요',
+                                color: Colors.white,
+                              ),
+                            )
+                          : const _Step(
+                              number: 2,
+                              label: '연결하기',
+                              ink: Colors.white,
+                              badgeInk: AppColors.seniorMoreDeep,
+                            ),
                     ),
                   ),
                 ),
@@ -596,9 +716,11 @@ class _EnterCode extends StatelessWidget {
           Text(
             message,
             key: FamilyLinkKeys.message,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 19,
               height: 1.5,
+              fontWeight: FontWeight.w700,
               color: Theme.of(context).colorScheme.error,
             ),
           ),
@@ -753,6 +875,97 @@ class _ConnectedState extends ConsumerState<_Connected> {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// The question over the field. `PairLink.codeMessage` quotes it in the text
+/// a guardian sends, so the parent can match the two by eye - which only
+/// works while they are the same words.
+const enterCodeQuestion = '자녀분이 번호를 주셨나요?';
+
+OutlineInputBorder _codeBorder(Color color) => OutlineInputBorder(
+  borderRadius: BorderRadius.circular(20),
+  borderSide: BorderSide(color: color, width: 3),
+);
+
+/// ① 번호 넣기 / ② 연결하기: the order, said by a number in a disc.
+class _Step extends StatelessWidget {
+  const _Step({
+    required this.number,
+    required this.label,
+    required this.ink,
+    required this.badgeInk,
+  });
+
+  final int number;
+  final String label;
+  final Color ink;
+  final Color badgeInk;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: ink, shape: BoxShape.circle),
+              child: Text(
+                '$number',
+                style: TextStyle(
+                  fontSize: 18,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                  color: badgeInk,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.4,
+                color: ink,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OneLineOn extends StatelessWidget {
+  const _OneLineOn(this.text, {required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        text,
+        maxLines: 1,
+        softWrap: false,
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w900,
+          color: color,
+        ),
+      ),
     );
   }
 }

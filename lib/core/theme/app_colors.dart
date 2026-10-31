@@ -32,6 +32,15 @@ class AppColors {
   static const seniorInkMuted = Color(0xFF8E8A84); // quiet captions
   static const seniorHairline = Color(0xFFE3E4E6); // the rule inside the card
 
+  // 가족 연결's 자녀와 연결하면 boxes, and the field a number is typed into.
+  // Cream rather than the amber 가족 wears, because these are not pressable
+  // and must not look like a button; the field is yellow so an empty white box
+  // on a white ground stops being invisible.
+  static const seniorWhyFace = Color(0xFFFFF4DF);
+  static const seniorWhyWall = Color(0xFFEAD3A8);
+  static const seniorWhyIcon = Color(0xFFB9741A);
+  static const seniorCodeField = Color(0xFFFFF6B8);
+
   /// The two home buttons. Blue and teal went first — short-wavelength
   /// colours are the first an ageing eye loses, which is why 가족 is amber
   /// (lettered in ink, since amber is too light for white) and 더 보기 brown.
