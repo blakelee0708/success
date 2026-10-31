@@ -9,6 +9,7 @@ import '../../launcher/presentation/widgets/category_picker.dart';
 import '../../launcher/presentation/widgets/contact_dialog.dart';
 import '../application/guardian_home_apps_controller.dart';
 import '../application/home_edit_allowance.dart';
+import 'widgets/guardian_nav_bar.dart';
 import 'widgets/guardian_surfaces.dart';
 
 /// Widget keys the tests drive.
@@ -319,7 +320,7 @@ class _Editor extends ConsumerWidget {
                   icon: Icons.favorite_rounded,
                   onPressed: () {
                     Navigator.of(sheet).pop();
-                    onOpenTab?.call(3);
+                    onOpenTab?.call(GuardianTabs.care);
                   },
                 ),
                 const SizedBox(height: 6),

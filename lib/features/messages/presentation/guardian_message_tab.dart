@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../guardian/application/guardian_home_apps_controller.dart';
+import '../../guardian/presentation/widgets/guardian_nav_bar.dart';
 import '../../guardian/presentation/widgets/guardian_surfaces.dart';
 import 'conversation_view.dart';
 
@@ -55,7 +56,9 @@ class GuardianMessageTab extends ConsumerWidget {
         Expanded(
           child: ConversationView(
             title: profile.displayName,
-            onOpenCare: onOpenTab == null ? null : () => onOpenTab!(3),
+            onOpenCare: onOpenTab == null
+                ? null
+                : () => onOpenTab!(GuardianTabs.care),
           ),
         ),
       ],

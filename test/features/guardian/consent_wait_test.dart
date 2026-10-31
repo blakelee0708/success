@@ -80,7 +80,7 @@ void main() {
     final started = await h.pairing.startSeniorPairing(
       installId: 'senior-phone',
     );
-    await tester.tap(find.text('불러주신 번호 넣기'));
+    await tester.tap(find.text('부모님이 불러주신\n번호 넣기'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(GuardianFamilyKeys.codeField),
@@ -124,6 +124,8 @@ void main() {
     // nothing they could read out.
     final h = await _pumpDashboard(tester, storeListed: true);
 
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '엄마');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
     await tester.pumpAndSettle();
@@ -228,7 +230,7 @@ void main() {
     final started = await h.pairing.startSeniorPairing(
       installId: 'senior-phone',
     );
-    await tester.tap(find.text('불러주신 번호 넣기'));
+    await tester.tap(find.text('부모님이 불러주신\n번호 넣기'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(GuardianFamilyKeys.codeField),
@@ -271,7 +273,9 @@ void main() {
     expect(find.byKey(GuardianFamilyKeys.deleteAccount), findsOneWidget);
     // Why connecting first, then the form, then the account.
     final promise = tester.getTopLeft(find.byKey(GuardianHomeKeys.promise));
-    final form = tester.getTopLeft(find.byKey(GuardianFamilyKeys.nameField));
+    final form = tester.getTopLeft(
+      find.byKey(GuardianFamilyKeys.openInviteForm),
+    );
     final signOut = tester.getTopLeft(find.byKey(GuardianFamilyKeys.signOut));
     expect(promise.dy, lessThan(form.dy));
     expect(form.dy, lessThan(signOut.dy));
@@ -288,7 +292,7 @@ void main() {
       installId: 'senior-phone',
     );
     h.links.pendingLinkConsent = false;
-    await tester.tap(find.text('불러주신 번호 넣기'));
+    await tester.tap(find.text('부모님이 불러주신\n번호 넣기'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(GuardianFamilyKeys.codeField),

@@ -109,6 +109,23 @@ void main() {
     expect(find.textContaining('위치'), findsNothing);
   });
 
+  testWidgets('안심 케어 is second along the bottom', (tester) async {
+    // The owner's order, 2026-10-31: 홈, 안심 케어, 부모님 화면, 메시지.
+    await _gotoDashboard(tester);
+
+    final xs = [
+      for (final label in const ['홈', '안심 케어', '부모님 화면', '메시지'])
+        tester.getCenter(find.byKey(GuardianNavKeys.destination(label))).dx,
+    ];
+    for (var i = 1; i < xs.length; i++) {
+      expect(xs[i], greaterThan(xs[i - 1]));
+    }
+
+    // And each one still opens its own tab.
+    await _openTab(tester, '안심 케어');
+    expect(find.text('안심 케어로 할 수 있는 일'), findsOneWidget);
+  });
+
   testWidgets('both ways of connecting a parent are offered', (tester) async {
     await _gotoDashboard(tester);
 
@@ -116,8 +133,8 @@ void main() {
     // with none lands here and the thing to do is on the same screen.
     // 07_PHASE_PLAN has two paths, and path A depends on the Play install
     // referrer surviving — so path B is not an advanced option to hide.
-    expect(find.text('설치 문자 보내기'), findsOneWidget);
-    expect(find.text('불러주신 번호 넣기'), findsOneWidget);
+    expect(find.text('설치 문자\n부모님께 보내드리기'), findsOneWidget);
+    expect(find.text('부모님이 불러주신\n번호 넣기'), findsOneWidget);
   });
 
   testWidgets('nothing that needs a parent is offered before there is one', (

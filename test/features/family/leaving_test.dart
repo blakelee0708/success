@@ -424,17 +424,19 @@ void main() {
     await tester.pumpAndSettle();
 
     // 설치 문자 mode: the parent's number is the recipient, so both are asked.
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
     expect(find.byKey(GuardianFamilyKeys.phoneField), findsOneWidget);
     expect(find.byKey(GuardianFamilyKeys.myPhoneOnConnect), findsOneWidget);
 
-    await tester.tap(find.text('불러주신 번호 넣기'));
+    await tester.tap(find.text('부모님이 불러주신\n번호 넣기'));
     await tester.pumpAndSettle();
 
     // 번호 입력 mode: there is nothing to send, so there is no parent's
     // number to ask for - and the one field that remains is the child's.
     expect(find.byKey(GuardianFamilyKeys.phoneField), findsNothing);
     expect(find.byKey(GuardianFamilyKeys.myPhoneOnConnect), findsOneWidget);
-    expect(find.textContaining('부모님 폰의 긴급 연락에서 이 번호로'), findsOneWidget);
+    expect(find.textContaining('부모님 폰의 긴급 연락이 이 번호로'), findsOneWidget);
   });
 
   testWidgets('the number typed on the connect form is the child\'s own', (
@@ -462,7 +464,7 @@ void main() {
     tester.view.physicalSize = const Size(390, 6400);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('불러주신 번호 넣기'));
+    await tester.tap(find.text('부모님이 불러주신\n번호 넣기'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(GuardianFamilyKeys.codeField),

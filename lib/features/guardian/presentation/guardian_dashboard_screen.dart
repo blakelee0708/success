@@ -95,10 +95,11 @@ class _GuardianDashboardScreenState
           child: IndexedStack(
             index: _index,
             children: [
+              // In [GuardianTabs] order.
               _HomeTab(onOpenTab: (i) => setState(() => _index = i)),
+              const GuardianCareTab(),
               GuardianLauncherTab(onOpenTab: (i) => setState(() => _index = i)),
               GuardianMessageTab(onOpenTab: (i) => setState(() => _index = i)),
-              const GuardianCareTab(),
             ],
           ),
         ),
@@ -111,6 +112,11 @@ class _GuardianDashboardScreenState
             label: '홈',
             icon: Icons.home_outlined,
             activeIcon: Icons.home_rounded,
+          ),
+          GuardianDestination(
+            label: '안심 케어',
+            icon: Icons.favorite_outline,
+            activeIcon: Icons.favorite_rounded,
           ),
           GuardianDestination(
             label: '부모님 화면',
@@ -127,11 +133,6 @@ class _GuardianDashboardScreenState
             // be both late and redundant. What reaches them when it matters
             // is a push notification, which is not built yet.
             badge: ref.watch(unreadFromSeniorProvider),
-          ),
-          GuardianDestination(
-            label: '안심 케어',
-            icon: Icons.favorite_outline,
-            activeIcon: Icons.favorite_rounded,
           ),
         ],
       ),
@@ -527,7 +528,7 @@ class _HomeTab extends ConsumerWidget {
               icon: Icons.grid_view_rounded,
               tint: AppColors.guardianTintBlue,
               tintInk: AppColors.guardianTintBlueInk,
-              onTap: () => onOpenTab(1),
+              onTap: () => onOpenTab(GuardianTabs.launcher),
             ),
             GuardianActionCard(
               label: '메시지\n보내기',
@@ -535,7 +536,7 @@ class _HomeTab extends ConsumerWidget {
               icon: Icons.chat_bubble_rounded,
               tint: AppColors.guardianTintViolet,
               tintInk: AppColors.guardianTintVioletInk,
-              onTap: () => onOpenTab(2),
+              onTap: () => onOpenTab(GuardianTabs.messages),
             ),
           ],
         ),
@@ -556,7 +557,7 @@ class _HomeTab extends ConsumerWidget {
           icon: Icons.favorite_rounded,
           tint: AppColors.guardianTintGreen,
           tintInk: AppColors.guardianTintGreenInk,
-          onTap: () => onOpenTab(3),
+          onTap: () => onOpenTab(GuardianTabs.care),
         ),
         const SizedBox(height: 22),
         GuardianCard(

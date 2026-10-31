@@ -534,7 +534,11 @@ class _Side extends StatelessWidget {
                   const SizedBox(width: 7),
                   Text(
                     label,
+                    // Two lines where the label carries a break, centred
+                    // under each other rather than ragged.
+                    textAlign: TextAlign.center,
                     style: TextStyle(
+                      height: 1.3,
                       fontSize: large ? 16.5 : 14,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -569,6 +573,9 @@ InputDecoration guardianField({
   labelText: label,
   hintText: hint,
   helperText: helper,
+  // Wraps rather than ending in …: a helper that loses its verb at 390px
+  // loses the reason the field is asked.
+  helperMaxLines: 3,
   filled: true,
   fillColor: Colors.white,
   labelStyle: const TextStyle(

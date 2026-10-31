@@ -28,6 +28,7 @@ import 'package:app/data/remote/message_repository.dart';
 import 'package:app/data/remote/pairing_repository.dart';
 import 'package:app/data/remote/subscription_repository.dart';
 import 'package:app/features/family/presentation/family_link_screen.dart';
+import 'package:app/features/guardian/presentation/guardian_family_tab.dart';
 import 'package:app/features/messages/presentation/conversation_view.dart';
 import 'package:app/features/launcher/data/app_launcher.dart';
 import 'package:app/features/care/presentation/care_consent_prompt.dart';
@@ -948,6 +949,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(GuardianHomeKeys.promise), findsOneWidget);
     await _capture(tester, '33-guardian-no-parent');
+
+    // 연결 번호 만들기 opens the fields and 발송하기 under them.
+    await tester.ensureVisible(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(find.byKey(GuardianFamilyKeys.nameField)),
+      alignment: 0.15,
+    );
+    await tester.pumpAndSettle();
+    await _capture(tester, '33b-guardian-invite-form');
   });
 
   testWidgets('34 the install number, waiting to be used', (tester) async {

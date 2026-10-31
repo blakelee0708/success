@@ -75,8 +75,32 @@ void main() {
   ) async {
     await _pumpFamilyTab(tester);
 
-    expect(find.text('설치 문자 보내기'), findsOneWidget);
-    expect(find.text('불러주신 번호 넣기'), findsOneWidget);
+    expect(find.text('설치 문자\n부모님께 보내드리기'), findsOneWidget);
+    expect(find.text('부모님이 불러주신\n번호 넣기'), findsOneWidget);
+  });
+
+  testWidgets('the fields wait for 연결 번호 만들기, and 발송하기 sends', (tester) async {
+    // 2026-10-31, from the owner's mockup: one line and one button first,
+    // so the guardian is not met by three empty boxes; the boxes come when
+    // they ask for them, and the button under them is 발송하기.
+    await _pumpFamilyTab(tester, pendingConsent: true);
+
+    expect(
+      find.text('부모님 폰에 잘보이네를 쉽게 설치하고\n연결할 수 있게 문자를 보내드려요'),
+      findsOneWidget,
+    );
+    expect(find.byKey(GuardianFamilyKeys.nameField), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.invite), findsNothing);
+
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(GuardianFamilyKeys.nameField), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.phoneField), findsOneWidget);
+    expect(find.byKey(GuardianFamilyKeys.myPhoneOnConnect), findsOneWidget);
+    expect(find.text('발송하기'), findsOneWidget);
+    expect(find.textContaining('비워 두셔도'), findsNothing);
+    expect(find.byKey(GuardianFamilyKeys.openInviteForm), findsNothing);
   });
 
   testWidgets('the invite never claims the message was sent', (tester) async {
@@ -88,13 +112,17 @@ void main() {
     // either way - 연결 관리 and the empty state on 홈 both draw it.
     final h = await _pumpFamilyTab(tester, pendingConsent: true);
 
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('보내기는 직접 눌러 주세요'), findsOneWidget);
+    // The button is called 발송하기 on the owner's word (2026-10-31), so the
+    // line under it says who presses send, and nothing says it went.
+    expect(find.textContaining('보내기를 눌러 주세요'), findsWidgets);
     expect(find.textContaining('문자를 보냈'), findsNothing);
-    expect(find.textContaining('발송'), findsNothing);
+    expect(find.textContaining('발송했'), findsNothing);
     expect(h.pairing.issued.last.code, isNotEmpty);
   });
 
@@ -106,6 +134,8 @@ void main() {
     // With no parent yet, because the app is 1대1.
     await _pumpFamilyTab(tester, pendingConsent: true);
 
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
     await tester.pumpAndSettle();
@@ -126,6 +156,8 @@ void main() {
       storeListed: true,
     );
 
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
     await tester.pumpAndSettle();
@@ -146,6 +178,8 @@ void main() {
     // parent's app is installed by hand until launch day turns it on.
     final h = await _pumpFamilyTab(tester, pendingConsent: true);
 
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '아버지');
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
     await tester.pumpAndSettle();
@@ -153,7 +187,7 @@ void main() {
     expect(find.text(h.pairing.issued.last.code), findsOneWidget);
     expect(find.byKey(GuardianFamilyKeys.sendInstallLink), findsNothing);
     expect(find.byKey(GuardianFamilyKeys.sendInviteCode), findsOneWidget);
-    expect(find.text('연결 번호 보내기'), findsOneWidget);
+    expect(find.text('문자 다시 보내기'), findsOneWidget);
     expect(find.textContaining('두 문자'), findsNothing);
   });
 
@@ -162,6 +196,8 @@ void main() {
   ) async {
     final h = await _pumpFamilyTab(tester);
 
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(GuardianFamilyKeys.invite));
     await tester.pumpAndSettle();
 
@@ -196,7 +232,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // No parent yet, so the form is the one on 홈.
-    await tester.tap(find.text('불러주신 번호 넣기'));
+    await tester.tap(find.text('부모님이 불러주신\n번호 넣기'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(GuardianFamilyKeys.codeField),
@@ -214,7 +250,7 @@ void main() {
   testWidgets('a wrong code says so', (tester) async {
     await _pumpFamilyTab(tester);
 
-    await tester.tap(find.text('불러주신 번호 넣기'));
+    await tester.tap(find.text('부모님이 불러주신\n번호 넣기'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(GuardianFamilyKeys.codeField), '9999');
     await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '어머니');
@@ -263,7 +299,7 @@ void main() {
     await _pumpFamilyTab(tester, withParent: true);
 
     expect(find.text('부모님이 폰을 바꾸셨나요?'), findsOneWidget);
-    expect(find.text('설치 문자 보내기'), findsNothing);
+    expect(find.text('설치 문자\n부모님께 보내드리기'), findsNothing);
     expect(find.byKey(GuardianFamilyKeys.invite), findsNothing);
     expect(find.byKey(GuardianFamilyKeys.nameField), findsNothing);
     expect(find.byKey(GuardianFamilyKeys.codeField), findsOneWidget);

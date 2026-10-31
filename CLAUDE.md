@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 829 tests, all passing
+flutter test             # currently 831 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -3639,6 +3639,40 @@ account existed. A card now reads 가입하는 중이에요 with a spinner, turn
 after `GuardianLoginScreen.doneHold` (1.2 s). It opens only once the request
 is sent - a form refused for a short password never shows it - and a refused
 sign-up takes it away and leaves the reason under the fields.
+
+## 안심 케어 is second, and the install text is three steps
+
+2026-10-31, from the owner's mockup, approved as drawn.
+
+**The bottom bar is 홈 · 안심 케어 · 부모님 화면 · 메시지.** Cards on one tab
+open another, and they did it with bare numbers - `onOpenTab(3)` meant 안심
+케어 until the order changed, and would then have opened 메시지 with nothing
+failing. They read `GuardianTabs.care` and the rest now, and
+`guardian_dashboard_test` checks both the left-to-right order and that 안심
+케어 still opens its own tab.
+
+**The install-text side of 부모님 연결하기 opens in three steps.**
+
+| | 보이는 것 |
+|---|---|
+| 처음 | 부모님 폰에 잘보이네를 쉽게 설치하고 연결할 수 있게 문자를 보내드려요, and 연결 번호 만들기 (`openInviteForm`) |
+| 누르면 | 부모님 이름 또는 애칭, 부모님 전화번호, 내 전화번호, then **발송하기** (`invite`) |
+| 발송하기 | issues the number and opens the messaging app at once; back on the screen, the number and 문자 다시 보내기 |
+
+**발송하기 is the owner's word and it cannot send**: it hands a filled-in text
+to the messaging app, so the line under it says 문자 앱이 열리면 보내기를 눌러
+주세요, and the test that forbade 발송 anywhere now forbids 발송했 - a claim,
+not a button name. Once the store link is live the first text opened is the
+link, and the screen after it offers ② 연결 번호 보내기 with ① 설치 링크 다시
+보내기 as an outline. 비워 두셔도 됩니다 under 부모님 전화번호 is gone; an
+empty number still works, the messaging app asks who to send to.
+
+The tab labels are two lines (설치 문자 / 부모님께 보내드리기, 부모님이
+불러주신 / 번호 넣기), because neither fits half the switcher on one, and
+`GuardianSwitcher` centres a label that breaks. `guardianField` helpers wrap
+to three lines instead of ending in …, which had cut 내 전화번호's reason to
+`전화가 갑…` at 390px; that helper is 부모님 폰의 긴급 연락이 이 번호로
+걸려요 now, short enough not to leave 다 alone on a line.
 
 ## Conventions
 

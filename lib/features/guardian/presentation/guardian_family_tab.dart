@@ -24,6 +24,10 @@ class GuardianFamilyKeys {
   GuardianFamilyKeys._();
 
   static const invite = Key('guardian-family-invite');
+
+  /// 연결 번호 만들기 on the install-text side: opens the fields, issues
+  /// nothing. [invite] is the 발송하기 under them.
+  static const openInviteForm = Key('guardian-family-open-invite-form');
   static const enterCode = Key('guardian-family-enter-code');
   static const codeField = Key('guardian-family-code-field');
   static const nameField = Key('guardian-family-name-field');
@@ -349,6 +353,12 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
   final _code = TextEditingController();
   bool _byCode = false;
   bool _busy = false;
+
+  /// 연결 번호 만들기 pressed: the install-text fields are showing. Until
+  /// then that side is one line and one button, from the owner's mockup
+  /// (2026-10-31) - three empty boxes is a lot to meet before knowing what
+  /// they are for.
+  bool _formOpen = false;
   String? _error;
 
   @override
@@ -447,11 +457,29 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
           );
         }
       } else {
-        await controller.inviteSenior(
+        final to = _phone.text.trim().isEmpty ? null : _phone.text.trim();
+        final link = await controller.inviteSenior(
           displayName: name,
           // Here the number **is** the parent's: it is who the install SMS
           // is addressed to, and nothing else reads it.
-          phoneNumber: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+          phoneNumber: to,
+        );
+        // **발송하기 opens the messaging app at once**, the owner's call. It
+        // cannot send: it hands over a filled-in text and the guardian
+        // presses send there, which is what the line under the button says.
+        // Not awaited - the app may never answer, and the number is shown
+        // on this screen whatever it does. Once the store link is live the
+        // first text is that link, and the number follows from the screen
+        // this one gives way to.
+        final listed = ref.read(appConfigProvider).value?.storeListed ?? false;
+        unawaited(
+          listed
+              ? controller.sendInstallLink(link, phoneNumber: to)
+              : controller.sendInviteCode(
+                  link,
+                  phoneNumber: to,
+                  afterInstall: false,
+                ),
         );
       }
       // Saved on both paths, which is also new. 경로 A never asked for the
@@ -494,8 +522,8 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
         if (!widget.phoneChange)
           GuardianSwitcher(
             options: const [
-              ('설치 문자 보내기', Icons.sms_rounded),
-              ('불러주신 번호 넣기', Icons.dialpad_rounded),
+              ('설치 문자\n부모님께 보내드리기', Icons.sms_rounded),
+              ('부모님이 불러주신\n번호 넣기', Icons.dialpad_rounded),
             ],
             selected: _byCode ? 1 : 0,
             onSelected: (i) {
@@ -509,26 +537,26 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
             },
           ),
         const SizedBox(height: 14),
-        Text(
-          widget.phoneChange
-              ? '새 폰에서 가족 연결을 누르고 번호 보여주기를 누르시면 4자리 번호가 나옵니다. '
-                    '그 번호를 넣으시면 대화와 홈 화면, 글씨 크기가 그대로 옮겨집니다.'
-              : _byCode
-              ? '부모님 폰에서 가족 연결을 누르고 번호 보여주기를 누르시면 4자리 번호가 나옵니다. '
-                    '그 번호를 불러 주시면 여기에 넣어 주세요. '
-                    '번호로는 전화번호를 알 수 없어서, 이름과 번호는 여기서 받습니다.'
-              : (ref.watch(appConfigProvider).value?.storeListed ?? false)
-              ? '번호를 만들면 보낼 문자 두 개를 준비해 드려요.\n'
-                    '보내기는 문자 앱에서 직접 눌러 주세요.'
-              : '번호를 만들면 보낼 문자를 준비해 드려요.\n'
-                    '보내기는 문자 앱에서 직접 눌러 주세요.',
-          style: const TextStyle(
-            fontSize: 14,
-            height: 1.5,
-            color: AppColors.guardianInkFaint,
+        if (_byCode || issued == null) ...[
+          Text(
+            widget.phoneChange
+                ? '새 폰에서 가족 연결을 누르고 번호 보여주기를 누르시면 4자리 번호가 나옵니다. '
+                      '그 번호를 넣으시면 대화와 홈 화면, 글씨 크기가 그대로 옮겨집니다.'
+                : _byCode
+                ? '부모님 폰에서 가족 연결을 누르고 번호 보여주기를 누르시면 4자리 번호가 나옵니다. '
+                      '그 번호를 불러 주시면 여기에 넣어 주세요. '
+                      '번호로는 전화번호를 알 수 없어서, 이름과 번호는 여기서 받습니다.'
+                : _formOpen
+                ? '부모님께 보낼 문자를 준비할게요.'
+                : '부모님 폰에 잘보이네를 쉽게 설치하고\n연결할 수 있게 문자를 보내드려요',
+            style: const TextStyle(
+              fontSize: 14.5,
+              height: 1.5,
+              color: AppColors.guardianInk,
+            ),
           ),
-        ),
-        const SizedBox(height: 14),
+          const SizedBox(height: 14),
+        ],
         if (_byCode) ...[
           TextField(
             key: GuardianFamilyKeys.codeField,
@@ -551,7 +579,8 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
         ],
         // A new phone for the parent already here: no name to ask, and their
         // own number is a row further down 연결 관리.
-        if (!widget.phoneChange) ...[
+        if (!widget.phoneChange &&
+            (_byCode || (_formOpen && issued == null))) ...[
           TextField(
             key: GuardianFamilyKeys.nameField,
             controller: _name,
@@ -577,10 +606,10 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
               controller: _phone,
               enabled: !_busy,
               keyboardType: TextInputType.phone,
-              decoration: guardianField(
-                label: '부모님 전화번호',
-                helper: '문자를 보낼 번호입니다. 비워 두셔도 됩니다',
-              ),
+              // No helper line any more (2026-10-31): 비워 두셔도 됩니다 was
+              // the owner's to cut, and an empty number still works - the
+              // messaging app opens and asks who to send to.
+              decoration: guardianField(label: '부모님 전화번호'),
             ),
             const SizedBox(height: 12),
           ],
@@ -594,7 +623,7 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
             // 긴급 연락 has no 보호자 button at all.
             decoration: guardianField(
               label: '내 전화번호',
-              helper: '부모님 폰의 긴급 연락에서 이 번호로 전화가 갑니다',
+              helper: '부모님 폰의 긴급 연락이 이 번호로 걸려요',
             ),
           ),
         ],
@@ -614,16 +643,40 @@ class _ConnectParentState extends ConsumerState<_ConnectParent> {
         // no longer had it. Once issued, the button gives way to the number
         // and the two texts, so pressing it twice cannot make a second
         // parent.
-        if (_byCode || issued == null)
+        if (_byCode)
           GuardianPrimaryButton(
-            key: _byCode
-                ? GuardianFamilyKeys.enterCode
-                : GuardianFamilyKeys.invite,
+            key: GuardianFamilyKeys.enterCode,
             onPressed: _busy ? null : _submit,
-            icon: _byCode ? Icons.link_rounded : Icons.add_rounded,
-            label: _busy ? '준비하는 중이에요' : (_byCode ? '연결하기' : '연결 번호 만들기'),
+            icon: Icons.link_rounded,
+            label: _busy ? '준비하는 중이에요' : '연결하기',
           )
-        else
+        else if (issued == null && !_formOpen)
+          GuardianPrimaryButton(
+            key: GuardianFamilyKeys.openInviteForm,
+            onPressed: () => setState(() {
+              _formOpen = true;
+              _error = null;
+            }),
+            icon: Icons.add_rounded,
+            label: '연결 번호 만들기',
+          )
+        else if (issued == null) ...[
+          GuardianPrimaryButton(
+            key: GuardianFamilyKeys.invite,
+            onPressed: _busy ? null : _submit,
+            icon: Icons.send_rounded,
+            label: _busy ? '준비하는 중이에요' : '발송하기',
+          ),
+          const SizedBox(height: 10),
+          // The button's name is the owner's; this line is what keeps it
+          // true. The app hands over a filled-in text and cannot press send.
+          const Center(
+            child: Text(
+              '문자 앱이 열리면 보내기를 눌러 주세요',
+              style: TextStyle(fontSize: 14, color: AppColors.guardianInk),
+            ),
+          ),
+        ] else
           GuardianInviteSender(
             link: issued.link,
             phoneNumber: issued.phoneNumber,
@@ -676,13 +729,15 @@ class GuardianInviteSender extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         // Never "문자를 보냈어요": the app hands each text to the messaging
-        // app and cannot see what happens after that.
+        // app and cannot see what happens after that. 발송하기 has already
+        // opened the first text by the time this is drawn, so what is left
+        // is the second (once the store link is live) or a second try.
         Text(
           listed
-              ? '아래 두 문자를 차례로 보내 주세요. '
-                    '문자 앱이 열리면 보내기는 직접 눌러 주세요.'
-              : '아래 문자를 보내 주세요. '
-                    '문자 앱이 열리면 보내기는 직접 눌러 주세요.',
+              ? '설치 링크 문자를 보내셨으면, 이어서 연결 번호를 보내 주세요. '
+                    '문자 앱이 열리면 보내기를 눌러 주세요.'
+              : '문자를 못 보내셨으면 다시 보낼 수 있어요. '
+                    '문자 앱이 열리면 보내기를 눌러 주세요.',
           style: const TextStyle(
             fontSize: 14,
             height: 1.5,
@@ -692,28 +747,68 @@ class GuardianInviteSender extends ConsumerWidget {
         const SizedBox(height: 12),
         if (listed) ...[
           GuardianPrimaryButton(
+            key: GuardianFamilyKeys.sendInviteCode,
+            onPressed: () => unawaited(
+              controller.sendInviteCode(link, phoneNumber: phoneNumber),
+            ),
+            icon: Icons.pin_rounded,
+            label: '② 연결 번호 보내기',
+          ),
+          const SizedBox(height: 10),
+          _ResendButton(
             key: GuardianFamilyKeys.sendInstallLink,
             onPressed: () => unawaited(
               controller.sendInstallLink(link, phoneNumber: phoneNumber),
             ),
-            icon: Icons.download_rounded,
-            label: '① 설치 링크 보내기',
+            label: '① 설치 링크 다시 보내기',
           ),
-          const SizedBox(height: 10),
-        ],
-        GuardianPrimaryButton(
-          key: GuardianFamilyKeys.sendInviteCode,
-          onPressed: () => unawaited(
-            controller.sendInviteCode(
-              link,
-              phoneNumber: phoneNumber,
-              afterInstall: listed,
+        ] else
+          _ResendButton(
+            key: GuardianFamilyKeys.sendInviteCode,
+            onPressed: () => unawaited(
+              controller.sendInviteCode(
+                link,
+                phoneNumber: phoneNumber,
+                afterInstall: false,
+              ),
             ),
+            label: '문자 다시 보내기',
           ),
-          icon: Icons.pin_rounded,
-          label: listed ? '② 연결 번호 보내기' : '연결 번호 보내기',
-        ),
       ],
+    );
+  }
+}
+
+/// A second try, drawn as an outline so it does not read as the next step.
+class _ResendButton extends StatelessWidget {
+  const _ResendButton({
+    super.key,
+    required this.onPressed,
+    required this.label,
+  });
+
+  final VoidCallback onPressed;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 54,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.send_rounded, size: 19),
+        label: Text(
+          label,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.guardianPrimary,
+          side: const BorderSide(color: AppColors.guardianPrimary, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -945,7 +1040,7 @@ class _NoticesState extends ConsumerState<GuardianNotices> {
             // would be worse than silence. What it can say is what to do,
             // which is ask her.
             const Text(
-              '다시 연결하시려면 부모님께 번호를 여쭤보고 아래 「불러주신 번호 넣기」에서 넣어 주세요.',
+              '다시 연결하시려면 부모님께 번호를 여쭤보고 아래 「부모님이 불러주신 번호 넣기」에서 넣어 주세요.',
               style: TextStyle(
                 fontSize: 14,
                 height: 1.55,

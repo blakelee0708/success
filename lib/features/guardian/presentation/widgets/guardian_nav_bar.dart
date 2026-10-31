@@ -13,6 +13,18 @@ class GuardianNavKeys {
   static Key badge(String label) => Key('guardian-nav-badge-$label');
 }
 
+/// Where each tab sits along the bottom. Named because cards on one tab open
+/// another, and a bare `onOpenTab(3)` silently pointed somewhere else the day
+/// the order changed - 안심 케어 moved to second on 2026-10-31.
+class GuardianTabs {
+  GuardianTabs._();
+
+  static const home = 0;
+  static const care = 1;
+  static const launcher = 2;
+  static const messages = 3;
+}
+
 /// One destination of [GuardianNavBar].
 class GuardianDestination {
   const GuardianDestination({
