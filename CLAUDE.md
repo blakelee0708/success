@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 813 tests, all passing
+flutter test             # currently 821 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -3550,6 +3550,55 @@ separate 폰을 바꿨어요 dialog, since there is only one parent it can mean.
 `request_primary_guardian`, `start_family_plan` and the rest). Nothing in the
 app calls them and the 1대1 gate refuses what they lead to; dropping them is
 a live-project change and was not part of this.
+
+## 보호자는 세 장을 넘기고 가입한다
+
+2026-10-31, from mockups the owner went through seven rounds of. The
+guardian's entry used to be one screen of three benefit lines over the three
+sign-in buttons; it is **three pages now, with the buttons on the last**,
+because a guardian who leaves here leaves the product and what the app does
+for their parent has to come before what it asks of them.
+
+- **① 부모님이 쓰시기 쉬워요** - 큰 아이콘, 글씨 크기 4단계, 메시지 읽어 드리기.
+  **② 자녀가 화면을 바꿔 드려요** - 앱 추가, 앱 버튼 색과 이름. **③ 안부** -
+  긴급 구조 요청, 마지막 폰 사용 시간, 메시지, then 카카오 / 구글 / 이메일.
+  The words are the owner's, card for card.
+- **Each page carries a capture of the real screen** (`assets/intro/`, three
+  300x600 PNGs, about 42 KB in all), cut from `screenshots_test.dart`'s
+  output - a drawing would have to be kept in step with the screens by hand.
+  The test precaches them, or the PNG is captured before they decode and the
+  phones come out black.
+- **Shown every time a signed-out guardian arrives**, on the owner's call -
+  not remembered as seen. 건너뛰기 on the first two pages goes to the
+  buttons, and the email form's back arrow returns to page three
+  (`Routes.guardianStartButtons`) rather than making somebody read the pitch
+  twice to change their mind. A signed-in guardian never sees any of it: `/`
+  sends them to the dashboard.
+- **What the pages may say is held to what the app does**, as the old screen
+  was. The parent's internet state is not something the guardian's phone can
+  read, and `guardian_start_test` keeps the word off all three pages. 긴급
+  구조 요청 says 전화, not 알림: it dials, and nothing reaches the guardian.
+
+**The email form has two tabs.** 새로 가입하기 was one small blue line under
+the button and a guardian looking for it could not find it, so 로그인 / 새로
+가입하기 is a `GuardianSwitcher(large: true)` above the heading. That
+contradicts nothing in the rule that `~로 시작하기` must not split 가입 from
+로그인: that rule is about the provider buttons, where the first tap creates
+the account; a password is the one thing a person does have to know whether
+they already made.
+
+**The fields can be seen.** `guardianField` was a near-white fill on a
+near-white ground with a `guardianRule` edge and a grey label; it is white
+with `guardianFieldEdge` at 1.4 and the darker ink now, for every guardian
+form, not only this one.
+
+**Signing up says so in the middle of the screen.** The button used to change
+its word to 잠시만요 and the screen moved on with nothing having said an
+account existed. A card now reads 가입하는 중이에요 with a spinner, turns into
+가입이 완료됐어요 in the same place, and the next screen follows by itself
+after `GuardianLoginScreen.doneHold` (1.2 s). It opens only once the request
+is sent - a form refused for a short password never shows it - and a refused
+sign-up takes it away and leaves the reason under the fields.
 
 ## Conventions
 

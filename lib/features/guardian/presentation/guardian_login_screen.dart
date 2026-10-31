@@ -15,7 +15,12 @@ class GuardianLoginKeys {
   static const email = Key('guardian-login-email');
   static const password = Key('guardian-login-password');
   static const submit = Key('guardian-login-submit');
-  static const toggleMode = Key('guardian-login-toggle-mode');
+
+  /// The 새로 가입하기 tab. Named for what it did when it was a link under
+  /// the button, which every test that creates an account still presses.
+  static const toggleMode = Key('guardian-login-signup-tab');
+  static const signInTab = Key('guardian-login-signin-tab');
+  static const progress = Key('guardian-login-progress');
   static const forgot = Key('guardian-login-forgot');
   static const message = Key('guardian-login-message');
 }
@@ -29,6 +34,10 @@ class GuardianLoginKeys {
 /// route in the meantime rather than a replacement for that decision.
 class GuardianLoginScreen extends ConsumerStatefulWidget {
   const GuardianLoginScreen({super.key});
+
+  /// How long 가입이 완료됐어요 stays before the next screen. Long enough to
+  /// be read, short enough that nobody reaches for a button that is not there.
+  static const doneHold = Duration(milliseconds: 1200);
 
   @override
   ConsumerState<GuardianLoginScreen> createState() =>
@@ -47,18 +56,70 @@ class _GuardianLoginScreenState extends ConsumerState<GuardianLoginScreen> {
     super.dispose();
   }
 
+  /// Set while the 가입 card is up; true once the account exists.
+  ValueNotifier<bool>? _signUpDone;
+
   Future<void> _submit() async {
     final controller = ref.read(guardianLoginControllerProvider.notifier);
-    final ok = _creatingAccount
-        ? await controller.signUp(email: _email.text, password: _password.text)
-        : await controller.signIn(email: _email.text, password: _password.text);
-    if (ok && mounted) context.go(Routes.guardianDashboard);
+    if (!_creatingAccount) {
+      final ok = await controller.signIn(
+        email: _email.text,
+        password: _password.text,
+      );
+      if (ok && mounted) context.go(Routes.guardianDashboard);
+      return;
+    }
+
+    final ok = await controller.signUp(
+      email: _email.text,
+      password: _password.text,
+    );
+    final card = _signUpDone;
+    if (!mounted) return;
+    if (!ok) {
+      // Refused, or waiting on a confirmation mail: the card goes and the
+      // message under the fields says which.
+      if (card != null) Navigator.of(context, rootNavigator: true).pop();
+      return;
+    }
+    card?.value = true;
+    await Future<void>.delayed(GuardianLoginScreen.doneHold);
+    if (!mounted) return;
+    if (_signUpDone != null) Navigator.of(context, rootNavigator: true).pop();
+    context.go(Routes.guardianDashboard);
+  }
+
+  /// **Said in the middle of the screen, not on the button.** The button
+  /// changing its word to 잠시만요 was the whole of it before, and the screen
+  /// then moved on with nothing having said an account now existed. Opened
+  /// only once the request is actually sent - a form refused for a short
+  /// password never shows it - and never dismissible, because there is
+  /// nothing to cancel.
+  void _showSignUpCard() {
+    final done = ValueNotifier(false);
+    _signUpDone = done;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(canPop: false, child: _SignUpCard(done: done)),
+    ).whenComplete(() {
+      if (identical(_signUpDone, done)) _signUpDone = null;
+      done.dispose();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(guardianLoginControllerProvider);
     final busy = state is GuardianLoginBusy;
+    ref.listen(guardianLoginControllerProvider, (before, now) {
+      if (now is GuardianLoginBusy &&
+          before is! GuardianLoginBusy &&
+          _creatingAccount &&
+          _signUpDone == null) {
+        _showSignUpCard();
+      }
+    });
 
     return Theme(
       data: AppTheme.guardian,
@@ -80,10 +141,33 @@ class _GuardianLoginScreenState extends ConsumerState<GuardianLoginScreen> {
                       icon: const Icon(Icons.chevron_left),
                       iconSize: 26,
                       color: AppColors.guardianInkSoft,
-                      onPressed: () => context.go(Routes.guardianStart),
+                      onPressed: () => context.go(Routes.guardianStartButtons),
                     ),
                   ),
                   const SizedBox(height: 20),
+                  // **Two tabs, not a link.** Signing up was one small blue
+                  // line under the button, 계정이 없어요, 새로 만들래요, and a
+                  // guardian looking for it could not tell it was there. A
+                  // password is the one thing a person does have to know
+                  // whether they already made, so on this screen the two are
+                  // a choice in plain view.
+                  GuardianSwitcher(
+                    large: true,
+                    keys: const [
+                      GuardianLoginKeys.signInTab,
+                      GuardianLoginKeys.toggleMode,
+                    ],
+                    options: const [
+                      ('로그인', Icons.login_rounded),
+                      ('새로 가입하기', Icons.person_add_rounded),
+                    ],
+                    selected: _creatingAccount ? 1 : 0,
+                    onSelected: (i) {
+                      if (busy) return;
+                      setState(() => _creatingAccount = i == 1);
+                    },
+                  ),
+                  const SizedBox(height: 26),
                   GuardianHeading(
                     title: _creatingAccount ? '보호자 계정 만들기' : '보호자 로그인',
                     lede: _creatingAccount
@@ -157,17 +241,6 @@ class _GuardianLoginScreenState extends ConsumerState<GuardianLoginScreen> {
                                 .sendPasswordReset(email: _email.text),
                       child: const Text('비밀번호를 잊으셨나요?'),
                     ),
-                  TextButton(
-                    key: GuardianLoginKeys.toggleMode,
-                    onPressed: busy
-                        ? null
-                        : () => setState(() {
-                            _creatingAccount = !_creatingAccount;
-                          }),
-                    child: Text(
-                      _creatingAccount ? '이미 계정이 있어요' : '계정이 없어요, 새로 만들래요',
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -210,6 +283,82 @@ class _Message extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(text, style: TextStyle(color: color, height: 1.45)),
+    );
+  }
+}
+
+/// 가입하는 중이에요, then 가입이 완료됐어요 in the same place.
+class _SignUpCard extends StatelessWidget {
+  const _SignUpCard({required this.done});
+
+  final ValueNotifier<bool> done;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Material(
+        key: GuardianLoginKeys.progress,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        child: SizedBox(
+          width: 250,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 30, 24, 28),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: done,
+              builder: (context, finished, _) => Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: finished
+                        ? const DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: AppColors.guardianTintGreen,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 34,
+                              color: AppColors.guardianTintGreenInk,
+                            ),
+                          )
+                        : const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 5,
+                              color: AppColors.guardianPrimary,
+                              backgroundColor: AppColors.guardianTintBlue,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    finished ? '가입이 완료됐어요' : '가입하는 중이에요',
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.4,
+                      color: AppColors.guardianInk,
+                    ),
+                  ),
+                  if (finished) ...[
+                    const SizedBox(height: 6),
+                    const Text(
+                      '잠시 뒤 다음 화면으로 넘어가요',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.guardianInkFaint,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

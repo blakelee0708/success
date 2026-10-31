@@ -29,6 +29,7 @@ Future<InMemorySignupConsentStore> _pumpStart(
   // reaches this screen taps straight away.
   await tester.tap(find.byKey(SplashScreen.guardianCardKey));
   await tester.pumpAndSettle();
+  await skipGuardianIntro(tester);
   return store;
 }
 

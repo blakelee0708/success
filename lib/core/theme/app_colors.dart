@@ -203,6 +203,9 @@ class AppColors {
   static const guardianInkDisabled = Color(0xFFAEB6C2);
   static const guardianRule = Color(0xFFEEF1F7);
 
+  /// A text field's edge. `guardianRule` is a divider and vanishes as a box.
+  static const guardianFieldEdge = Color(0xFFC5CEDB);
+
   /// The four blobs behind the action icons.
   static const guardianTintBlue = Color(0xFFE8F0FE);
   static const guardianTintBlueInk = Color(0xFF1A5FD0);

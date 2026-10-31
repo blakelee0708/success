@@ -29,6 +29,7 @@ Future<InMemoryGuardianAuthRepository> _gotoLogin(WidgetTester tester) async {
   // ever, so `pumpAndSettle` here times out rather than settling.
   await tester.tap(find.byKey(SplashScreen.guardianCardKey));
   await tester.pumpAndSettle();
+  await skipGuardianIntro(tester);
   await tester.tap(find.text('이메일로 시작하기'));
   await tester.pumpAndSettle();
   await agreeToTerms(tester);

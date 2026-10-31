@@ -36,7 +36,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.guardianStart,
-        builder: (context, state) => const GuardianStartScreen(),
+        builder: (context, state) => GuardianStartScreen(
+          initialPage: state.uri.queryParameters['page'] == 'last'
+              ? GuardianStartScreen.lastPage
+              : 0,
+        ),
       ),
       GoRoute(
         path: Routes.guardianLogin,

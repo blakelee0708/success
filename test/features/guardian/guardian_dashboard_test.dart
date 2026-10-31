@@ -19,6 +19,7 @@ Future<void> _gotoDashboard(WidgetTester tester) async {
   await pumpApp(tester);
   await tester.tap(find.byKey(SplashScreen.guardianCardKey));
   await tester.pumpAndSettle();
+  await skipGuardianIntro(tester);
   await tester.tap(find.text('카카오로 시작하기'));
   await tester.pumpAndSettle();
   await agreeToTerms(tester);

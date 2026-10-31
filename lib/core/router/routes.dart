@@ -5,6 +5,9 @@ class Routes {
   static const firstScreen = '/';
   static const seniorOnboarding = '/onboarding';
   static const guardianStart = '/guardian-start';
+
+  /// The same screen on its last page, the one with the sign-in buttons.
+  static const guardianStartButtons = '/guardian-start?page=last';
   static const guardianLogin = '/guardian-login';
   static const guardianDashboard = '/guardian';
 

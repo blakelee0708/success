@@ -440,7 +440,16 @@ class GuardianSwitcher extends StatelessWidget {
     required this.options,
     required this.selected,
     required this.onSelected,
+    this.keys,
+    this.large = false,
   });
+
+  /// One key per side, for the tests that press them.
+  final List<Key>? keys;
+
+  /// Taller, with bigger lettering - for a choice that is the main thing on
+  /// its screen rather than a filter above a form.
+  final bool large;
 
   /// Label and mark for each side, in order.
   final List<(String, IconData)> options;
@@ -460,9 +469,11 @@ class GuardianSwitcher extends StatelessWidget {
           for (var i = 0; i < options.length; i++)
             Expanded(
               child: _Side(
+                key: keys?[i],
                 label: options[i].$1,
                 icon: options[i].$2,
                 selected: i == selected,
+                large: large,
                 onTap: () => onSelected(i),
               ),
             ),
@@ -474,16 +485,19 @@ class GuardianSwitcher extends StatelessWidget {
 
 class _Side extends StatelessWidget {
   const _Side({
+    super.key,
     required this.label,
     required this.icon,
     required this.selected,
     required this.onTap,
+    this.large = false,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
+  final bool large;
 
   @override
   Widget build(BuildContext context) {
@@ -501,7 +515,10 @@ class _Side extends StatelessWidget {
           onTap: onTap,
           borderRadius: corners,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 6),
+            padding: EdgeInsets.symmetric(
+              vertical: large ? 14 : 11,
+              horizontal: 6,
+            ),
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(
@@ -509,7 +526,7 @@ class _Side extends StatelessWidget {
                 children: [
                   Icon(
                     icon,
-                    size: 17,
+                    size: large ? 20 : 17,
                     color: selected
                         ? AppColors.guardianPrimary
                         : AppColors.guardianInkFaint,
@@ -518,7 +535,7 @@ class _Side extends StatelessWidget {
                   Text(
                     label,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: large ? 16.5 : 14,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
                       color: selected
@@ -536,9 +553,14 @@ class _Side extends StatelessWidget {
   }
 }
 
-/// The input decoration every guardian field uses: filled, round, no hard
-/// outline. Material's default `OutlineInputBorder` draws a 1px box that
-/// fights the soft cards around it.
+/// The input decoration every guardian field uses: white, round, and with
+/// an edge that can be seen.
+///
+/// **It was too faint to find.** A near-white fill on a near-white ground, a
+/// border at `guardianRule` and a grey label made the 이메일 and 비밀번호 boxes
+/// hard to tell from the page around them - the owner's word on the sign-up
+/// form, 2026-10-31. The fill is white against the tinted ground now, the
+/// edge is a grey that measures as a line, and the label is the darker ink.
 InputDecoration guardianField({
   required String label,
   String? hint,
@@ -548,17 +570,31 @@ InputDecoration guardianField({
   hintText: hint,
   helperText: helper,
   filled: true,
-  fillColor: const Color(0xFFF7F9FC),
-  labelStyle: const TextStyle(color: AppColors.guardianInkFaint),
-  helperStyle: const TextStyle(color: AppColors.guardianInkFaint),
-  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  fillColor: Colors.white,
+  labelStyle: const TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: AppColors.guardianInkSoft,
+  ),
+  floatingLabelStyle: const TextStyle(
+    fontWeight: FontWeight.w700,
+    color: AppColors.guardianPrimary,
+  ),
+  helperStyle: const TextStyle(fontSize: 13, color: AppColors.guardianInkSoft),
+  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
   border: OutlineInputBorder(
     borderRadius: BorderRadius.circular(14),
-    borderSide: const BorderSide(color: AppColors.guardianRule),
+    borderSide: const BorderSide(
+      color: AppColors.guardianFieldEdge,
+      width: 1.4,
+    ),
   ),
   enabledBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(14),
-    borderSide: const BorderSide(color: AppColors.guardianRule),
+    borderSide: const BorderSide(
+      color: AppColors.guardianFieldEdge,
+      width: 1.4,
+    ),
   ),
   focusedBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(14),

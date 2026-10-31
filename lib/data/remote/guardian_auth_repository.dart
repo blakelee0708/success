@@ -272,6 +272,10 @@ class InMemoryGuardianAuthRepository implements GuardianAuthRepository {
   /// Mirrors the project's `mailer_autoconfirm = false`.
   final bool confirmationRequired;
 
+  /// Awaited before a sign-up answers, so a test can hold the request open
+  /// and look at what the screen says while it waits.
+  Future<void> Function()? beforeSignUp;
+
   final _accounts = <String, String>{};
   final _confirmed = <String>{};
   final _sessions = StreamController<GuardianSession?>.broadcast();
@@ -307,6 +311,7 @@ class InMemoryGuardianAuthRepository implements GuardianAuthRepository {
     required String email,
     required String password,
   }) async {
+    await beforeSignUp?.call();
     final key = email.trim().toLowerCase();
     if (_accounts.containsKey(key)) {
       throw const GuardianAuthException('이미 가입된 이메일이에요. 로그인해 주세요.');

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -74,12 +75,16 @@ Future<void> _capture(WidgetTester tester, String name) async {
 /// before the illustration has decoded and the screen looks empty.
 Future<void> _loadImages(WidgetTester tester) async {
   final context = tester.element(find.byType(MaterialApp));
-  await tester.runAsync(
-    () => precacheImage(
-      const AssetImage('assets/images/hand_phone.png'),
-      context,
-    ),
-  );
+  await tester.runAsync(() async {
+    for (final asset in const [
+      'assets/images/hand_phone.png',
+      'assets/intro/senior_home.png',
+      'assets/intro/guardian_launcher.png',
+      'assets/intro/guardian_home.png',
+    ]) {
+      await precacheImage(AssetImage(asset), context);
+    }
+  });
   await tester.pump();
 }
 
@@ -165,7 +170,15 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.byKey(SplashScreen.guardianCardKey));
     await tester.pumpAndSettle();
+    await _loadImages(tester);
 
+    // The three intro pages, then the one with the buttons.
+    await _capture(tester, '03-guardian-intro-1');
+    await tester.tap(find.byKey(GuardianStartKeys.next));
+    await tester.pumpAndSettle();
+    await _capture(tester, '03-guardian-intro-2');
+    await tester.tap(find.byKey(GuardianStartKeys.next));
+    await tester.pumpAndSettle();
     expect(find.byKey(GuardianStartKeys.kakao), findsOneWidget);
     await _capture(tester, '03-guardian-start');
 
@@ -328,6 +341,7 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.byKey(SplashScreen.guardianCardKey));
     await tester.pumpAndSettle();
+    await skipGuardianIntro(tester);
     await tester.tap(find.text('카카오로 시작하기'));
     await tester.pumpAndSettle();
     await agreeToTerms(tester);
@@ -350,6 +364,7 @@ void main() {
   });
 
   testWidgets('the guardian login form renders', (tester) async {
+    final auth = InMemoryGuardianAuthRepository(confirmationRequired: false);
     await pumpApp(
       tester,
       overrides: [
@@ -362,9 +377,7 @@ void main() {
         // Both repositories too: with the config claiming a project exists,
         // the real providers would reach for a Supabase singleton that was
         // never initialised.
-        guardianAuthRepositoryProvider.overrideWithValue(
-          InMemoryGuardianAuthRepository(),
-        ),
+        guardianAuthRepositoryProvider.overrideWithValue(auth),
         seniorLinkRepositoryProvider.overrideWithValue(
           InMemorySeniorLinkRepository(),
         ),
@@ -372,6 +385,7 @@ void main() {
     );
     await tester.tap(find.byKey(SplashScreen.guardianCardKey));
     await tester.pumpAndSettle();
+    await skipGuardianIntro(tester);
     // 이메일로 시작하기, the third button, which goes straight to the form.
     // The Kakao sheet's email button is not a route any more: a provider
     // that answers raises no sheet for it to sit in.
@@ -381,6 +395,26 @@ void main() {
 
     expect(find.byKey(GuardianLoginKeys.email), findsOneWidget);
     await _capture(tester, '09-guardian-login');
+
+    // 새로 가입하기, and the card that says it is happening.
+    await tester.tap(find.byKey(GuardianLoginKeys.toggleMode));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(GuardianLoginKeys.email), 'me@ex.com');
+    await tester.enterText(find.byKey(GuardianLoginKeys.password), 'hunter2');
+    await tester.pumpAndSettle();
+    await _capture(tester, '09b-guardian-signup');
+    final pending = Completer<void>();
+    auth.beforeSignUp = () => pending.future;
+    await tester.tap(find.byKey(GuardianLoginKeys.submit));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await _capture(tester, '09c-guardian-signing-up');
+    pending.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await _capture(tester, '09d-guardian-signed-up');
+    await tester.pump(GuardianLoginScreen.doneHold);
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('가족 연결 renders, including at 아주 크게', (tester) async {
@@ -638,7 +672,6 @@ void main() {
     await pumpSeniorHome();
     expect(find.byKey(CareConsentPrompt.promptKey), findsOneWidget);
     await _capture(tester, '24-care-consent-card');
-
   });
 
   testWidgets('the senior screens that are still on the old design', (

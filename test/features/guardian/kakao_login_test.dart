@@ -37,6 +37,7 @@ Future<InMemoryGuardianAuthRepository> _gotoStart(
   );
   await tester.tap(find.byKey(SplashScreen.guardianCardKey));
   await tester.pumpAndSettle();
+  await skipGuardianIntro(tester);
   return auth;
 }
 

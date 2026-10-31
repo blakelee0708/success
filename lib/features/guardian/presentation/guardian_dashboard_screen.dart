@@ -472,7 +472,9 @@ class _HomeTab extends ConsumerWidget {
           // withheld, there is nothing to claim.
           online: !locked && presence.online,
           headline: locked ? '안심 케어로 볼 수 있어요' : presence.headline,
-          caption: locked ? '부모님이 폰을 쓰신 때, 배터리와 소리를 알려 드립니다.' : presence.caption,
+          caption: locked
+              ? '부모님이 폰을 쓰신 때, 배터리와 소리를 알려 드립니다.'
+              : presence.caption,
           metric: quota == null || quota.unlimited
               ? '무제한'
               : '${quota.textLeft}번',

@@ -94,6 +94,8 @@ flutter:
 
   assets:
     - assets/images/
+    # The three captures on the guardian's intro pages, 300x600 each.
+    - assets/intro/
     # The OFL requires the licence to travel with the font; bundled so
     # `registerFontLicense` can put it on the app's licence page.
     - assets/fonts/OFL.txt

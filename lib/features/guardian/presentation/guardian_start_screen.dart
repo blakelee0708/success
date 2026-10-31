@@ -18,330 +18,167 @@ class GuardianStartKeys {
   static const google = Key('guardian-start-google');
   static const email = Key('guardian-start-email');
   static const emailFallback = Key('guardian-start-email-fallback');
+  static const skip = Key('guardian-start-skip');
+  static const next = Key('guardian-start-next');
+  static const pages = Key('guardian-start-pages');
+  static const picture = Key('guardian-start-picture');
 }
 
-/// Guardian entry. Argues for connecting before asking for an account.
+/// Guardian entry: three pages saying what this is for, then the buttons.
 ///
-/// Sign-up and sign-in are one action: with Kakao or Google the first tap
-/// creates the account and later taps sign in, so a separate 회원가입 control
-/// would ask a question the user cannot answer correctly.
-class GuardianStartScreen extends StatelessWidget {
-  const GuardianStartScreen({super.key});
+/// **Shown every time a signed-out guardian arrives**, on the owner's call
+/// (2026-10-31), with 건너뛰기 on the first two pages for somebody who has
+/// read them before. A guardian who is signed in never sees it: `/` sends
+/// them to the dashboard.
+///
+/// The buttons are on the last page, after the reasons to press them. A
+/// guardian who leaves here leaves the product, so what the app does for
+/// their parent comes before what it asks of them.
+///
+/// Sign-up and sign-in are one action on this page: with Kakao or Google the
+/// first tap creates the account and later taps sign in, so a separate
+/// 회원가입 control would ask a question the user cannot answer correctly.
+///
+/// **What the pages may say is held to what the app does.** It is the one
+/// place that makes promises before an account exists, so a claim here that
+/// is not kept is worse than one anywhere else - the same reasoning that took
+/// the mocked 배터리 72% off the dashboard. The parent's internet state is
+/// not something the guardian's phone can read, and the test beside this
+/// file keeps the word off all three pages.
+class GuardianStartScreen extends StatefulWidget {
+  const GuardianStartScreen({super.key, this.initialPage = 0});
 
-  /// Three things this screen may say, and the test beside it is what keeps
-  /// the list to three.
-  ///
-  /// 사진 is back, and that is the one claim here that changed because the
-  /// app changed rather than because the copy did. The photo bucket exists,
-  /// its policies are checked against the live project, and both ends can
-  /// send one. 배터리 · 소리 · 인터넷 stay out: the readings are still a
-  /// background sync that is an interface with no implementation.
-  ///
-  /// It promised 배터리 · 소리 · 인터넷 "한눈에" and 사진 for months, and the
-  /// app does neither: the phone readings arrive with the Phase 6 background
-  /// sync, which is an interface with no implementation, and sending a
-  /// picture needs an image picker and file storage that do not exist. This
-  /// is the first screen a guardian reads and the only one that makes
-  /// promises, so it is the worst place in the app to make one that is not
-  /// kept — the same reasoning that took the mocked 배터리 72% off the
-  /// dashboard, one screen earlier.
-  static const _benefits = <(IconData, Color, Color, String, String)>[
-    (
-      Icons.grid_view_rounded,
-      AppColors.guardianTintBlue,
-      AppColors.guardianTintBlueInk,
-      '부모님을 대신해 필요한 앱을 관리해 드릴 수 있어요',
-      '홈 화면 버튼의 이름과 색을 멀리서 정리합니다',
-    ),
-    (
-      Icons.chat_bubble_rounded,
-      AppColors.guardianTintViolet,
-      AppColors.guardianTintVioletInk,
-      '부모님과 큰 글씨로 메시지와 사진을 주고받을 수 있어요',
-      '보내면 부모님 첫 화면에 바로 뜹니다',
-    ),
-    (
-      Icons.schedule_rounded,
-      AppColors.guardianTintGreen,
-      AppColors.guardianTintGreenInk,
-      '부모님 폰을 언제 쓰셨는지 알 수 있어요',
-      '마지막으로 쓰신 시각이 보입니다',
-    ),
-  ];
+  /// 2 opens on the buttons: the email form's back arrow comes here, and
+  /// sending somebody who has just chosen email back to page one would be
+  /// making them read the pitch twice to change their mind.
+  final int initialPage;
+
+  static const lastPage = 2;
+
+  @override
+  State<GuardianStartScreen> createState() => _GuardianStartScreenState();
+}
+
+class _GuardianStartScreenState extends State<GuardianStartScreen> {
+  late final PageController _pages = PageController(
+    initialPage: widget.initialPage,
+  );
+  late int _page = widget.initialPage;
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  void _goTo(int page) => _pages.animateToPage(
+    page,
+    duration: const Duration(milliseconds: 320),
+    curve: Curves.easeOutCubic,
+  );
 
   @override
   Widget build(BuildContext context) {
+    final onLast = _page == GuardianStartScreen.lastPage;
     return Scaffold(
       backgroundColor: AppColors.guardianGroundEnd,
       body: GuardianGround(
         child: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: IconButton(
-                  key: GuardianStartKeys.back,
-                  onPressed: () => context.go(Routes.firstScreen),
-                  icon: const Icon(Icons.chevron_left),
-                  iconSize: 26,
-                  color: AppColors.guardianInkSoft,
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(26, 0, 26, 34),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              SizedBox(
+                height: 48,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(
                     children: [
-                      const _Header(),
-                      const SizedBox(height: 30),
-                      for (var i = 0; i < _benefits.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 12),
-                        _BenefitCard(
-                          icon: _benefits[i].$1,
-                          tint: _benefits[i].$2,
-                          tintInk: _benefits[i].$3,
-                          title: _benefits[i].$4,
-                          subtitle: _benefits[i].$5,
-                          order: i,
+                      IconButton(
+                        key: GuardianStartKeys.back,
+                        onPressed: () => _page == 0
+                            ? context.go(Routes.firstScreen)
+                            : _goTo(_page - 1),
+                        icon: const Icon(Icons.chevron_left),
+                        iconSize: 26,
+                        color: AppColors.guardianInkSoft,
+                      ),
+                      const Spacer(),
+                      if (!onLast)
+                        TextButton(
+                          key: GuardianStartKeys.skip,
+                          onPressed: () => _goTo(GuardianStartScreen.lastPage),
+                          child: const Text(
+                            '건너뛰기',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.guardianInkSoft,
+                            ),
+                          ),
                         ),
-                      ],
-                      const SizedBox(height: 30),
-                      const Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: AppColors.guardianRule,
-                      ),
-                      const SizedBox(height: 18),
-                      // Kakao first: effectively every guardian in this age
-                      // range has one, and Google more often stalls on
-                      // "which account was mine".
-                      _ProviderButton(
-                        buttonKey: GuardianStartKeys.kakao,
-                        provider: GuardianOAuthProvider.kakao,
-                        label: '카카오로 시작하기',
-                        background: AppColors.kakaoYellow,
-                        foreground: AppColors.kakaoInk,
-                        icon: Icons.chat_bubble,
-                      ),
-                      const SizedBox(height: 10),
-                      _ProviderButton(
-                        buttonKey: GuardianStartKeys.google,
-                        provider: GuardianOAuthProvider.google,
-                        label: '구글로 시작하기',
-                        background: Colors.white,
-                        foreground: AppColors.guardianInk,
-                        icon: Icons.g_mobiledata,
-                        borderColor: AppColors.guardianRule,
-                      ),
-                      const SizedBox(height: 10),
-                      // **The third way in, and today the only one that
-                      // finishes.** Kakao and Google both dead-end in a
-                      // 준비 중 sheet because neither has an OAuth client on
-                      // the project, so until one exists a guardian who
-                      // presses either is told to come back to this.
-                      //
-                      // It is last all the same: it asks for a password to
-                      // invent and remember, which the other two do not. Last
-                      // is the right place for the most work, not for the
-                      // least important thing.
-                      //
-                      // It wears the app's own blue rather than a brand's,
-                      // because it belongs to no one else — and that also
-                      // keeps it from reading as a second Google, which the
-                      // white-and-bordered treatment would have.
-                      _ProviderButton(
-                        buttonKey: GuardianStartKeys.email,
-                        label: '이메일로 시작하기',
-                        background: AppColors.guardianTintBlue,
-                        foreground: AppColors.guardianTintBlueInk,
-                        icon: Icons.mail_rounded,
-                        // Straight to the form. There is nothing to explain
-                        // and nothing being prepared, so a sheet here would
-                        // be a screen that exists only to be passed through.
-                        destination: Routes.guardianLogin,
-                      ),
-                      const SizedBox(height: 22),
-                      // It used to say 시작하면 ... 동의하게 됩니다 here, as
-                      // plain text with no link, naming a 이용약관 that did
-                      // not exist. Agreeing now happens in a sheet with the
-                      // items apart and both documents readable, so this line
-                      // says where it is rather than claiming it has
-                      // already happened.
-                      const Text(
-                        '버튼을 누르면 약관을 확인하고\n동의하는 화면이 나옵니다',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          height: 1.7,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.guardianInkDisabled,
-                        ),
-                      ),
                     ],
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 5,
-              height: 5,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.guardianPrimary,
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              '보호자 시작하기',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 2.2,
-                color: AppColors.guardianInkFaint,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          '부모님께 이런 걸\n해드릴 수 있어요',
-          style: TextStyle(
-            fontSize: 29,
-            height: 1.42,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -1.4,
-            color: AppColors.guardianInk,
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          '연결은 몇 분이면 끝납니다.',
-          style: TextStyle(
-            fontSize: 14.5,
-            fontWeight: FontWeight.w500,
-            letterSpacing: -0.3,
-            color: AppColors.guardianInkFaint,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// One benefit, fading up from below so the eye is walked from 1 to 3.
-class _BenefitCard extends StatefulWidget {
-  const _BenefitCard({
-    required this.icon,
-    required this.tint,
-    required this.tintInk,
-    required this.title,
-    required this.subtitle,
-    required this.order,
-  });
-
-  /// A mark rather than a number. The three are not steps — nobody does them
-  /// in order — and the numbered badges said they were.
-  final IconData icon;
-  final Color tint;
-  final Color tintInk;
-
-  final String title;
-  final String subtitle;
-  final int order;
-
-  @override
-  State<_BenefitCard> createState() => _BenefitCardState();
-}
-
-class _BenefitCardState extends State<_BenefitCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 550),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    Future<void>.delayed(Duration(milliseconds: 50 + widget.order * 70), () {
-      if (mounted) _controller.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _controller,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.12),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut)),
-        child: GuardianCard(
-          padding: const EdgeInsets.fromLTRB(16, 17, 18, 17),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: widget.tint,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(widget.icon, size: 21, color: widget.tintInk),
-              ),
-              const SizedBox(width: 14),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: PageView(
+                  key: GuardianStartKeys.pages,
+                  controller: _pages,
+                  onPageChanged: (page) => setState(() => _page = page),
                   children: [
-                    Text(
-                      widget.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                        color: AppColors.guardianInk,
-                      ),
+                    _IntroPage(
+                      page: 0,
+                      title: '스마트폰이 어려운 부모님,\n이제 걱정하지 마세요',
+                      picture: 'assets/intro/senior_home.png',
+                      cards: const [
+                        _Point(
+                          Icons.grid_view_rounded,
+                          AppColors.guardianTintBlue,
+                          AppColors.guardianTintBlueInk,
+                          '큰 아이콘',
+                          '눈이 어두운 부모님도 쉽게 확인할 수 있어요',
+                        ),
+                        _Point(
+                          Icons.format_size_rounded,
+                          AppColors.guardianTintViolet,
+                          AppColors.guardianTintVioletInk,
+                          '글씨 크기 4단계',
+                          '제일 크게까지 키울 수 있어요',
+                        ),
+                        _Point(
+                          Icons.record_voice_over_rounded,
+                          AppColors.guardianTintGreen,
+                          AppColors.guardianTintGreenInk,
+                          '메시지 읽어 드리기',
+                          '자녀가 보낸 글을 소리로 들려 드려요',
+                        ),
+                      ],
+                      onNext: () => _goTo(1),
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      widget.subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        height: 1.55,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.2,
-                        color: AppColors.guardianInkFaint,
-                      ),
+                    _IntroPage(
+                      page: 1,
+                      title: '부모님의 런처 앱 화면을\n자녀(보호자)가 직접\n바꿔드릴 수 있어요',
+                      picture: 'assets/intro/guardian_launcher.png',
+                      cards: const [
+                        _Point(
+                          Icons.add_rounded,
+                          AppColors.guardianTintBlue,
+                          AppColors.guardianTintBlueInk,
+                          '앱 추가',
+                          '부모님이 자주 쓰시는 앱이 있다면, 앱 추가를 눌러 '
+                              '부모님이 쉽게 추가하시도록 도와드릴 수 있어요',
+                        ),
+                        _Point(
+                          Icons.palette_rounded,
+                          AppColors.guardianTintViolet,
+                          AppColors.guardianTintVioletInk,
+                          '앱 버튼 색과 이름',
+                          '부모님이 쉽게 보실 수 있는 색과 이름으로 '
+                              '바꿔 드릴 수 있어요',
+                        ),
+                      ],
+                      onNext: () => _goTo(2),
                     ),
+                    const _LastPage(),
                   ],
                 ),
               ),
@@ -349,6 +186,343 @@ class _BenefitCardState extends State<_BenefitCard>
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One line on a page: a tinted mark, a name and what it does.
+class _Point {
+  const _Point(this.icon, this.tint, this.tintInk, this.title, this.detail);
+
+  final IconData icon;
+  final Color tint;
+  final Color tintInk;
+  final String title;
+  final String detail;
+}
+
+class _IntroPage extends StatelessWidget {
+  const _IntroPage({
+    required this.page,
+    required this.title,
+    required this.picture,
+    required this.cards,
+    required this.onNext,
+  });
+
+  final int page;
+  final String title;
+  final String picture;
+  final List<_Point> cards;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
+      child: Column(
+        children: [
+          Expanded(
+            child: _Centred(
+              child: Column(
+                children: [
+                  _Title(title),
+                  const SizedBox(height: 26),
+                  _Picture(asset: picture, width: 115),
+                  const SizedBox(height: 26),
+                  for (var i = 0; i < cards.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 14),
+                    _PointCard(cards[i]),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          _Dots(current: page),
+          const SizedBox(height: 18),
+          GuardianPrimaryButton(
+            key: GuardianStartKeys.next,
+            label: '다음',
+            icon: Icons.arrow_forward_rounded,
+            onPressed: onNext,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LastPage extends StatelessWidget {
+  const _LastPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+      child: Column(
+        children: [
+          Expanded(
+            child: _Centred(
+              child: Column(
+                children: [
+                  const _Title('부모님의 안부가\n걱정되시나요?'),
+                  const SizedBox(height: 18),
+                  const _Picture(
+                    asset: 'assets/intro/guardian_home.png',
+                    width: 84,
+                  ),
+                  const SizedBox(height: 18),
+                  // It dials, exactly as the 119 tile does: the senior
+                  // presses call themselves, and nothing is sent to the
+                  // guardian. The line says 전화, not 알림, for that reason.
+                  const _PointCard(
+                    _Point(
+                      Icons.emergency_rounded,
+                      AppColors.guardianTintAmber,
+                      AppColors.guardianTintAmberInk,
+                      '긴급 구조 요청',
+                      '119, 112, 자녀에게 바로 전화해요',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const _PointCard(
+                    _Point(
+                      Icons.favorite_rounded,
+                      AppColors.guardianTintGreen,
+                      AppColors.guardianTintGreenInk,
+                      '마지막 폰 사용 시간',
+                      '언제 부모님이 폰을 사용하셨는지 확인할 수 있어요',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const _PointCard(
+                    _Point(
+                      Icons.chat_bubble_rounded,
+                      AppColors.guardianTintViolet,
+                      AppColors.guardianTintVioletInk,
+                      '메시지',
+                      '큰 글씨로 부모님도 쉽게 메시지를 보내실 수 있어요',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Kakao first: effectively every guardian in this age
+                  // range has one, and Google more often stalls on "which
+                  // account was mine".
+                  const _ProviderButton(
+                    buttonKey: GuardianStartKeys.kakao,
+                    provider: GuardianOAuthProvider.kakao,
+                    label: '카카오로 시작하기',
+                    background: AppColors.kakaoYellow,
+                    foreground: AppColors.kakaoInk,
+                    icon: Icons.chat_bubble,
+                  ),
+                  const SizedBox(height: 8),
+                  const _ProviderButton(
+                    buttonKey: GuardianStartKeys.google,
+                    provider: GuardianOAuthProvider.google,
+                    label: '구글로 시작하기',
+                    background: Colors.white,
+                    foreground: AppColors.guardianInk,
+                    icon: Icons.g_mobiledata,
+                    borderColor: AppColors.guardianRule,
+                  ),
+                  const SizedBox(height: 8),
+                  // Last because it asks for a password to invent and
+                  // remember, which the other two do not. It wears the app's
+                  // own blue rather than a brand's, so it does not read as a
+                  // second Google.
+                  const _ProviderButton(
+                    buttonKey: GuardianStartKeys.email,
+                    label: '이메일로 시작하기',
+                    background: AppColors.guardianTintBlue,
+                    foreground: AppColors.guardianTintBlueInk,
+                    icon: Icons.mail_rounded,
+                    destination: Routes.guardianLogin,
+                  ),
+                  const SizedBox(height: 12),
+                  // Says where agreeing happens rather than claiming it has:
+                  // passing a screen is not an act of agreement.
+                  const Text(
+                    '버튼을 누르면 약관을 확인하고 동의하는 화면이 나옵니다',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      height: 1.6,
+                      color: AppColors.guardianInkDisabled,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const _Dots(current: GuardianStartScreen.lastPage),
+        ],
+      ),
+    );
+  }
+}
+
+/// Centred in the height it has, and scrolling only when it does not fit -
+/// a short phone at a large system font size is still a phone this has to
+/// work on, and the guardian's half may scroll.
+class _Centred extends StatelessWidget {
+  const _Centred({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(child: child),
+        ),
+      ),
+    );
+  }
+}
+
+class _Title extends StatelessWidget {
+  const _Title(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 25,
+        height: 1.36,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1,
+        color: AppColors.guardianInk,
+      ),
+    );
+  }
+}
+
+/// A screen of this app, in a phone's frame.
+///
+/// **Captures of the real screens**, from `screenshots_test.dart`, cut to the
+/// top half and shrunk to 300x600 - `assets/intro/`. A drawing would have to
+/// be kept in step with the screens by hand; a capture is regenerated.
+class _Picture extends StatelessWidget {
+  const _Picture({required this.asset, required this.width});
+
+  final String asset;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: GuardianStartKeys.picture,
+      width: width,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.guardianInk,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.guardianCardShadow,
+            blurRadius: 24,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: AspectRatio(
+          aspectRatio: 1 / 2,
+          child: Image.asset(asset, fit: BoxFit.cover),
+        ),
+      ),
+    );
+  }
+}
+
+class _PointCard extends StatelessWidget {
+  const _PointCard(this.point);
+
+  final _Point point;
+
+  @override
+  Widget build(BuildContext context) {
+    return GuardianCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: point.tint,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(point.icon, size: 20, color: point.tintInk),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  point.title,
+                  style: const TextStyle(
+                    fontSize: 15.5,
+                    height: 1.4,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    color: AppColors.guardianInk,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  point.detail,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    height: 1.5,
+                    letterSpacing: -0.2,
+                    color: AppColors.guardianInkFaint,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Dots extends StatelessWidget {
+  const _Dots({required this.current});
+
+  final int current;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var i = 0; i <= GuardianStartScreen.lastPage; i++)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: i == current ? 22 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: i == current
+                  ? AppColors.guardianPrimary
+                  : AppColors.guardianRule,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -458,7 +632,7 @@ class _ProviderButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final configured = ref.watch(supabaseConfigProvider).isConfigured;
     return SizedBox(
-      height: 56,
+      height: 50,
       width: double.infinity,
       child: FilledButton(
         key: buttonKey,

@@ -114,7 +114,8 @@ void main() {
     await tester.tap(find.byKey(SplashScreen.guardianCardKey));
     await tester.pumpAndSettle();
 
-    expect(find.text('부모님께 이런 걸\n해드릴 수 있어요'), findsOneWidget);
+    // The first of the three intro pages.
+    expect(find.text('스마트폰이 어려운 부모님,\n이제 걱정하지 마세요'), findsOneWidget);
   });
 
   testWidgets("the guardian card clears the phone's own navigation bar", (

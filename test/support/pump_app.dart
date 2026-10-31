@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/features/guardian/presentation/guardian_start_screen.dart';
 import 'package:app/features/guardian/presentation/widgets/signup_consent_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/app.dart';
@@ -99,6 +100,14 @@ Future<void> agreeToTerms(WidgetTester tester) async {
   await tester.tap(find.byKey(SignupConsentSheet.allKey));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(SignupConsentSheet.continueKey));
+  await tester.pumpAndSettle();
+}
+
+/// Goes past the guardian's three intro pages to the one with the sign-in
+/// buttons. They are shown every time a signed-out guardian arrives, so every
+/// test that reaches a provider button passes through here.
+Future<void> skipGuardianIntro(WidgetTester tester) async {
+  await tester.tap(find.byKey(GuardianStartKeys.skip));
   await tester.pumpAndSettle();
 }
 

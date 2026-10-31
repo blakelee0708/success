@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -46,6 +48,7 @@ Future<void> _gotoLogin(
   );
   await tester.tap(find.byKey(SplashScreen.guardianCardKey));
   await tester.pumpAndSettle();
+  await skipGuardianIntro(tester);
   await tester.tap(find.byKey(GuardianStartKeys.email));
   await tester.pumpAndSettle();
   await agreeToTerms(tester);
@@ -141,6 +144,79 @@ void main() {
       expect(_messageText(tester), contains('new@example.com 으로 인증 메일을 보냈어요'));
     },
   );
+
+  group('the email form says which it is doing', () {
+    testWidgets('로그인 and 새로 가입하기 are two tabs, not a link', (tester) async {
+      // It was one small blue line, 계정이 없어요, 새로 만들래요, under the
+      // button, and a guardian looking for how to sign up could not find it.
+      await _gotoLogin(tester, InMemoryGuardianAuthRepository());
+
+      expect(find.byKey(GuardianLoginKeys.signInTab), findsOneWidget);
+      expect(find.byKey(GuardianLoginKeys.toggleMode), findsOneWidget);
+      expect(find.text('로그인'), findsWidgets);
+      expect(find.text('새로 가입하기'), findsOneWidget);
+      expect(find.text('계정이 없어요, 새로 만들래요'), findsNothing);
+
+      await tester.tap(find.byKey(GuardianLoginKeys.toggleMode));
+      await tester.pumpAndSettle();
+      expect(find.text('보호자 계정 만들기'), findsOneWidget);
+
+      await tester.tap(find.byKey(GuardianLoginKeys.signInTab));
+      await tester.pumpAndSettle();
+      expect(find.text('보호자 로그인'), findsOneWidget);
+    });
+
+    testWidgets('signing up says so in the middle, then says it is done', (
+      tester,
+    ) async {
+      // The button used to change its word to 잠시만요 and the screen moved
+      // on with nothing having said an account now existed.
+      final auth = InMemoryGuardianAuthRepository(confirmationRequired: false);
+      final pending = Completer<void>();
+      auth.beforeSignUp = () => pending.future;
+      await _gotoLogin(tester, auth);
+
+      await tester.tap(find.byKey(GuardianLoginKeys.toggleMode));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(GuardianLoginKeys.email), 'new@ex.com');
+      await tester.enterText(find.byKey(GuardianLoginKeys.password), 'hunter2');
+      await tester.tap(find.byKey(GuardianLoginKeys.submit));
+      await tester.pump();
+
+      expect(find.byKey(GuardianLoginKeys.progress), findsOneWidget);
+      expect(find.text('가입하는 중이에요'), findsOneWidget);
+
+      pending.complete();
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('가입이 완료됐어요'), findsOneWidget);
+
+      // And then on, by itself.
+      await tester.pump(GuardianLoginScreen.doneHold);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(GuardianLoginKeys.progress), findsNothing);
+      expect(find.byKey(GuardianNameScreen.field), findsOneWidget);
+    });
+
+    testWidgets('a refused sign-up takes the card away and says why', (
+      tester,
+    ) async {
+      final auth = InMemoryGuardianAuthRepository(confirmationRequired: false);
+      await auth.signUp(email: 'taken@ex.com', password: 'hunter2');
+      await auth.signOut();
+      await _gotoLogin(tester, auth);
+
+      await _submit(
+        tester,
+        email: 'taken@ex.com',
+        password: 'hunter2',
+        createAccount: true,
+      );
+
+      expect(find.byKey(GuardianLoginKeys.progress), findsNothing);
+      expect(_messageText(tester), '이미 가입된 이메일이에요. 로그인해 주세요.');
+    });
+  });
 
   testWidgets('signing up twice on the same address is refused', (
     tester,
