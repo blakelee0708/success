@@ -2116,7 +2116,12 @@ does for SOS.
 SDK and the Android Gradle Plugin. Don't spend time installing either.
 
 `.github/workflows/android.yml` builds the APK on GitHub's runners on every
-push, and uploads it as a run artifact along with the review screenshots. That
+push, and uploads it, with the review screenshots, **only on a run started by
+hand** (`workflow_dispatch`, which an agent can trigger with
+`mcp__github__actions_run_trigger`). Uploading on every push filled the
+account's free 0.5 GB of artifact storage on 2026-10-31: 34 MB a push, almost
+none of it downloaded. Old artifacts can be deleted from a session with
+`gh api -X DELETE repos/blakelee0708/success/actions/artifacts/<id>`. That
 is the only place the Kotlin is ever compiled, and the only way to get the app
 onto a real phone from here.
 

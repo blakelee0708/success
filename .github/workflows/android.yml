@@ -1,8 +1,8 @@
 name: Android
 
-# Builds an installable APK on every push, because nothing in this project can
-# be built or run in the remote development environment: `dl.google.com` is
-# blocked there, which rules out the Android SDK and the Gradle plugin. Until
+# Builds an APK on every push, and uploads it only on a manual run, because
+# nothing in this project can be built or run in the remote development
+# environment: `dl.google.com` is blocked there, which rules out the Android SDK and the Gradle plugin. Until
 # this workflow runs, `MainActivity.kt` has never been compiled by anything —
 # so a red build here is a real result, not a CI problem.
 
@@ -134,17 +134,20 @@ jobs:
 
       # The screens are reviewed as PNGs — there is no display in the
       # development environment — so they are worth keeping off the run.
+      #
+      # **Uploaded only on a run somebody started by hand**, like the APK
+      # below. On 2026-10-31 the account's 0.5 GB of artifact storage was
+      # full: every push uploaded 34 MB, nobody downloaded most of it, and a
+      # full allowance blocks the one upload that was wanted. The tests and
+      # the screenshots still run on every push; only the file is skipped.
       - name: Upload screenshots
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: screenshots
           path: build/screenshots/
           if-no-files-found: warn
-          # Two days. These are looked at the day they are produced, by
-          # whoever asked for the run, and never again - but the default is
-          # **90 days**, so every push kept 5 MB of PNGs for three months.
-          retention-days: 2
+          retention-days: 1
 
   apk:
     name: build APK
@@ -210,18 +213,22 @@ jobs:
       # the release build type at `signingConfigs.debug`. That installs fine by
       # sideload and is enough to test on a real phone, but it is NOT a store
       # build: a real upload key has to be set up before release.
+      #
+      # **Only on a run started by hand (workflow_dispatch).** The APK is
+      # 28 MB and the name carries the commit, so nothing replaces anything:
+      # three days of ordinary pushes filled the free 0.5 GB on 2026-10-31,
+      # and a full allowance refuses the next upload, which is the one
+      # somebody asked for. Every push still builds it - that is the only
+      # place the Kotlin compiles - and an APK for any commit is one manual
+      # run away. One day is enough: it is downloaded within minutes.
       - name: Upload APK
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: app-release-${{ github.sha }}
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-          # **Three days, against a default of 90.** The APK is 26 MB and
-          # the name carries the commit, so nothing ever replaces anything:
-          # forty pushes in one day is a gigabyte, and the free allowance is
-          # half of one. It is downloaded within minutes of the run that
-          # makes it, and any commit can be rebuilt by re-running its job.
-          retention-days: 3
+          retention-days: 1
 
       # The Kotlin and the manifest are never compiled anywhere else, so this
       # is the only place the launcher's defining fact can be checked at all:
