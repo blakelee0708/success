@@ -103,6 +103,46 @@ void main() {
     expect(find.byKey(GuardianFamilyKeys.openInviteForm), findsNothing);
   });
 
+  testWidgets('after 발송하기: the number, three steps, then a second try', (
+    tester,
+  ) async {
+    // 2026-10-31, design 2 of the owner's two: the number in a box of its
+    // own, what to ask the parent as three numbered steps, the consent in
+    // one green line, and resending last.
+    final h = await _pumpFamilyTab(tester, pendingConsent: true);
+
+    await tester.tap(find.byKey(GuardianFamilyKeys.openInviteForm));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(GuardianFamilyKeys.nameField), '엄마');
+    await tester.tap(find.byKey(GuardianFamilyKeys.invite));
+    await tester.pumpAndSettle();
+
+    expect(find.text('부모님께 연결 번호 문자를 보내드리세요'), findsOneWidget);
+    // The parent's name is not in the heading any more.
+    expect(find.textContaining('엄마께'), findsNothing);
+    final code = h.pairing.issued.last.code;
+    expect(find.text(code), findsOneWidget);
+    expect(find.text('7일 동안 쓸 수 있어요'), findsOneWidget);
+    expect(find.text('부모님께 이렇게 부탁해 주세요'), findsOneWidget);
+    for (final step in const ['잘보이네 앱 설치하기', '가족 연결 버튼 누르기', '이 번호 입력하기']) {
+      expect(find.text(step), findsOneWidget, reason: step);
+    }
+    expect(
+      find.text('부모님이 허락하시면 런처 화면과 연결되어 스마트폰 사용을 도와드릴 수 있어요'),
+      findsOneWidget,
+    );
+    expect(find.text('문자를 못 보내셨나요?'), findsOneWidget);
+
+    double y(Finder f) => tester.getTopLeft(f).dy;
+    expect(y(find.text(code)), lessThan(y(find.text('잘보이네 앱 설치하기'))));
+    expect(
+      y(find.text('이 번호 입력하기')),
+      lessThan(y(find.byKey(GuardianFamilyKeys.sendInviteCode))),
+    );
+    // The old paragraph above the number is gone.
+    expect(find.textContaining('설치하고 번호를 넣으시면'), findsNothing);
+  });
+
   testWidgets('the invite never claims the message was sent', (tester) async {
     // The app can only hand the text to the messaging app, and cannot see what
     // happens next. Same rule as SOS: never claim an action the user still has

@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 831 tests, all passing
+flutter test             # currently 832 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -3673,6 +3673,26 @@ The tab labels are two lines (설치 문자 / 부모님께 보내드리기, 부�
 to three lines instead of ending in …, which had cut 내 전화번호's reason to
 `전화가 갑…` at 390px; that helper is 부모님 폰의 긴급 연락이 이 번호로
 걸려요 now, short enough not to leave 다 alone on a line.
+
+### The waiting card is the number, three steps and a second try
+
+Same day, design 2 of the two the owner was shown. After 발송하기 the card
+reads 부모님께 연결 번호 문자를 보내드리세요 - 부모님, not the name the parent
+was saved under - and then, in this order:
+
+- the number on the hero's blue (`_CodePanel`), with 복사 and **7일 동안 쓸 수
+  있어요** on it;
+- 부모님께 이렇게 부탁해 주세요 and three numbered steps - 잘보이네 앱
+  설치하기, 가족 연결 버튼 누르기, 이 번호 입력하기 - which are the owner's
+  sentence cut where somebody reading it down the phone would pause;
+- one green line: 부모님이 허락하시면 런처 화면과 연결되어 스마트폰 사용을
+  도와드릴 수 있어요;
+- 문자를 못 보내셨나요? and 문자 다시 보내기, then 연결 요청 취소하기 centred
+  and underlined, the quietest thing on the card.
+
+The paragraph that sat above the number is gone: with the steps under it, it
+was the same instructions twice. `GuardianInviteSender` draws all of this in
+both places it appears, and `guardian_family_tab_test` holds the order.
 
 ## Conventions
 

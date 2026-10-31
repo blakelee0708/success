@@ -294,16 +294,18 @@ class _HomeTab extends ConsumerWidget {
             ? '$named 폰에 아직 앱이 설치되지 않았어요'
             : invite == null
             ? '$named 폰에 여쭤봤어요'
-            : '${who == null || who.isEmpty ? '부모님' : who}께 '
-                  '${(ref.watch(appConfigProvider).value?.storeListed ?? false) ? '문자 두 개를' : '연결 번호 문자를'} 보내 주세요';
+            // 부모님, not the name they were saved under - the owner's
+            // wording (2026-10-31). The name is on the line above already.
+            : (ref.watch(appConfigProvider).value?.storeListed ?? false)
+            ? '부모님께 문자 두 개를 보내드리세요'
+            : '부모님께 연결 번호 문자를 보내드리세요';
         final detail = expired
             ? '보내신 번호는 7일이 지나 더 이상 쓸 수 없어요. '
                   '새 번호를 만들어 다시 보내 주세요.'
             : invite == null
             ? '부모님 폰에 연결해도 되는지 여쭤보는 화면이 떠 있어요. '
                   '허락하시면 바로 이어집니다.'
-            : '설치하고 번호를 넣으시면, 부모님 폰에 연결해도 되는지 '
-                  '여쭤보는 화면이 떠요. 허락하시면 바로 이어집니다.';
+            : '';
         return _TabScaffold(
           title: title,
           children: [
@@ -323,17 +325,22 @@ class _HomeTab extends ConsumerWidget {
                         color: AppColors.guardianInk,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      detail,
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        height: 1.55,
-                        color: AppColors.guardianInkSoft,
+                    // With a number to send, the number and the three steps
+                    // under it say all of this; a paragraph above them was
+                    // the same instructions twice.
+                    if (invite == null || expired) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        detail,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          height: 1.55,
+                          color: AppColors.guardianInkSoft,
+                        ),
                       ),
-                    ),
+                    ],
                     if (invite != null && !expired) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       GuardianInviteSender(link: invite, phoneNumber: phone),
                     ],
                     _WaitingActions(
@@ -781,18 +788,23 @@ class _WaitingActionsState extends ConsumerState<_WaitingActions> {
           ),
         ],
         const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerLeft,
+        // Centred and underlined under the resend, the quietest thing on
+        // the card: nobody opens this page in order to give up on it.
+        Center(
           child: TextButton(
             key: GuardianHomeKeys.withdrawRequest,
             onPressed: _busy ? null : _withdraw,
             style: TextButton.styleFrom(
               foregroundColor: AppColors.guardianInkSoft,
-              padding: EdgeInsets.zero,
             ),
             child: const Text(
               '연결 요청 취소하기',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                decoration: TextDecoration.underline,
+                decorationColor: AppColors.guardianInkSoft,
+              ),
             ),
           ),
         ),

@@ -714,37 +714,51 @@ class GuardianInviteSender extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // **Design 2 of two, the owner's pick (2026-10-31)**: the number in
+        // a box of its own, what to ask the parent as three steps, the
+        // consent in one green line, resending last. The steps are the
+        // sentence 부모님께 잘보이네 앱을 설치하고 가족 연결 버튼을 누른 다음,
+        // 이 번호를 입력해 달라고 하세요 cut where a guardian on the phone to
+        // their mother would pause.
+        _CodePanel(code: link.code),
+        const SizedBox(height: 18),
         const Text(
-          '연결 번호',
+          '부모님께 이렇게 부탁해 주세요',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: AppColors.guardianInkSoft,
+            letterSpacing: -0.3,
+            color: AppColors.guardianInk,
           ),
         ),
-        const SizedBox(height: 4),
-        _IssuedCode(
-          code: link.code,
-          hint: '부모님 폰의 가족 연결 화면에 넣는 번호예요. 7일 동안 쓸 수 있어요.',
+        const SizedBox(height: 10),
+        for (final (i, step) in const [
+          '잘보이네 앱 설치하기',
+          '가족 연결 버튼 누르기',
+          '이 번호 입력하기',
+        ].indexed) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _Step(number: i + 1, label: step),
+        ],
+        const SizedBox(height: 12),
+        const _ConsentNote(),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Divider(height: 1, color: AppColors.guardianRule),
         ),
-        const SizedBox(height: 16),
         // Never "문자를 보냈어요": the app hands each text to the messaging
         // app and cannot see what happens after that. 발송하기 has already
         // opened the first text by the time this is drawn, so what is left
         // is the second (once the store link is live) or a second try.
         Text(
-          listed
-              ? '설치 링크 문자를 보내셨으면, 이어서 연결 번호를 보내 주세요. '
-                    '문자 앱이 열리면 보내기를 눌러 주세요.'
-              : '문자를 못 보내셨으면 다시 보낼 수 있어요. '
-                    '문자 앱이 열리면 보내기를 눌러 주세요.',
+          listed ? '연결 번호도 보내 주세요' : '문자를 못 보내셨나요?',
           style: const TextStyle(
-            fontSize: 14,
-            height: 1.5,
+            fontSize: 14.5,
+            fontWeight: FontWeight.w700,
             color: AppColors.guardianInk,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         if (listed) ...[
           GuardianPrimaryButton(
             key: GuardianFamilyKeys.sendInviteCode,
@@ -774,7 +788,241 @@ class GuardianInviteSender extends ConsumerWidget {
             ),
             label: '문자 다시 보내기',
           ),
+        const SizedBox(height: 8),
+        const Center(
+          child: Text(
+            '문자 앱이 열리면 보내기를 눌러 주세요',
+            style: TextStyle(fontSize: 13, color: AppColors.guardianInkSoft),
+          ),
+        ),
       ],
+    );
+  }
+}
+
+/// The install number on the hero's blue, with its copy button and how long
+/// it lasts. White on these stops is the pairing `guardian_palette_test`
+/// already measures for the hero card.
+class _CodePanel extends StatelessWidget {
+  const _CodePanel({required this.code});
+
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment(-1, -0.6),
+          end: Alignment(1, 0.6),
+          colors: [
+            AppColors.guardianHeroStart,
+            AppColors.guardianHeroMid,
+            AppColors.guardianHeroEnd,
+          ],
+          stops: [0, 0.55, 1],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.guardianHeroShadow,
+            offset: Offset(0, 12),
+            blurRadius: 22,
+            spreadRadius: -12,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '연결 번호',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Material(
+                  color: const Color(0x2EFFFFFF),
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => Clipboard.setData(ClipboardData(text: code)),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 7,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.copy_rounded,
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            '복사',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: SelectableText(
+                code,
+                key: GuardianFamilyKeys.issuedCode,
+                style: const TextStyle(
+                  fontSize: 38,
+                  height: 1.2,
+                  letterSpacing: 9,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0x33FFFFFF),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 11, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.schedule_rounded, size: 14, color: Colors.white),
+                    SizedBox(width: 5),
+                    Text(
+                      '7일 동안 쓸 수 있어요',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One of the three things to ask the parent, numbered in a blue disc.
+class _Step extends StatelessWidget {
+  const _Step({required this.number, required this.label});
+
+  final int number;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.guardianTintBlue,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: AppColors.guardianPrimary,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '$number',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.guardianInk,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What happens after the three steps, and who decides it.
+class _ConsentNote extends StatelessWidget {
+  const _ConsentNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.guardianTintGreen,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.fromLTRB(12, 12, 14, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(top: 1),
+              child: Icon(
+                Icons.check_rounded,
+                size: 19,
+                color: AppColors.guardianTintGreenInk,
+              ),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '부모님이 허락하시면 런처 화면과 연결되어 스마트폰 사용을 도와드릴 수 있어요',
+                style: TextStyle(
+                  fontSize: 14.5,
+                  height: 1.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.guardianTintGreenInk,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
