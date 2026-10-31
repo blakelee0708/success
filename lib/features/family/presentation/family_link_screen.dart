@@ -25,6 +25,8 @@ class FamilyLinkKeys {
   static const showCode = Key('family-link-show-code');
   static const waiting = Key('family-link-waiting');
   static const visibility = Key('family-link-visibility');
+  static const top = Key('family-link-top');
+  static const topContent = Key('family-link-top-content');
   static const shownCode = Key('family-link-shown-code');
   static const code = Key('family-link-code');
   static const submit = Key('family-link-submit');
@@ -99,113 +101,80 @@ class _FamilyLinkScreenState extends ConsumerState<FamilyLinkScreen> {
       body: Stack(
         children: [
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-              child: MediaQuery.withClampedTextScaling(
-                // Raising the text size is the point of this app, so the code and
-                // the field grow with it rather than being pinned small.
-                minScaleFactor: scale?.scale ?? 1.0,
-                maxScaleFactor: scale?.scale ?? 1.0,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (connected)
-                      _Connected(
-                        guardians:
-                            ref.watch(seniorGuardiansProvider).value ??
-                            const [],
-                      )
-                    else ...[
-                      const _ShowCode(),
-                      const SizedBox(height: 34),
-                      const Divider(
-                        height: 2,
-                        thickness: 2,
-                        color: AppColors.seniorHairline,
+            child: MediaQuery.withClampedTextScaling(
+              // Raising the text size is the point of this app, so the code and
+              // the field grow with it rather than being pinned small.
+              minScaleFactor: scale?.scale ?? 1.0,
+              maxScaleFactor: scale?.scale ?? 1.0,
+              child: connected
+                  ? SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _Connected(
+                            guardians:
+                                ref.watch(seniorGuardiansProvider).value ??
+                                const [],
+                          ),
+                          const SizedBox(height: 30),
+                          const _Visibility(),
+                        ],
                       ),
-                      const SizedBox(height: 26),
-                      _EnterCode(
-                        controller: _code,
-                        busy: _busy,
-                        error: _error,
-                        onSubmit: _enterCode,
-                      ),
-                    ],
-                    const SizedBox(height: 30),
-                    // **자녀가 보는 것 lives here now.** It was a row in 설정 and 설정 had
-                    // to fit one screen without scrolling - the rule 사용법 has had from
-                    // the start and this one never did, with more than half the list
-                    // below the fold. This screen is where it belongs anyway: what the
-                    // children can see is about the family, and the question only has a
-                    // subject once there is one.
-                    SizedBox(
-                      key: FamilyLinkKeys.visibility,
-                      height: 84,
-                      child: ClayPad(
-                        light: AppColors.seniorButtonYellowLight,
-                        face: AppColors.seniorButtonYellow,
-                        deep: AppColors.seniorButtonYellowDeep,
-                        wall: AppColors.seniorButtonYellowWall,
-                        radius: 26,
-                        onTap: () => context.push(Routes.familyVisibility),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 18),
-                          child: Row(
-                            children: [
-                              // Yellow cannot hold white lettering, the same rule the
-                              // 카카오톡 tile and the amber 가족 button follow.
-                              Icon(
-                                Icons.visibility_rounded,
-                                size: 34,
-                                color: AppColors.seniorInk,
-                              ),
-                              SizedBox(width: 16),
-                              Expanded(
+                    )
+                  // **One screen, and no scrolling at all.** Photographed on a
+                  // real Galaxy on 2026-10-31 with 연결하기 under the fold: a
+                  // senior typed the number their child read out and found
+                  // nothing to press. Three things made room - the red pad
+                  // came down from 140 to 110, the field and 연결하기 share a
+                  // row, and 자녀가 보는 것 waits until there is a family to
+                  // see.
+                  //
+                  // What is left is fixed at the bottom and the top gives way:
+                  // the half that tells them what to do shrinks to fit rather
+                  // than pushing the field off the screen. It is 1:1 at every
+                  // size but 제일 크게, and it is also what keeps the field in
+                  // view when the keyboard comes up and takes half the height.
+                  : Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Flexible(
+                            child: LayoutBuilder(
+                              // No alignment on the wrapper: one would make it
+                              // fill the space and push the field to the
+                              // bottom of the screen, away from the number.
+                              builder: (context, box) => Container(
+                                key: FamilyLinkKeys.top,
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerLeft,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '자녀가 보는 것',
-                                        style: TextStyle(
-                                          fontSize: 23,
-                                          height: 1.2,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: -0.5,
-                                          color: AppColors.seniorInk,
-                                        ),
-                                      ),
-                                      SizedBox(height: 3),
-                                      Text(
-                                        '무엇이 전해지는지 누르세요',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w500,
-                                          color: AppColors.seniorInk,
-                                        ),
-                                      ),
-                                    ],
+                                  alignment: Alignment.topCenter,
+                                  child: SizedBox(
+                                    key: FamilyLinkKeys.topContent,
+                                    width: box.maxWidth,
+                                    child: const _ShowCode(),
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 10),
-                              Icon(
-                                Icons.chevron_right,
-                                size: 28,
-                                color: AppColors.seniorInk,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 22),
+                          const Divider(
+                            height: 2,
+                            thickness: 2,
+                            color: AppColors.seniorHairline,
+                          ),
+                          const SizedBox(height: 16),
+                          _EnterCode(
+                            controller: _code,
+                            busy: _busy,
+                            error: _error,
+                            onSubmit: _enterCode,
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
             ),
           ),
           // Questions only. An unread message is not one, and this screen is
@@ -213,6 +182,90 @@ class _FamilyLinkScreenState extends ConsumerState<FamilyLinkScreen> {
           const SeniorNoticeLayer(messages: false),
         ],
       ),
+    );
+  }
+}
+
+/// 자녀가 보는 것, under 연결되었어요.
+class _Visibility extends StatelessWidget {
+  const _Visibility();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // **자녀가 보는 것 lives here now.** It was a row in 설정 and 설정 had
+        // to fit one screen without scrolling - the rule 사용법 has had from
+        // the start and this one never did, with more than half the list
+        // below the fold. This screen is where it belongs anyway: what the
+        // children can see is about the family, and the question only has a
+        // subject once there is one.
+        SizedBox(
+          key: FamilyLinkKeys.visibility,
+          height: 84,
+          child: ClayPad(
+            light: AppColors.seniorButtonYellowLight,
+            face: AppColors.seniorButtonYellow,
+            deep: AppColors.seniorButtonYellowDeep,
+            wall: AppColors.seniorButtonYellowWall,
+            radius: 26,
+            onTap: () => context.push(Routes.familyVisibility),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18),
+              child: Row(
+                children: [
+                  // Yellow cannot hold white lettering, the same rule the
+                  // 카카오톡 tile and the amber 가족 button follow.
+                  Icon(
+                    Icons.visibility_rounded,
+                    size: 34,
+                    color: AppColors.seniorInk,
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '자녀가 보는 것',
+                            style: TextStyle(
+                              fontSize: 23,
+                              height: 1.2,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                              color: AppColors.seniorInk,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            '무엇이 전해지는지 누르세요',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.seniorInk,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 28,
+                    color: AppColors.seniorInk,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -299,7 +352,10 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
           // the palette — it reads as washed out beside everything else.
           _ => SizedBox(
             key: FamilyLinkKeys.showCode,
-            height: 140,
+            // 110, down from 140, so 연결하기 fits under it on one screen. Still
+            // more than half again the height of 연결하기 (72), which is what
+            // keeps it reading as the answer rather than as one of two.
+            height: 110,
             child: ClayPad(
               light: AppColors.seniorButtonRedLight,
               face: AppColors.seniorButtonRed,
@@ -315,8 +371,8 @@ class _ShowCodeState extends ConsumerState<_ShowCode> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.phone_iphone, size: 40, color: Colors.white),
-                      SizedBox(height: 10),
+                      Icon(Icons.phone_iphone, size: 30, color: Colors.white),
+                      SizedBox(height: 6),
                       Text(
                         '번호 보여주기',
                         style: TextStyle(
@@ -445,39 +501,94 @@ class _EnterCode extends StatelessWidget {
             color: AppColors.seniorInkMuted,
           ),
         ),
-        const SizedBox(height: 16),
-        TextField(
-          key: FamilyLinkKeys.code,
-          controller: controller,
-          enabled: !busy,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(6),
-          ],
-          style: const TextStyle(
-            fontSize: 32,
-            letterSpacing: 8,
-            fontWeight: FontWeight.w700,
-          ),
-          textAlign: TextAlign.center,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.seniorSlotFill,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(
-                color: AppColors.seniorSlotBorder,
-                width: 2.5,
+        const SizedBox(height: 12),
+        // The field and 연결하기 share a row. Stacked, 연결하기 was the first
+        // thing pushed under the fold; side by side it stays in view with the
+        // field when the keyboard comes up.
+        SizedBox(
+          height: 72,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 13,
+                // The digits are 32px already, and the row is 72 at every
+                // size: past 1.3 four of them stop fitting the width.
+                child: MediaQuery.withClampedTextScaling(
+                  maxScaleFactor: 1.3,
+                  child: TextField(
+                    key: FamilyLinkKeys.code,
+                    controller: controller,
+                    enabled: !busy,
+                    // Fills the row's 72 exactly rather than sizing itself, so
+                    // the field and 연결하기 are the same height at every size.
+                    expands: true,
+                    maxLines: null,
+                    textAlignVertical: TextAlignVertical.center,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
+                    style: const TextStyle(
+                      fontSize: 32,
+                      letterSpacing: 8,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                      filled: true,
+                      fillColor: AppColors.seniorSlotFill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: const BorderSide(
+                          color: AppColors.seniorSlotBorder,
+                          width: 2.5,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: const BorderSide(
+                          color: AppColors.seniorSlotBorder,
+                          width: 2.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(
-                color: AppColors.seniorSlotBorder,
-                width: 2.5,
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 10,
+                child: SizedBox(
+                  key: FamilyLinkKeys.submit,
+                  child: ClayPad(
+                    light: AppColors.seniorMoreLight,
+                    face: AppColors.seniorMore,
+                    deep: AppColors.seniorMoreDeep,
+                    wall: AppColors.seniorMoreWall,
+                    radius: 26,
+                    onTap: busy ? null : onSubmit,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          busy ? '연결하는 중이에요' : '연결하기',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.4,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
         if (error case final message?) ...[
@@ -492,34 +603,6 @@ class _EnterCode extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 20),
-        SizedBox(
-          key: FamilyLinkKeys.submit,
-          height: 72,
-          child: ClayPad(
-            light: AppColors.seniorMoreLight,
-            face: AppColors.seniorMore,
-            deep: AppColors.seniorMoreDeep,
-            wall: AppColors.seniorMoreWall,
-            radius: 26,
-            onTap: busy ? null : onSubmit,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  busy ? '연결하는 중이에요' : '연결하기',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.4,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }

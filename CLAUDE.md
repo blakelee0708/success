@@ -17,7 +17,7 @@ Commands:
 
 ```bash
 flutter analyze          # currently clean
-flutter test             # currently 821 tests, all passing
+flutter test             # currently 828 tests, all passing
 ```
 
 The SDK unpacks as a root-owned git checkout, so `git config --global --add
@@ -645,6 +645,12 @@ back when the rows could not otherwise hold a 44px icon over a label.
 screens for exactly that reason. It is the one check a `FittedBox` cannot make
 for you.
 
+**The date is 34px in the clock's own ink** since 2026-10-31, up from 20px
+grey, after it was read on a real phone and called impossible to see.
+`preferredStrip` went from 132 to 150 with it - the same rule as above: the
+height moves with the type, or the `FittedBox` takes the difference out of
+the clock.
+
 The date sits *above* the clock. Side by side they ran to 328px inside a 310px
 card and the date was pushed out of its own box; Korean glyphs are about as
 wide as the type size, so a line of them has to be measured, not eyeballed.
@@ -704,6 +710,20 @@ So the first is a 140px red pad reading **번호 보여주기 / 여기를 누르
 the second is a quieter question below a rule — `자녀분이 먼저 번호를 알려
 주셨나요?`, which only the few it applies to will answer. A test asserts the
 first is more than half again the height of the second.
+
+**The screen fits one page, 첫 화면으로 가기 included** (2026-10-31). On a
+real Galaxy 연결하기 sat under the fold, so a senior who typed the number
+their child read out found nothing to press. The red pad is 110 rather than
+140, the field and 연결하기 share one 72px row, and 자녀가 보는 것 is drawn
+only once a child is attached - before that it has no subject. Nothing on the
+unconnected screen scrolls: the top half (heading and pad, or the number once
+shown) sits in a `FittedBox(scaleDown)` inside a loose `Flexible`, so it gives
+way rather than pushing the field off the screen, and that is also what keeps
+the field in view when the keyboard takes half the height. It draws 1:1 at
+every size but 제일 크게. The wrapper must carry no `alignment` - one makes it
+fill the space and drops the field to the bottom of the screen, away from the
+number. `family_link_fits_test` holds all of it at the four sizes, before and
+after 번호 보여주기.
 
 **It is 영상 보기's red (`#DF4F28`) with white lettering**, not the amber 가족
 wears elsewhere. Two measurements decided that: the amber sits at hue 36°,

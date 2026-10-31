@@ -29,7 +29,7 @@ class AppColors {
   /// It is not the brown that came out of the palette. That was #3A2410 and
   /// plainly brown; this is ink with warmth in it.
   static const seniorInk = Color(0xFF352F29);
-  static const seniorInkMuted = Color(0xFF8E8A84); // the date above the clock
+  static const seniorInkMuted = Color(0xFF8E8A84); // quiet captions
   static const seniorHairline = Color(0xFFE3E4E6); // the rule inside the card
 
   /// The two home buttons. Blue and teal went first — short-wavelength

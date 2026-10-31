@@ -3,6 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app/core/supabase/supabase_providers.dart';
+import 'package:app/data/remote/home_apps_repository.dart';
+import 'package:app/data/remote/pairing_repository.dart';
+import 'package:app/data/remote/senior_link_repository.dart';
+import 'package:app/data/senior_link_store.dart';
 import 'package:app/features/family/presentation/family_link_screen.dart';
 import 'package:app/data/senior_settings_repository.dart';
 import 'package:app/domain/launcher_app.dart';
@@ -21,11 +26,32 @@ import '../../support/pump_app.dart';
 /// look. That is the gap Play's rules about collecting an adult's data are
 /// aimed at, and separately a fair question from somebody whose home screen
 /// this is.
+///
+/// It is drawn only once a child is attached - before that the question has
+/// no subject - so this phone is a connected one.
 Future<void> _pumpSettings(WidgetTester tester) async {
+  final store = InMemorySeniorLinkRepository();
+  final pairing = InMemoryPairingRepository(store);
+  await store.ensureGuardianAccount(displayName: '영희');
+  final started = await pairing.startSeniorPairing(installId: 'senior-phone');
+  final profile = await pairing.claimSeniorPairingCode(
+    code: started.code,
+    displayName: '어머니',
+  );
   await pumpApp(
     tester,
     overrides: [
       appLauncherProvider.overrideWithValue(FakeAppLauncher(defaultHome: true)),
+      seniorLinkRepositoryProvider.overrideWithValue(store),
+      pairingRepositoryProvider.overrideWithValue(pairing),
+      homeAppsRepositoryProvider.overrideWithValue(
+        InMemoryHomeAppsRepository(),
+      ),
+      seniorLinkStoreProvider.overrideWithValue(
+        InMemorySeniorLinkStore(
+          SeniorLink(installId: 'senior-phone', seniorProfileId: profile.id),
+        ),
+      ),
     ],
     prefs: {
       SharedPreferencesSeniorSettingsRepository.storageKey: jsonEncode(
@@ -53,8 +79,6 @@ Future<void> _openVisibility(WidgetTester tester) async {
   await _pumpSettings(tester);
   await tester.tap(find.text('가족 연결 설정'));
   await tester.pumpAndSettle();
-  // Last on a screen that scrolls, so a tap aimed at it lands on nothing
-  // until it is brought up.
   await tester.ensureVisible(find.byKey(FamilyLinkKeys.visibility));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(FamilyLinkKeys.visibility));

@@ -54,13 +54,21 @@ class HomeStrip extends ConsumerWidget {
                   // The date sits above the clock rather than beside it: side by
                   // side, the two ran to 328px inside a 310px card and the date
                   // was pushed out of its own box.
+                  // 34px and in the clock's own ink, up from 20px grey on
+                  // 2026-10-31: read on a real phone and called impossible to
+                  // see. One line always, for the reason the clock is - a
+                  // wrapped date would be absorbed by the `FittedBox` and
+                  // shrink the clock with it.
                   Text(
                     koreanDate(now),
+                    maxLines: 1,
+                    softWrap: false,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 34,
                       height: 1.3,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.seniorInkMuted,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.6,
+                      color: AppColors.seniorInk,
                     ),
                   ),
                   const SizedBox(height: 4),

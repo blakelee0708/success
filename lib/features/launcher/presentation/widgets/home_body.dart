@@ -49,7 +49,11 @@ class HomeBody extends ConsumerWidget {
   /// larger by scaling the whole band back down — so every increase cancelled
   /// itself and the band looked unchanged. That is the same silence this
   /// wrapper has produced twice before. The height had to move with the type.
-  static const preferredStrip = 132.0;
+  ///
+  /// 150 since 2026-10-31, when the date went from 20px to 34px: 18px more
+  /// line, and the same rule - the height moves with the type or the
+  /// `FittedBox` takes it back out of the clock.
+  static const preferredStrip = 150.0;
 
   /// The band yields down to this, but only when the rows could not otherwise
   /// hold an icon and a label.

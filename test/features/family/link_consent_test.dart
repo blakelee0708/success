@@ -252,7 +252,7 @@ void main() {
     await tester.tap(find.text('가족 연결').first);
     await tester.pumpAndSettle();
     expect(
-      find.byKey(FamilyLinkKeys.visibility),
+      find.byKey(FamilyLinkKeys.showCode),
       findsOneWidget,
       reason: 'should be standing on 가족 연결',
     );
